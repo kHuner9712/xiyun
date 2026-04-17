@@ -6,7 +6,7 @@
 
 | 配置项 | 原值 | 风险等级 |
 |--------|------|----------|
-| 微信OAuth appsecret | `REDACTED_APPSECRET` | P0-必须轮换 |
+| 微信OAuth appsecret | 已从代码和git历史中清除 | P0-必须轮换 |
 | 微信 appid (App支付/分享/OAuth) | `wx3bac19ff90c0a976` | P1-建议轮换 |
 | QQ appid | `102076195` | P1-建议轮换 |
 | Google OAuth clientid | `510187709509-fq3t5grcfh81t4ub491tiadrtfjbaes1...` | P2-低风险 |
@@ -57,6 +57,12 @@ cp manifest.local.json.example manifest.local.json
 ```
 
 构建脚本需在编译前将 `manifest.local.json` 中的值合并到 `manifest.json`，或使用 uni-app 的条件编译机制读取。
+
+## Git 历史清理
+
+已使用 `git filter-repo` 将微信 OAuth appsecret 从 git 历史中替换为 `REDACTED_APPSECRET`，并 force push 到远程仓库。
+
+**注意**：任何之前 clone 过该仓库的开发者，需要重新 clone 仓库，旧本地仓库中的历史仍包含明文密钥。
 
 ## 注意事项
 
