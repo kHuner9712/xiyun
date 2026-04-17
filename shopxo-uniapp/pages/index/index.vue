@@ -564,6 +564,8 @@
                 this.set_navigation_bar_color();
 
                 this.get_muying_activity_list();
+                this.get_muying_article_list();
+                this.get_muying_feedback_list();
             },
 
         // 下拉刷新
@@ -834,6 +836,54 @@
                         if (res.data.code == 0) {
                             var list = (res.data.data && res.data.data.data) || [];
                             self.setData({ muying_activity_list: list });
+                        }
+                    },
+                });
+            },
+
+            get_muying_article_list() {
+                var self = this;
+                uni.request({
+                    url: app.globalData.get_request_url('datalist', 'article'),
+                    method: 'POST',
+                    data: { n: 3 },
+                    dataType: 'json',
+                    success: function(res) {
+                        if (res.data.code == 0) {
+                            var raw = (res.data.data && res.data.data.data) || [];
+                            var list = raw.map(function(item) {
+                                return {
+                                    id: item.id,
+                                    title: item.title || '',
+                                    desc: item.describe || '',
+                                    tags: (item.article_category_name || '').split(',').filter(function(t) { return t; }),
+                                };
+                            });
+                            self.setData({ muying_article_list: list });
+                        }
+                    },
+                });
+            },
+
+            get_muying_feedback_list() {
+                var self = this;
+                uni.request({
+                    url: app.globalData.get_request_url('index', 'feedback'),
+                    method: 'POST',
+                    data: { n: 3 },
+                    dataType: 'json',
+                    success: function(res) {
+                        if (res.data.code == 0) {
+                            var raw = (res.data.data && res.data.data.data) || [];
+                            var list = raw.map(function(item) {
+                                return {
+                                    avatar_emoji: '\u{1F931}',
+                                    name: item.nickname || '',
+                                    content: item.content || '',
+                                    stage_text: item.stage_text || '',
+                                };
+                            });
+                            self.setData({ muying_feedback_list: list });
                         }
                     },
                 });

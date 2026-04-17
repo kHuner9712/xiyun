@@ -1,0 +1,37 @@
+<?php
+namespace app\api\controller;
+
+use app\service\ApiService;
+use app\service\SystemBaseService;
+use app\service\FeedbackService;
+
+class Feedback extends Common
+{
+    public function __construct()
+    {
+        parent::__construct();
+    }
+
+    public function Index()
+    {
+        $params = $this->data_request;
+        $where = FeedbackService::FeedbackWhere($params);
+        $total = FeedbackService::FeedbackTotal($where);
+        $page_total = ceil($total / $this->page_size);
+        $start = intval(($this->page - 1) * $this->page_size);
+
+        $data_params = array_merge($params, [
+            'm'     => $start,
+            'n'     => $this->page_size,
+            'where' => $where,
+        ]);
+        $data = FeedbackService::FeedbackList($data_params);
+
+        $result = [
+            'total'      => $total,
+            'page_total' => $page_total,
+            'data'       => $data['data'],
+        ];
+        return ApiService::ApiDataReturn(SystemBaseService::DataReturn($result));
+    }
+}
