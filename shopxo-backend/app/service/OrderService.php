@@ -1011,15 +1011,7 @@ class OrderService
                 // 邀请首单钩子
                 try
                 {
-                    $paid_count = Db::name('Order')->where([
-                        ['user_id', '=', $order['user_id']],
-                        ['pay_status', '=', 1],
-                        ['is_delete_time', '=', 0],
-                    ])->count();
-                    if($paid_count <= 1)
-                    {
-                        InviteService::OnFirstOrder(['user_id' => $order['user_id']]);
-                    }
+                    InviteService::OnFirstOrder(['user_id' => $order['user_id']]);
                 } catch(\Exception $e) {
                     \think\facade\Log::error('邀请首单奖励异常 order_id=' . $order['id'] . ' user_id=' . $order['user_id'] . ' error=' . $e->getMessage());
                 }

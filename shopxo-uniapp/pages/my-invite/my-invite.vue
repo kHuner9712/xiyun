@@ -99,6 +99,20 @@
             this.get_reward_list();
         },
 
+        onShareAppMessage() {
+            return {
+                title: '邀请好友 赢奖励',
+                path: '/pages/login/login?invite_code=' + (this.invite_code || ''),
+            };
+        },
+
+        onShareTimeline() {
+            return {
+                title: '邀请好友 赢奖励',
+                query: 'invite_code=' + (this.invite_code || ''),
+            };
+        },
+
         methods: {
             copy_invite_code() {
                 if (!this.invite_code) {
@@ -114,7 +128,10 @@
             },
 
             share_event() {
-                app.globalData.showToast('分享功能暂未开放');
+                uni.showShareMenu({
+                    withShareTicket: true,
+                    menus: ['shareAppMessage', 'shareTimeline'],
+                });
             },
 
             get_invite_info() {

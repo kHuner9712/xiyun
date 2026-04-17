@@ -1662,9 +1662,16 @@ class UserService
             // 邀请注册钩子
             try
             {
+                $invite_code = isset($params['invite_code']) ? $params['invite_code'] : '';
+                if (empty($invite_code) && !empty($params['referrer'])) {
+                    $referrer_user = Db::name('User')->where(['id' => intval($params['referrer'])])->field('invite_code')->find();
+                    if (!empty($referrer_user['invite_code'])) {
+                        $invite_code = $referrer_user['invite_code'];
+                    }
+                }
                 InviteService::OnUserRegister([
                     'user_id'     => $user_ret['data']['user_id'],
-                    'invite_code' => isset($params['invite_code']) ? $params['invite_code'] : '',
+                    'invite_code' => $invite_code,
                 ]);
             } catch(\Exception $e)
             {

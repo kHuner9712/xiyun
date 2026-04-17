@@ -137,6 +137,14 @@ class InviteService
         return DataReturn('success', 0, $poster_data);
     }
 
+    public static function RewardConfig()
+    {
+        return [
+            'register_reward'    => intval(MyC('muying_invite_register_reward', 0, true)),
+            'first_order_reward' => intval(MyC('muying_invite_first_order_reward', 0, true)),
+        ];
+    }
+
     public static function OnUserRegister($params = [])
     {
         if (empty($params['user_id'])) {
@@ -157,15 +165,6 @@ class InviteService
             return DataReturn('不能邀请自己', 0);
         }
 
-        $exists = Db::name('InviteReward')->where([
-            ['inviter_id', '=', $inviter_id],
-            ['invitee_id', '=', $params['user_id']],
-            ['trigger_event', '=', 'register'],
-        ])->find();
-        if (!empty($exists)) {
-            return DataReturn('已存在注册邀请记录', 0);
-        }
-
         $register_reward = intval(MyC('muying_invite_register_reward', 0, true));
 
         $data = [
@@ -179,7 +178,18 @@ class InviteService
             'upd_time'      => time(),
         ];
 
-        $id = Db::name('InviteReward')->insertGetId($data);
+        try {
+            $id = Db::name('InviteReward')->insertGetId($data);
+        } catch (\Exception $e) {
+            $msg = $e->getMessage();
+            if (self::IsDuplicateEntryError($msg)) {
+                Log::info('邀请注册奖励重复插入拦截(唯一约束) inviter_id=' . $inviter_id . ' invitee_id=' . $params['user_id']);
+                return DataReturn('已存在注册邀请记录', 0);
+            }
+            Log::error('邀请注册奖励插入异常 inviter_id=' . $inviter_id . ' invitee_id=' . $params['user_id'] . ' error=' . $msg);
+            return DataReturn('邀请注册奖励处理失败', -1);
+        }
+
         if ($id > 0 && $register_reward > 0) {
             self::GrantReward($id);
         }
@@ -195,44 +205,68 @@ class InviteService
 
         $invitee_id = intval($params['user_id']);
 
-        $register_reward = Db::name('InviteReward')->where([
-            ['invitee_id', '=', $invitee_id],
-            ['trigger_event', '=', 'register'],
-        ])->find();
-        if (empty($register_reward)) {
-            return DataReturn('无邀请记录', 0);
+        Db::startTrans();
+        try {
+            $register_reward = Db::name('InviteReward')->where([
+                ['invitee_id', '=', $invitee_id],
+                ['trigger_event', '=', 'register'],
+            ])->lock(true)->find();
+            if (empty($register_reward)) {
+                Db::rollback();
+                return DataReturn('无邀请记录', 0);
+            }
+
+            $inviter_id = $register_reward['inviter_id'];
+
+            $exists = Db::name('InviteReward')->where([
+                ['inviter_id', '=', $inviter_id],
+                ['invitee_id', '=', $invitee_id],
+                ['trigger_event', '=', 'first_order'],
+            ])->lock(true)->find();
+            if (!empty($exists)) {
+                Db::commit();
+                return DataReturn('已存在首单邀请记录', 0);
+            }
+
+            $first_order_reward = intval(MyC('muying_invite_first_order_reward', 0, true));
+
+            $data = [
+                'inviter_id'    => $inviter_id,
+                'invitee_id'    => $invitee_id,
+                'reward_type'   => 'integral',
+                'reward_value'  => $first_order_reward,
+                'trigger_event' => 'first_order',
+                'status'        => ($first_order_reward > 0) ? 0 : 1,
+                'add_time'      => time(),
+                'upd_time'      => time(),
+            ];
+
+            try {
+                $id = Db::name('InviteReward')->insertGetId($data);
+            } catch (\Exception $e) {
+                $msg = $e->getMessage();
+                if (self::IsDuplicateEntryError($msg)) {
+                    Db::commit();
+                    Log::info('首单邀请奖励重复插入拦截(唯一约束) inviter_id=' . $inviter_id . ' invitee_id=' . $invitee_id);
+                    return DataReturn('已存在首单邀请记录', 0);
+                }
+                Db::rollback();
+                Log::error('首单邀请奖励插入异常 inviter_id=' . $inviter_id . ' invitee_id=' . $invitee_id . ' error=' . $msg);
+                return DataReturn('首单邀请奖励处理失败', -1);
+            }
+
+            Db::commit();
+
+            if ($id > 0 && $first_order_reward > 0) {
+                self::GrantReward($id);
+            }
+
+            return DataReturn('首单邀请奖励记录已创建', 0);
+        } catch (\Exception $e) {
+            Db::rollback();
+            Log::error('首单邀请奖励异常 invitee_id=' . $invitee_id . ' error=' . $e->getMessage());
+            return DataReturn('首单邀请奖励处理失败', -1);
         }
-
-        $inviter_id = $register_reward['inviter_id'];
-
-        $exists = Db::name('InviteReward')->where([
-            ['inviter_id', '=', $inviter_id],
-            ['invitee_id', '=', $invitee_id],
-            ['trigger_event', '=', 'first_order'],
-        ])->find();
-        if (!empty($exists)) {
-            return DataReturn('已存在首单邀请记录', 0);
-        }
-
-        $first_order_reward = intval(MyC('muying_invite_first_order_reward', 0, true));
-
-        $data = [
-            'inviter_id'    => $inviter_id,
-            'invitee_id'    => $invitee_id,
-            'reward_type'   => 'integral',
-            'reward_value'  => $first_order_reward,
-            'trigger_event' => 'first_order',
-            'status'        => ($first_order_reward > 0) ? 0 : 1,
-            'add_time'      => time(),
-            'upd_time'      => time(),
-        ];
-
-        $id = Db::name('InviteReward')->insertGetId($data);
-        if ($id > 0 && $first_order_reward > 0) {
-            self::GrantReward($id);
-        }
-
-        return DataReturn('首单邀请奖励记录已创建', 0);
     }
 
     public static function AdminInviteRewardListHandle($data, $params = [])
@@ -292,6 +326,11 @@ class InviteService
     {
         $user = Db::name('User')->where(['invite_code' => $code])->find();
         return !empty($user) ? intval($user['id']) : 0;
+    }
+
+    private static function IsDuplicateEntryError($msg)
+    {
+        return (stripos($msg, 'Duplicate entry') !== false || stripos($msg, '1062') !== false);
     }
 
     private static function GrantReward($reward_id)

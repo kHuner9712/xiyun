@@ -51,4 +51,10 @@ class Invite extends Common
         $params['user'] = $this->user;
         return ApiService::ApiDataReturn(InviteService::Poster($params));
     }
+
+    public function RewardConfig()
+    {
+        $data = InviteService::RewardConfig();
+        return ApiService::ApiDataReturn(SystemBaseService::DataReturn($data));
+    }
 }
