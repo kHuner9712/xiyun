@@ -544,7 +544,8 @@ class ActivityService
         } else {
             $data['upd_time'] = time();
             $activity_id = intval($params['id']);
-            if (!Db::name('Activity')->where(['id' => $activity_id])->update($data)) {
+            $upd_result = Db::name('Activity')->where(['id' => $activity_id])->update($data);
+            if ($upd_result === false) {
                 return DataReturn(MyLang('edit_fail'), -100);
             }
         }
@@ -561,7 +562,8 @@ class ActivityService
             $params['ids'] = explode(',', $params['ids']);
         }
 
-        if (Db::name('Activity')->where(['id' => $params['ids']])->update(['is_delete_time' => time(), 'upd_time' => time()])) {
+        $del_result = Db::name('Activity')->where(['id' => $params['ids']])->update(['is_delete_time' => time(), 'upd_time' => time()]);
+        if ($del_result !== false) {
             return DataReturn(MyLang('delete_success'), 0);
         }
 
@@ -593,7 +595,8 @@ class ActivityService
             return DataReturn($ret, -1);
         }
 
-        if (Db::name('Activity')->where(['id' => intval($params['id'])])->update([$params['field'] => intval($params['state']), 'upd_time' => time()])) {
+        $status_result = Db::name('Activity')->where(['id' => intval($params['id'])])->update([$params['field'] => intval($params['state']), 'upd_time' => time()]);
+        if ($status_result !== false) {
             return DataReturn(MyLang('edit_success'), 0);
         }
         return DataReturn(MyLang('edit_fail'), -100);
@@ -608,25 +611,7 @@ class ActivityService
         $n = isset($params['n']) ? intval($params['n']) : 10;
 
         $data = Db::name('ActivitySignup')->field($field)->where($where)->order($order_by)->limit($m, $n)->select()->toArray();
-
-        if (!empty($data)) {
-            $activity_ids = array_unique(array_column($data, 'activity_id'));
-            $activities = Db::name('Activity')->where(['id' => $activity_ids])->column('title,cover,category,stage,start_time,end_time,signup_end_time,address,contact_name,contact_phone,is_free,price', 'id');
-
-            foreach ($data as $k => &$v) {
-                $v['data_index'] = $k + 1;
-                $v['activity_title'] = isset($activities[$v['activity_id']]) ? $activities[$v['activity_id']]['title'] : '';
-                $v['activity_info'] = isset($activities[$v['activity_id']]) ? $activities[$v['activity_id']] : null;
-                if (!empty($v['activity_info'])) {
-                    self::FormatActivityInfo($v['activity_info']);
-                }
-                $v['status_text'] = self::SignupStatusText($v['status']);
-                $v['checkin_status_text'] = self::CheckinStatusText($v['checkin_status']);
-                $v['stage_text'] = MuyingStage::getName(MuyingStage::Normalize($v['stage']));
-                $v['add_time_text'] = empty($v['add_time']) ? '' : date('Y-m-d H:i:s', $v['add_time']);
-                $v['checkin_time_text'] = empty($v['checkin_time']) ? '' : date('Y-m-d H:i:s', $v['checkin_time']);
-            }
-        }
+        $data = self::AdminSignupListHandle($data, $params);
 
         return DataReturn(MyLang('handle_success'), 0, $data);
     }
@@ -713,11 +698,12 @@ class ActivityService
             return DataReturn('已签到，请勿重复签到', -1);
         }
 
-        if (Db::name('ActivitySignup')->where(['id' => $id])->update([
+        $checkin_result = Db::name('ActivitySignup')->where(['id' => $id])->update([
             'checkin_status' => self::CHECKIN_STATUS_YES,
             'checkin_time'   => time(),
             'upd_time'       => time(),
-        ])) {
+        ]);
+        if ($checkin_result !== false) {
             return DataReturn('签到成功', 0);
         }
         return DataReturn('签到失败', -100);

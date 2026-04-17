@@ -39,50 +39,41 @@ class Activity extends Common
 
     public function Detail()
     {
-        if (!empty($this->data_request['id'])) {
-            $id = intval($this->data_request['id']);
-            $params = [
-                'where' => [
-                    ['is_enable', '=', 1],
-                    ['is_delete_time', '=', 0],
-                    ['id', '=', $id],
-                ],
-                'm' => 0,
-                'n' => 1,
-            ];
-            $data = ActivityService::ActivityList($params);
-            if (!empty($data['data'][0])) {
-                ActivityService::ActivityAccessCountInc(['id' => $id]);
-                $activity = $data['data'][0];
-                $activity['content'] = ResourcesService::ApMiniRichTextContentHandle($activity['content']);
-
-                $is_favored = false;
-                $is_liked = false;
-                if (!empty($this->user)) {
-                    $favor_exists = Db::name('GoodsFavor')->where([
-                        ['user_id', '=', $this->user['id']],
-                        ['goods_id', '=', $id],
-                        ['type', '=', 'activity'],
-                    ])->find();
-                    $is_favored = !empty($favor_exists);
-                }
-
-                $result = [
-                    'activity'     => $activity,
-                    'is_favored'   => $is_favored,
-                    'is_liked'     => false,
-                    'like_count'   => 0,
-                    'comment_count'=> 0,
-                    'user_shares'  => [],
-                ];
-                $ret = SystemBaseService::DataReturn($result);
-            } else {
-                $ret = DataReturn('活动不存在', -1);
-            }
-        } else {
-            $ret = DataReturn('活动ID参数有误', -1);
+        if (empty($this->data_request['id'])) {
+            return ApiService::ApiDataReturn(DataReturn('活动ID参数有误', -1));
         }
-        return ApiService::ApiDataReturn($ret);
+
+        $params = $this->data_request;
+        $result = ActivityService::ActivityDetail($params);
+        if ($result['code'] != 0) {
+            return ApiService::ApiDataReturn($result);
+        }
+
+        $id = intval($this->data_request['id']);
+        ActivityService::ActivityAccessCountInc(['id' => $id]);
+
+        $activity = $result['data'];
+        $activity['content'] = ResourcesService::ApMiniRichTextContentHandle($activity['content']);
+
+        $is_favored = false;
+        if (!empty($this->user)) {
+            $favor_exists = Db::name('GoodsFavor')->where([
+                ['user_id', '=', $this->user['id']],
+                ['goods_id', '=', $id],
+                ['type', '=', 'activity'],
+            ])->find();
+            $is_favored = !empty($favor_exists);
+        }
+
+        $detail = [
+            'activity'      => $activity,
+            'is_favored'    => $is_favored,
+            'is_liked'      => false,
+            'like_count'    => 0,
+            'comment_count' => 0,
+            'user_shares'   => [],
+        ];
+        return ApiService::ApiDataReturn(SystemBaseService::DataReturn($detail));
     }
 
     public function Signup()
