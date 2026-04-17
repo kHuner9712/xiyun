@@ -492,25 +492,12 @@
                 // 魔方插件
                 plugins_magic_data: null,
                 // 母婴模块数据
-                muying_activity_list: [
-                    {id:1, title:'孕妈瑜伽课堂', cover:'', time_text:'每周六 10:00', stage:'pregnancy', stage_text:'孕期', is_free:true, price:'0.00'},
-                    {id:2, title:'新生儿护理沙龙', cover:'', time_text:'3月20日 14:00', stage:'postpartum', stage_text:'产后', is_free:true, price:'0.00'},
-                    {id:3, title:'孕期营养试用', cover:'', time_text:'4月1日开始', stage:'pregnancy', stage_text:'孕期', is_free:true, price:'0.00'},
-                    {id:4, title:'备孕知识讲座', cover:'', time_text:'3月25日 19:00', stage:'prepare', stage_text:'备孕', is_free:false, price:'9.90'},
-                ],
+                muying_activity_list: [],
                 muying_stage_tabs: [{name:'全部',value:''},{name:'备孕',value:'prepare'},{name:'孕期',value:'pregnancy'},{name:'产后',value:'postpartum'}],
                 muying_current_stage: '',
                 muying_goods_list: [],
-                muying_article_list: [
-                    {id:1, title:'孕期叶酸补充指南', desc:'科学补充叶酸，助力宝宝健康发育', tags:['孕期','营养']},
-                    {id:2, title:'新生儿喂养常见问题', desc:'母乳喂养vs配方奶，如何选择？', tags:['产后','喂养']},
-                    {id:3, title:'产后恢复运动指南', desc:'循序渐进，科学恢复身体机能', tags:['产后','恢复']},
-                ],
-                muying_feedback_list: [
-                    {avatar_emoji:'🤱', name:'小鱼妈妈', content:'在这里学到了很多孕期知识，商品质量也很好！', stage_text:'孕期妈妈'},
-                    {avatar_emoji:'👩', name:'晨晨妈', content:'产后恢复课程很专业，推荐给所有新手妈妈', stage_text:'产后妈妈'},
-                    {avatar_emoji:'🌸', name:'备孕中的小王', content:'备孕阶段的产品很齐全，客服也很专业', stage_text:'备孕中'},
-                ],
+                muying_article_list: [],
+                muying_feedback_list: [],
             };
         },
 
@@ -574,8 +561,10 @@
             }
 
             // 设置顶部导航的默认颜色
-            this.set_navigation_bar_color();
-        },
+                this.set_navigation_bar_color();
+
+                this.get_muying_activity_list();
+            },
 
         // 下拉刷新
         onPullDownRefresh() {
@@ -806,12 +795,12 @@
 
             // 母婴模块 - 活动更多
             activity_more_event() {
-                app.globalData.url_open('/pages/plugins/activity/index/index');
+                app.globalData.url_open('/pages/activity/activity');
             },
 
             // 母婴模块 - 活动项点击
             activity_item_event(item) {
-                app.globalData.url_open('/pages/plugins/activity/detail/detail?id=' + item.id);
+                app.globalData.url_open('/pages/activity-detail/activity-detail?id=' + item.id);
             },
 
             // 母婴模块 - 阶段筛选切换
@@ -831,7 +820,23 @@
 
             // 母婴模块 - 邀请有礼
             invite_event() {
-                app.globalData.url_open('/pages/plugins/invitation/index/index');
+                app.globalData.url_open('/pages/invite/invite');
+            },
+
+            get_muying_activity_list() {
+                var self = this;
+                uni.request({
+                    url: app.globalData.get_request_url('index', 'activity'),
+                    method: 'POST',
+                    data: { n: 4 },
+                    dataType: 'json',
+                    success: function(res) {
+                        if (res.data.code == 0) {
+                            var list = (res.data.data && res.data.data.data) || [];
+                            self.setData({ muying_activity_list: list });
+                        }
+                    },
+                });
             },
         },
     };
