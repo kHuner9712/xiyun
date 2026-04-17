@@ -10,15 +10,17 @@ class InviteService
 {
     public static function GenerateInviteCode()
     {
-        $max_attempts = 20;
+        $max_attempts = 100;
         for ($i = 0; $i < $max_attempts; $i++) {
-            $code = strtoupper(substr(md5(uniqid(mt_rand(), true) . microtime(true)), 0, 8));
+            $code = strtoupper(substr(md5(uniqid(mt_rand(), true) . microtime(true) . $i), 0, 8));
             $exists = Db::name('User')->where(['invite_code' => $code])->find();
             if (empty($exists)) {
                 return $code;
             }
+            Log::info('邀请码碰撞重试 attempt=' . ($i + 1) . ' code=' . $code);
         }
-        return strtoupper(substr(md5(uniqid('invite', true) . time()), 0, 8));
+        Log::error('邀请码生成失败：连续' . $max_attempts . '次碰撞');
+        throw new \Exception('邀请码生成失败，请重试');
     }
 
     public static function InviteInfo($params = [])
@@ -29,7 +31,11 @@ class InviteService
         $invite_code = !empty($user['invite_code']) ? $user['invite_code'] : '';
 
         if (empty($invite_code)) {
-            $invite_code = self::GenerateInviteCode();
+            try {
+                $invite_code = self::GenerateInviteCode();
+            } catch (\Exception $e) {
+                return DataReturn('邀请码生成失败', -1);
+            }
             Db::name('User')->where(['id' => $user_id])->update(['invite_code' => $invite_code]);
         }
 
@@ -122,7 +128,11 @@ class InviteService
 
         $invite_code = !empty($user['invite_code']) ? $user['invite_code'] : '';
         if (empty($invite_code)) {
-            $invite_code = self::GenerateInviteCode();
+            try {
+                $invite_code = self::GenerateInviteCode();
+            } catch (\Exception $e) {
+                return DataReturn('邀请码生成失败', -1);
+            }
             Db::name('User')->where(['id' => $user_id])->update(['invite_code' => $invite_code]);
         }
 
