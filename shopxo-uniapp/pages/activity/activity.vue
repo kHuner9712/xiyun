@@ -97,6 +97,7 @@
     import componentCommon from '@/components/common/common';
     import componentNoData from '@/components/no-data/no-data';
     import componentBottomLine from '@/components/bottom-line/bottom-line';
+    import { MuyingStage, MuyingActivityCategory } from '@/common/js/config/muying-enum';
 
     export default {
         data() {
@@ -111,20 +112,9 @@
                 data_page_total: 0,
                 data_is_loading: 0,
                 scroll_top: 0,
-                stage_tabs: [
-                    { name: '全部', value: '' },
-                    { name: '备孕', value: 'prepare' },
-                    { name: '孕期', value: 'pregnant' },
-                    { name: '产后', value: 'postpartum' },
-                ],
+                stage_tabs: MuyingStage.getFilterTabs(),
                 stage_active_index: 0,
-                category_tabs: [
-                    { name: '全部', value: '' },
-                    { name: '孕妈课堂', value: 'class' },
-                    { name: '线下沙龙', value: 'salon' },
-                    { name: '试用活动', value: 'trial' },
-                    { name: '讲座报名', value: 'lecture' },
-                ],
+                category_tabs: MuyingActivityCategory.getFilterTabs(),
                 category_active_index: 0,
             };
         },
@@ -234,6 +224,10 @@
             },
 
             scroll_lower(e) {
+                if (this.data_is_loading == 1 || this.data_page >= this.data_page_total) {
+                    return false;
+                }
+                this.setData({ data_page: this.data_page + 1 });
                 this.get_data_list(0);
             },
 

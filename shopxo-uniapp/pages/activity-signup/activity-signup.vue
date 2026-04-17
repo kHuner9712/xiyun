@@ -138,6 +138,7 @@
     const app = getApp();
     var bar_height = parseInt(app.globalData.get_system_info('statusBarHeight')) || 0;
     import componentCommon from '@/components/common/common';
+    import { MuyingStage } from '@/common/js/config/muying-enum';
 
     export default {
         data() {
@@ -151,8 +152,8 @@
                     time: '',
                     price: 0,
                 },
-                stage_options: ['备孕', '孕期', '产后'],
-                stage_values: ['prepare', 'pregnancy', 'postpartum'],
+                stage_options: MuyingStage.getList().filter(function(v) { return v.value !== 'all'; }).map(function(v) { return v.name; }),
+                stage_values: MuyingStage.getList().filter(function(v) { return v.value !== 'all'; }).map(function(v) { return v.value; }),
                 stage_index: -1,
                 selected_stage: '',
                 due_date_start: '',
@@ -205,7 +206,7 @@
                                 activity: {
                                     id: activity.id || self.activity_id,
                                     title: activity.title || '',
-                                    time: (activity.start_time_text || '') + (activity.end_time_text ? ' ~ ' + activity.end_time_text : ''),
+                                    time: activity.time || activity.time_text || '',
                                     price: activity.price || 0,
                                 },
                             });

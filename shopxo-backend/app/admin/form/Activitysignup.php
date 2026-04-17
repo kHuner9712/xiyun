@@ -11,6 +11,7 @@
 namespace app\admin\form;
 
 use think\facade\Db;
+use app\service\ActivityService;
 
 /**
  * 活动报名动态表格
@@ -102,11 +103,7 @@ class Activitysignup
                         'form_type'         => 'select',
                         'form_name'         => 'status',
                         'where_type'        => 'in',
-                        'data'              => [
-                            ['id' => 0, 'name' => '待确认'],
-                            ['id' => 1, 'name' => '已确认'],
-                            ['id' => 2, 'name' => '已取消'],
-                        ],
+                        'data'              => $this->SignupStatusData(),
                         'data_key'          => 'id',
                         'data_name'         => 'name',
                         'is_multiple'       => 1,
@@ -124,10 +121,7 @@ class Activitysignup
                         'form_type'         => 'select',
                         'form_name'         => 'checkin_status',
                         'where_type'        => 'in',
-                        'data'              => [
-                            ['id' => 0, 'name' => '未签到'],
-                            ['id' => 1, 'name' => '已签到'],
-                        ],
+                        'data'              => $this->CheckinStatusData(),
                         'data_key'          => 'id',
                         'data_name'         => 'name',
                         'is_multiple'       => 1,
@@ -161,6 +155,26 @@ class Activitysignup
     public function ActivityList()
     {
         return Db::name('Activity')->where(['is_delete_time' => 0])->field('id,title')->order('id desc')->select()->toArray();
+    }
+
+    public function SignupStatusData()
+    {
+        $list = ActivityService::SignupStatusList();
+        $result = [];
+        foreach ($list as $id => $name) {
+            $result[] = ['id' => $id, 'name' => $name];
+        }
+        return $result;
+    }
+
+    public function CheckinStatusData()
+    {
+        $list = ActivityService::CheckinStatusList();
+        $result = [];
+        foreach ($list as $id => $name) {
+            $result[] = ['id' => $id, 'name' => $name];
+        }
+        return $result;
     }
 }
 ?>
