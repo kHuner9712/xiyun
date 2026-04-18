@@ -1,13 +1,14 @@
 <template>
     <view :class="theme_view">
         <view class="page-bottom-fixed">
+            <!-- 公开区域：登录/未登录都可见 -->
             <view class="invite-banner muying-section-gradient">
                 <view class="invite-banner-content padding-horizontal-main padding-top-xxxl padding-bottom-main">
                     <view class="invite-banner-slogan tc">
                         <view class="invite-banner-title">邀请好友 赢积分</view>
                         <view class="invite-banner-sub">每邀一位好友，最高可获{{ register_reward + first_order_reward }}积分</view>
                     </view>
-                    <view class="invite-stats-row flex-row jc-sa tc margin-top-xl">
+                    <view v-if="is_logged_in" class="invite-stats-row flex-row jc-sa tc margin-top-xl">
                         <view class="flex-1">
                             <view class="invite-stats-num">{{ invite_count }}</view>
                             <view class="invite-stats-label">累计邀请(人)</view>
@@ -17,6 +18,9 @@
                             <view class="invite-stats-num">{{ reward_total }}</view>
                             <view class="invite-stats-label">获得积分</view>
                         </view>
+                    </view>
+                    <view v-else class="invite-stats-row tc margin-top-xl">
+                        <view class="invite-banner-sub">好友通过邀请码注册，双方均可获得积分奖励</view>
                     </view>
                 </view>
             </view>
@@ -43,46 +47,64 @@
                 </view>
             </view>
 
-            <view class="padding-horizontal-main margin-top-main">
+            <!-- 未登录态：CTA区域 -->
+            <view v-if="!is_logged_in" class="padding-horizontal-main margin-top-main">
                 <view class="muying-card padding-main">
-                    <view class="flex-row jc-sb align-c">
-                        <view>
-                            <view class="text-size-sm cr-grey">我的邀请码</view>
-                            <view class="text-size fw-b margin-top-xs invite-code-text">{{ invite_code || '加载中...' }}</view>
-                        </view>
-                        <view class="invite-copy-btn cr-white text-size-sm" @tap="copy_invite_code">复制邀请码</view>
-                    </view>
-                    <view class="muying-divider margin-top-main margin-bottom-main"></view>
-                    <view class="invite-share-btn tc" @tap="share_event">
-                        <text class="cr-white text-size">邀请好友 赢积分</text>
+                    <view class="invite-cta-section tc">
+                        <view class="invite-cta-title">加入孕禧，领取专属福利</view>
+                        <view class="invite-cta-desc cr-grey text-size-sm margin-top-sm">注册即享新人权益，邀请好友赢积分</view>
+                        <view class="invite-cta-btn cr-white text-size fw-b margin-top-main" @tap="go_register">立即注册 领取福利</view>
+                        <view class="invite-cta-login text-size-sm cr-grey margin-top-main" @tap="go_login">已有账号？去登录</view>
                     </view>
                 </view>
             </view>
 
-            <view class="padding-horizontal-main margin-top-main margin-bottom-main">
-                <view class="muying-section-header">
-                    <view class="muying-section-title">邀请记录</view>
-                </view>
-                <block v-if="invite_list.length > 0">
-                    <view v-for="(item, index) in invite_list" :key="index" class="muying-card spacing-mb padding-main">
-                        <view class="flex-row align-c">
-                            <image class="invite-avatar circle" :src="item.avatar" mode="aspectFill"></image>
-                            <view class="flex-1 margin-left-main">
-                                <view class="flex-row jc-sb align-c">
-                                    <view class="text-size fw-b">{{ item.nickname }}</view>
-                                    <view :class="['invite-reward-status', item.status === 1 ? 'invite-reward-status--done' : 'invite-reward-status--pending']">
-                                        {{ item.status === 1 ? '已发放' : '待发放' }}
-                                    </view>
-                                </view>
-                                <view class="text-size-sm cr-grey margin-top-xs">{{ item.register_time }}</view>
+            <!-- 已登录态：邀请码+分享+记录 -->
+            <block v-if="is_logged_in">
+                <view class="padding-horizontal-main margin-top-main">
+                    <view class="muying-card padding-main">
+                        <view class="flex-row jc-sb align-c">
+                            <view>
+                                <view class="text-size-sm cr-grey">我的邀请码</view>
+                                <view class="text-size fw-b margin-top-xs invite-code-text">{{ invite_code || '加载中...' }}</view>
                             </view>
+                            <view class="invite-copy-btn cr-white text-size-sm" @tap="copy_invite_code">复制邀请码</view>
+                        </view>
+                        <view class="muying-divider margin-top-main margin-bottom-main"></view>
+                        <view class="invite-share-btn tc" @tap="share_event">
+                            <text class="cr-white text-size">邀请好友 赢积分</text>
                         </view>
                     </view>
-                </block>
-                <block v-else>
-                    <component-no-data propStatus="0" propMsg="暂无邀请记录"></component-no-data>
-                </block>
-            </view>
+                </view>
+
+                <view class="padding-horizontal-main margin-top-main margin-bottom-main">
+                    <view class="muying-section-header">
+                        <view class="muying-section-title">邀请记录</view>
+                    </view>
+                    <block v-if="invite_list.length > 0">
+                        <view v-for="(item, index) in invite_list" :key="index" class="muying-card spacing-mb padding-main">
+                            <view class="flex-row align-c">
+                                <image class="invite-avatar circle" :src="item.avatar" mode="aspectFill"></image>
+                                <view class="flex-1 margin-left-main">
+                                    <view class="flex-row jc-sb align-c">
+                                        <view class="text-size fw-b">{{ item.nickname }}</view>
+                                        <view :class="['invite-reward-status', item.status === 1 ? 'invite-reward-status--done' : 'invite-reward-status--pending']">
+                                            {{ item.status === 1 ? '已发放' : '待发放' }}
+                                        </view>
+                                    </view>
+                                    <view class="text-size-sm cr-grey margin-top-xs">{{ item.register_time }}</view>
+                                </view>
+                            </view>
+                        </view>
+                    </block>
+                    <block v-else>
+                        <component-no-data propStatus="0" propMsg="暂无邀请记录"></component-no-data>
+                    </block>
+                </view>
+            </block>
+
+            <!-- 未登录态底部留白 -->
+            <view v-if="!is_logged_in" class="margin-bottom-xxxl"></view>
         </view>
 
         <component-common ref="common"></component-common>
@@ -97,6 +119,7 @@
         data() {
             return {
                 theme_view: app.globalData.get_theme_value_view(),
+                is_logged_in: false,
                 invite_code: '',
                 invite_count: 0,
                 reward_total: 0,
@@ -116,7 +139,6 @@
             if (params && params.invite_code) {
                 uni.setStorageSync('invite_code_from_share', params.invite_code);
             }
-            this.check_login_and_load();
         },
 
         onShow() {
@@ -124,6 +146,7 @@
             if ((this.$refs.common || null) != null) {
                 this.$refs.common.on_show();
             }
+            this.check_login_state();
         },
 
         onShareAppMessage() {
@@ -142,41 +165,16 @@
         },
 
         methods: {
-            check_login_and_load() {
-                var self = this;
-                self.get_reward_config();
-                uni.request({
-                    url: app.globalData.get_request_url('index', 'invite'),
-                    method: 'POST',
-                    dataType: 'json',
-                    success: function(res) {
-                        if (res.data.code == -9999 || res.data.code == -999) {
-                            uni.showModal({
-                                title: '提示',
-                                content: '请先登录后查看邀请中心',
-                                confirmText: '去登录',
-                                success: function(modal_res) {
-                                    if (modal_res.confirm) {
-                                        uni.navigateTo({ url: '/pages/login/login' });
-                                    } else {
-                                        uni.navigateBack();
-                                    }
-                                }
-                            });
-                        } else if (res.data.code == 0) {
-                            var data = res.data.data || {};
-                            self.setData({
-                                invite_code: data.invite_code || '',
-                                invite_count: data.invite_count || 0,
-                                reward_total: data.reward_total || 0,
-                            });
-                            self.get_invite_rewardlist();
-                        }
-                    },
-                    fail: function() {
-                        app.globalData.showToast('网络异常，请重试');
-                    },
-                });
+            check_login_state() {
+                var user = app.globalData.get_user_cache_info();
+                var logged_in = !!user;
+                this.setData({ is_logged_in: logged_in });
+                this.get_reward_config();
+                if (logged_in) {
+                    uni.removeStorageSync('invite_code_from_share');
+                    this.get_invite_index();
+                    this.get_invite_rewardlist();
+                }
             },
 
             get_invite_index() {
@@ -193,13 +191,9 @@
                                 invite_count: data.invite_count || 0,
                                 reward_total: data.reward_total || 0,
                             });
-                        } else {
-                            app.globalData.showToast(res.data.msg || '获取邀请信息失败');
                         }
                     },
-                    fail: function() {
-                        app.globalData.showToast('网络异常，请重试');
-                    },
+                    fail: function() {},
                 });
             },
 
@@ -217,9 +211,7 @@
                             });
                         }
                     },
-                    fail: function() {
-                        app.globalData.showToast('网络异常，请重试');
-                    },
+                    fail: function() {},
                 });
             },
 
@@ -255,7 +247,15 @@
                         }
                     },
                 });
-            }
+            },
+
+            go_register() {
+                uni.navigateTo({ url: '/pages/login/login' });
+            },
+
+            go_login() {
+                uni.navigateTo({ url: '/pages/login/login' });
+            },
         }
     };
 </script>
@@ -379,5 +379,31 @@
         background-color: #FFF5E6;
         color: #E8A050;
         border: 1px solid #E8A050;
+    }
+
+    .invite-cta-section {
+        padding: 20rpx 0;
+    }
+
+    .invite-cta-title {
+        font-size: 34rpx;
+        font-weight: bold;
+        color: #333;
+    }
+
+    .invite-cta-desc {
+        line-height: 1.6;
+    }
+
+    .invite-cta-btn {
+        background: linear-gradient(135deg, #F5A0B1, #F5C6A0);
+        padding: 24rpx;
+        border-radius: 40rpx;
+        display: inline-block;
+        min-width: 400rpx;
+    }
+
+    .invite-cta-login {
+        padding: 16rpx 0;
     }
 </style>

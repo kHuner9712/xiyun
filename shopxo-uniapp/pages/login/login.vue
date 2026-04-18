@@ -529,7 +529,6 @@
                 var shared_code = uni.getStorageSync('invite_code_from_share') || '';
                 if (shared_code) {
                     invite_code = shared_code;
-                    uni.removeStorageSync('invite_code_from_share');
                 }
             }
             if (invite_code) {

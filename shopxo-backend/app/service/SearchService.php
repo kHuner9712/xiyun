@@ -464,6 +464,40 @@ class SearchService
             }
         }
 
+        // 孕育阶段筛选
+        if(!empty($params['stage']))
+        {
+            $stage_category_keywords = [];
+            switch($params['stage'])
+            {
+                case 'prepare':
+                    $stage_category_keywords = ['备孕', '孕前', '备孕'];
+                    break;
+                case 'pregnancy':
+                    $stage_category_keywords = ['孕期', '孕妇', '孕中', '孕妈', '怀孕'];
+                    break;
+                case 'postpartum':
+                    $stage_category_keywords = ['产后', '月子', '哺乳', '新生儿', '婴儿', '宝宝'];
+                    break;
+            }
+            if(!empty($stage_category_keywords))
+            {
+                $stage_category_ids = Db::name('GoodsCategory')->where([
+                    ['is_enable', '=', 1],
+                ])->where(function($query) use ($stage_category_keywords) {
+                    foreach($stage_category_keywords as $kw)
+                    {
+                        $query->whereOr('name', 'like', '%'.$kw.'%');
+                    }
+                })->column('id');
+                if(!empty($stage_category_ids))
+                {
+                    $ids = GoodsCategoryService::GoodsCategoryItemsIds($stage_category_ids, 1);
+                    $where_base[] = ['gci.category_id', 'in', $ids];
+                }
+            }
+        }
+
         // 筛选价格
         $map_price = [];
         $where_screening_price = [];
