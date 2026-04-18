@@ -361,9 +361,6 @@ class ActivityService
                 if ($normalized === 'pregnancy' && !empty($data['due_date'])) {
                     $user_update['due_date'] = $data['due_date'];
                 }
-                if ($normalized === 'postpartum' && !empty($data['baby_month_age'])) {
-                    $user_update['baby_birthday'] = $data['baby_month_age'];
-                }
                 Db::name('User')->where(['id' => $user_id])->update($user_update);
             }
 

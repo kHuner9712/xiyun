@@ -189,6 +189,7 @@
                     remark: '',
                 },
                 privacy_agreed: false,
+                data_loaded: false,
             };
         },
 
@@ -201,21 +202,25 @@
             if (params && params.id) {
                 this.setData({ activity_id: params.id });
             }
-            var user = app.globalData.get_user_cache_info();
-            if (!user) {
-                uni.navigateTo({ url: '/pages/login/login?event_callback=signup_init' });
-                return;
-            }
-            this.get_activity_summary();
-            this.init_baby_month_age_options();
-            this.init_due_date_start();
-            this.load_user_profile();
         },
 
         onShow() {
             app.globalData.page_event_onshow_handle();
             if ((this.$refs.common || null) != null) {
                 this.$refs.common.on_show();
+            }
+            if (!this.activity_id) return;
+            var user = app.globalData.get_user_cache_info();
+            if (!user) {
+                uni.navigateTo({ url: '/pages/login/login' });
+                return;
+            }
+            if (!this.data_loaded) {
+                this.get_activity_summary();
+                this.init_baby_month_age_options();
+                this.init_due_date_start();
+                this.load_user_profile();
+                this.setData({ data_loaded: true });
             }
         },
 

@@ -872,7 +872,7 @@
 
             // 母婴模块 - 商品点击
             goods_item_event(item) {
-                app.globalData.url_open('/pages/goods-detail/goods-detail?goods_id=' + item.id);
+                app.globalData.url_open('/pages/goods-detail/goods-detail?id=' + item.id);
             },
 
             get_muying_activity_list() {
@@ -917,7 +917,7 @@
                                     price: item.price || '0.00',
                                     original_price: item.original_price || '',
                                     tags: (item.category_names || '').split(',').filter(function(t) { return t; }),
-                                    url: '/pages/goods-detail/goods-detail?goods_id=' + item.id,
+                                    url: '/pages/goods-detail/goods-detail?id=' + item.id,
                                 };
                             });
                             self.setData({

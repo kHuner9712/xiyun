@@ -594,6 +594,14 @@
             stage_guide_confirm_event(stage) {
                 uni.setStorageSync('stage_guide_shown', '1');
                 this.setData({ stage_guide_show: false });
+                var stage_map = { 'prepare': '备孕中', 'pregnancy': '孕期中', 'postpartum': '产后' };
+                this.setData({ current_stage_text: stage_map[stage] || '' });
+                // 更新本地缓存
+                var user = app.globalData.get_user_cache_info();
+                if (user) {
+                    user.current_stage = stage;
+                    uni.setStorageSync(app.globalData.data.cache_user_info_key, user);
+                }
                 // 保存到后端
                 uni.request({
                     url: app.globalData.get_request_url('save', 'personal'),
@@ -602,6 +610,10 @@
                     dataType: 'json',
                     success: (res) => {
                         if (res.data.code == 0) {
+                            // 用后端返回的最新用户信息更新缓存
+                            if (res.data.data) {
+                                uni.setStorageSync(app.globalData.data.cache_user_info_key, res.data.data);
+                            }
                             app.globalData.showToast('阶段设置成功', 'success');
                         }
                     }

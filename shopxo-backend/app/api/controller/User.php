@@ -312,6 +312,7 @@ class User extends Common
             'nickname'                  => empty($this->user['nickname']) ? '' : $this->user['nickname'],
             'username'                  => empty($this->user['username']) ? '' : $this->user['username'],
             'user_name_view'            => empty($this->user['user_name_view']) ? '' : $this->user['user_name_view'],
+            'current_stage'             => empty($this->user['current_stage']) ? '' : $this->user['current_stage'],
             'user_order_status'         => $user_order_status,
             'user_order_count'          => $user_order_count,
             'user_goods_favor_count'    => $user_goods_favor_count,
