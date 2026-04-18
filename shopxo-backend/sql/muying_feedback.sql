@@ -1,3 +1,5 @@
+-- [已废弃] 请使用 docs/muying-final-migration.sql A4 段
+-- 本文件内容已合并到最终迁移脚本，不要直接执行
 -- MuyingFeedback 表（妈妈说/用户反馈）
 CREATE TABLE IF NOT EXISTS `sxo_muying_feedback` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
