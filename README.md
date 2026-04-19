@@ -77,17 +77,40 @@ yunxixiaochengxu/
 
 ## 3. 前端启动 (shopxo-uniapp)
 
-1. 安装依赖：
-   ```bash
-   cd shopxo-uniapp
-   npm install
-   ```
-2. 用 HBuilderX 打开 `shopxo-uniapp`。
-3. 运行到微信开发者工具调试。
+### ⚠️ 源码目录 ≠ 编译产物目录
 
-注意：
-- `project.private.config.json` 和 `manifest.local.json` 是本地文件，已被 Git 忽略。
-- 共享的微信项目配置是 `project.config.json`。
+`shopxo-uniapp` 是 **uni-app 源码工程**，不是微信原生小程序目录。直接用微信开发者工具导入 `shopxo-uniapp` 会报"项目根目录中未找到 app.json"，因为源码目录中没有 `app.json`——它是编译后才生成的。
+
+**正确流程**：
+
+1. 用 HBuilderX 打开 `shopxo-uniapp` 目录
+2. 在 HBuilderX 中点击 **运行 → 运行到小程序模拟器 → 微信开发者工具**
+3. HBuilderX 会自动编译，生成编译产物到 `shopxo-uniapp/unpackage/dist/dev/mp-weixin/`
+4. 用微信开发者工具导入 **`unpackage/dist/dev/mp-weixin/`** 目录（不是 `shopxo-uniapp/` 目录）
+
+```
+shopxo-uniapp/                          ← uni-app 源码（HBuilderX 打开这个）
+├── pages/                              ← .vue 源码页面
+├── manifest.json                       ← 小程序配置主来源（appid 等）
+├── project.config.json                 ← 辅助配置（HBuilderX 编译时合并到产物）
+└── unpackage/dist/dev/mp-weixin/       ← 编译产物（微信开发者工具导入这个）
+    ├── app.json                        ← 编译后生成
+    ├── app.wxss
+    └── ...
+```
+
+### appid 配置说明
+
+- **主来源**：`manifest.json` → `mp-weixin.appid`（当前值：`wxda7779770f53e901`）
+- **辅助**：`project.config.json` → `appid`（应与 manifest.json 保持一致）
+- HBuilderX 编译时，会将 manifest.json 的 appid 写入编译产物的 project.config.json
+- 修改 appid 时，**必须同时修改两个文件**，以 manifest.json 为准
+
+### 本地开发配置
+
+- `project.private.config.json` 是本地文件，已被 Git 忽略，首次编译后自动生成
+- `manifest.local.json` 是本地覆盖文件，已被 Git 忽略
+- 共享的微信项目配置是 `project.config.json`
 
 ## 4. 后端启动 (shopxo-backend)
 
