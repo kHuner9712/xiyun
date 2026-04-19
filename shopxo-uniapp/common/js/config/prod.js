@@ -2,7 +2,7 @@ import { build_runtime_config } from './runtime-config.js';
 
 const config = build_runtime_config();
 
-if (!config.request_url) {
+if (process.env.NODE_ENV === 'production' && !config.request_url) {
     console.error(
         [
             '[CONFIG][PROD] Missing UNI_APP_REQUEST_URL.',

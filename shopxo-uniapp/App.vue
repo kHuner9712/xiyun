@@ -7,9 +7,13 @@
     import { PHASE_ONE_DISABLED_PLUGIN_NAMES, PHASE_ONE_DISABLED_ROUTE_PREFIXES, is_phase_one_disabled_route as is_phase_one_disabled_route_match } from './common/js/config/phase-one-scope.js';
     var isProd = process.env.NODE_ENV === 'production';
     var appConfig = isProd ? prodConfig : devConfig;
-    var request_url_value = isProd ? appConfig.request_url : appConfig.request_url || 'http://localhost:8080/';
-    if (isProd && !request_url_value) {
-        console.error('[FATAL] 生产环境未配置 UNI_APP_REQUEST_URL，应用无法正常运行');
+    var request_url_value = appConfig.request_url;
+    if (!request_url_value) {
+        if (isProd) {
+            console.error('[FATAL] 生产环境未配置 UNI_APP_REQUEST_URL，应用无法正常运行');
+        } else {
+            console.error('[CONFIG] 开发环境未配置 UNI_APP_REQUEST_URL，接口请求将失败。\n' + '请创建 shopxo-uniapp/.env.development 文件，写入：\n' + 'UNI_APP_REQUEST_URL=http://你的后端IP:8080/\n' + '或在 HBuilderX 运行配置中设置环境变量');
+        }
     }
     export default {
         globalData: {
@@ -2884,6 +2888,9 @@
 
             // 颜色转rgba hexValue： 色值  alpha：透明度
             hex_rgba(hexValue, alpha) {
+                if (!hexValue || typeof hexValue !== 'string') {
+                    return `rgba(0,0,0,${alpha !== undefined ? alpha : 1})`;
+                }
                 const rgx = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
                 const hex = hexValue.replace(rgx, (m, r, g, b) => r + r + g + g + b + b);
                 const rgb = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);

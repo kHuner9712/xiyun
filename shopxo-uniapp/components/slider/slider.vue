@@ -83,7 +83,16 @@
             // 已选择指示点背景色，在 mode = nav 时不生效
             propSelectedBackgroundColor: {
                 type: String,
-                default: '' + app.globalData.hex_rgba(app.globalData.get_theme_color(), 0.5),
+                default: function() {
+                    var color = '';
+                    try {
+                        var theme_color = app.globalData.get_theme_color();
+                        if (theme_color) {
+                            color = app.globalData.hex_rgba(theme_color, 0.5);
+                        }
+                    } catch(e) {}
+                    return color || 'rgba(255,0,54,0.5)';
+                },
             },
             // 已选择指示点边框样式，在 mode = nav 时不生效
             propSelectedBorder: {
