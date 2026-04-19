@@ -16,6 +16,11 @@
 --   - C4 枚举修复会修改已有数据
 --   - 不要执行 config/shopxo.sql（含 DROP TABLE，会清空所有数据）
 --
+-- 【MySQL 版本要求】
+--   最低 MySQL 5.6+（utf8mb4），推荐 5.7+ / 8.0
+--   B 段增量补丁使用 information_schema 检查字段是否存在，兼容 5.6+
+--   不依赖 ADD COLUMN IF NOT EXISTS（该语法仅 MySQL 8.0+ 支持）
+--
 -- 【回滚提示】
 --   见每段末尾的回滚 SQL，或从备份恢复：
 --   mysql -u root -p shopxo < backup_XXXXXXXXXX.sql
@@ -147,30 +152,57 @@ CREATE TABLE IF NOT EXISTS `sxo_muying_feedback` (
 -- ============================================================
 -- B 段：增量补丁（在已有表上补字段）
 -- 适用：已有 ShopXO 原生表，需补母婴扩展字段
--- 可重复执行：是（ADD COLUMN IF NOT EXISTS，MySQL 8.0+）
+-- 可重复执行：是（每条 ALTER 前检查字段是否已存在）
 -- 破坏已有数据：否
+-- MySQL 兼容：5.6+ / 5.7+ / 8.0+（不使用 IF NOT EXISTS 语法）
 -- 执行前检查：SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='sxo_user' AND COLUMN_NAME IN ('current_stage','due_date','baby_birthday','invite_code');
 -- 执行后检查：DESCRIBE sxo_user; SHOW COLUMNS FROM sxo_goods_favor LIKE 'type'; SHOW COLUMNS FROM sxo_activity_signup LIKE 'privacy_agreed_time';
 -- ============================================================
 
 -- B1. sxo_user 扩展字段
-ALTER TABLE `sxo_user`
-  ADD COLUMN IF NOT EXISTS `current_stage` char(30) NOT NULL DEFAULT '' COMMENT '当前阶段(prepare/pregnancy/postpartum)' AFTER `address`,
-  ADD COLUMN IF NOT EXISTS `due_date` int unsigned NOT NULL DEFAULT 0 COMMENT '预产期(时间戳)' AFTER `current_stage`,
-  ADD COLUMN IF NOT EXISTS `baby_birthday` int unsigned NOT NULL DEFAULT 0 COMMENT '宝宝生日(时间戳)' AFTER `due_date`,
-  ADD COLUMN IF NOT EXISTS `invite_code` char(8) NOT NULL DEFAULT '' COMMENT '邀请码' AFTER `baby_birthday`;
+SET @dbname = DATABASE();
+SET @tablename = 'sxo_user';
+
+SET @colname = 'current_stage';
+SELECT COUNT(*) INTO @col_exists FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@dbname AND TABLE_NAME=@tablename AND COLUMN_NAME=@colname;
+SET @sql = IF(@col_exists=0, 'ALTER TABLE `sxo_user` ADD COLUMN `current_stage` char(30) NOT NULL DEFAULT '''' COMMENT ''当前阶段(prepare/pregnancy/postpartum)'' AFTER `address`', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @colname = 'due_date';
+SELECT COUNT(*) INTO @col_exists FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@dbname AND TABLE_NAME=@tablename AND COLUMN_NAME=@colname;
+SET @sql = IF(@col_exists=0, 'ALTER TABLE `sxo_user` ADD COLUMN `due_date` int unsigned NOT NULL DEFAULT 0 COMMENT ''预产期(时间戳)'' AFTER `current_stage`', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @colname = 'baby_birthday';
+SELECT COUNT(*) INTO @col_exists FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@dbname AND TABLE_NAME=@tablename AND COLUMN_NAME=@colname;
+SET @sql = IF(@col_exists=0, 'ALTER TABLE `sxo_user` ADD COLUMN `baby_birthday` int unsigned NOT NULL DEFAULT 0 COMMENT ''宝宝生日(时间戳)'' AFTER `due_date`', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @colname = 'invite_code';
+SELECT COUNT(*) INTO @col_exists FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@dbname AND TABLE_NAME=@tablename AND COLUMN_NAME=@colname;
+SET @sql = IF(@col_exists=0, 'ALTER TABLE `sxo_user` ADD COLUMN `invite_code` char(8) NOT NULL DEFAULT '''' COMMENT ''邀请码'' AFTER `baby_birthday`', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- B2. sxo_activity_signup 补 privacy_agreed_time 字段（P0缺失，报名功能依赖）
-ALTER TABLE `sxo_activity_signup`
-  ADD COLUMN IF NOT EXISTS `privacy_agreed_time` int unsigned NOT NULL DEFAULT 0 COMMENT '隐私同意时间' AFTER `remark`;
+SET @tablename = 'sxo_activity_signup';
+SET @colname = 'privacy_agreed_time';
+SELECT COUNT(*) INTO @col_exists FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@dbname AND TABLE_NAME=@tablename AND COLUMN_NAME=@colname;
+SET @sql = IF(@col_exists=0, 'ALTER TABLE `sxo_activity_signup` ADD COLUMN `privacy_agreed_time` int unsigned NOT NULL DEFAULT 0 COMMENT ''隐私同意时间'' AFTER `remark`', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- B3. sxo_goods_favor 补 type 字段（P0缺失，活动收藏功能依赖）
-ALTER TABLE `sxo_goods_favor`
-  ADD COLUMN IF NOT EXISTS `type` char(30) NOT NULL DEFAULT 'goods' COMMENT '收藏类型(goods商品/activity活动)' AFTER `user_id`;
+SET @tablename = 'sxo_goods_favor';
+SET @colname = 'type';
+SELECT COUNT(*) INTO @col_exists FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@dbname AND TABLE_NAME=@tablename AND COLUMN_NAME=@colname;
+SET @sql = IF(@col_exists=0, 'ALTER TABLE `sxo_goods_favor` ADD COLUMN `type` char(30) NOT NULL DEFAULT ''goods'' COMMENT ''收藏类型(goods商品/activity活动)'' AFTER `user_id`', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- B4. sxo_activity 补 suitable_crowd 字段
-ALTER TABLE `sxo_activity`
-  ADD COLUMN IF NOT EXISTS `suitable_crowd` char(255) NOT NULL DEFAULT '' COMMENT '适合人群' AFTER `description`;
+SET @tablename = 'sxo_activity';
+SET @colname = 'suitable_crowd';
+SELECT COUNT(*) INTO @col_exists FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@dbname AND TABLE_NAME=@tablename AND COLUMN_NAME=@colname;
+SET @sql = IF(@col_exists=0, 'ALTER TABLE `sxo_activity` ADD COLUMN `suitable_crowd` char(255) NOT NULL DEFAULT '''' COMMENT ''适合人群'' AFTER `description`', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- B段回滚：
 -- ALTER TABLE sxo_user DROP COLUMN invite_code, DROP COLUMN baby_birthday, DROP COLUMN due_date, DROP COLUMN current_stage;
@@ -254,9 +286,11 @@ UPDATE `sxo_user` SET `current_stage` = 'pregnancy' WHERE `current_stage` = 'pre
 UPDATE `sxo_user` SET `current_stage` = 'postpartum' WHERE `current_stage` IN ('newborn', 'infant');
 
 -- C5. 邀请奖励配置项（必须执行，否则奖励为0）
+-- 使用 ON DUPLICATE KEY UPDATE 确保幂等，重复执行不会报错
 INSERT INTO `sxo_config` (`value`, `name`, `describe`, `error_tips`, `type`, `only_tag`, `upd_time`) VALUES
 ('100', '邀请注册奖励积分', '邀请人获得的积分奖励', '请填写邀请注册奖励积分', 'common', 'muying_invite_register_reward', UNIX_TIMESTAMP()),
-('200', '邀请首单奖励积分', '被邀请人首单后邀请人获得的积分奖励', '请填写邀请首单奖励积分', 'common', 'muying_invite_first_order_reward', UNIX_TIMESTAMP());
+('200', '邀请首单奖励积分', '被邀请人首单后邀请人获得的积分奖励', '请填写邀请首单奖励积分', 'common', 'muying_invite_first_order_reward', UNIX_TIMESTAMP())
+ON DUPLICATE KEY UPDATE `value`=VALUES(`value`), `upd_time`=UNIX_TIMESTAMP();
 
 -- C6. 后台运营菜单权限
 INSERT INTO `sxo_power` (`pid`, `name`, `control`, `action`, `url`, `sort`, `is_show`, `icon`, `add_time`, `upd_time`) VALUES

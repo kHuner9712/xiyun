@@ -1,5 +1,26 @@
 # 孕禧小程序正式服务器部署执行手册
 
+## 0. 上线前待替换项清单
+
+> 以下占位符必须在执行部署前替换为实际值，否则部署后功能异常。
+
+| 占位符 | 含义 | 示例值（仅参考） | 替换位置 |
+|--------|------|-----------------|---------|
+| `{{APP_ID}}` | 微信小程序 AppID | `wxda7779770f53e901` | `project.config.json`、微信后台 |
+| `{{APP_SECRET}}` | 微信小程序 AppSecret | （从微信后台获取） | 后端配置 |
+| `{{API_DOMAIN}}` | 后端 API 域名 | `api.yunxi.com` | Nginx 配置、前端环境变量、微信后台 |
+| `{{CDN_DOMAIN}}` | 静态资源 CDN 域名（可选） | `cdn.yunxi.com` | 前端环境变量 |
+| `{{DEPLOY_PATH}}` | 服务器部署目录 | `/var/www/yunxi` | Nginx 配置、目录权限 |
+| `{{DB_NAME}}` | 数据库名 | `shopxo` | 数据库连接配置 |
+| `{{DB_USER}}` | 数据库用户名 | `shopxo` | 数据库连接配置 |
+| `{{DB_PASS}}` | 数据库密码 | （强密码） | 数据库连接配置 |
+| `{{DB_PREFIX}}` | 数据库表前缀 | `sxo_` | 安装向导、SQL 文件 |
+| `{{ADMIN_ENTRY}}` | 后台入口文件名 | `adminX8k2m.php` | 安装后自动生成 |
+| `{{CONTACT_PHONE}}` | 客服电话 | `400-000-0000` | 活动数据、后台配置 |
+| `{{SSL_CERT_PATH}}` | SSL 证书路径 | `/etc/nginx/ssl/` | Nginx 配置 |
+
+---
+
 ## 1. 部署前准备
 
 ### 1.1 服务器环境要求
@@ -13,11 +34,13 @@
 | PHP 扩展 | pdo_mysql, mbstring, curl, gd, openssl, json, xml | 同左 + redis |
 | 磁盘空间 | ≥2GB | ≥10GB（含上传文件） |
 
+> **MySQL 版本说明**：本项目 SQL 已兼容 MySQL 5.6+，B 段增量补丁使用 `information_schema` 检查字段是否存在，不依赖 `ADD COLUMN IF NOT EXISTS`（该语法仅 MySQL 8.0+ 支持）。
+
 ### 1.2 域名与证书
 
 | 域名类型 | 用途 | 是否必须 |
 |----------|------|----------|
-| API 域名 | 后端接口，如 `api.yunxi.com` | 必须，需 HTTPS |
+| API 域名 | 后端接口，如 `{{API_DOMAIN}}` | 必须，需 HTTPS |
 | 静态资源域名 | CSS/JS/图片 CDN | 可选，可与 API 同域 |
 | 上传文件域名 | 图片上传，与 API 同域 | 必须，需 HTTPS |
 
@@ -25,17 +48,17 @@
 
 | 配置项 | 位置 | 说明 |
 |--------|------|------|
-| AppID | 微信后台 → 开发管理 → 开发设置 | 当前 `wxda7779770f53e901` |
-| AppSecret | 同上 | 需在微信后台获取 |
-| request 合法域名 | 同上 → 服务器域名 | 添加 `https://api.yunxi.com` |
-| uploadFile 合法域名 | 同上 | 添加 `https://api.yunxi.com` |
-| downloadFile 合法域名 | 同上 | 添加 `https://api.yunxi.com` |
+| AppID | 微信后台 → 开发管理 → 开发设置 | 替换 `{{APP_ID}}` |
+| AppSecret | 同上 | 需在微信后台获取，替换 `{{APP_SECRET}}` |
+| request 合法域名 | 同上 → 服务器域名 | 添加 `https://{{API_DOMAIN}}` |
+| uploadFile 合法域名 | 同上 | 添加 `https://{{API_DOMAIN}}` |
+| downloadFile 合法域名 | 同上 | 添加 `https://{{API_DOMAIN}}` |
 
 ### 1.4 备份
 
 ```bash
-mysqldump -u root -p shopxo > backup_$(date +%Y%m%d%H%M%S).sql
-tar czf backend_backup_$(date +%Y%m%d%H%M%S).tar.gz /path/to/shopxo-backend/
+mysqldump -u {{DB_USER}} -p {{DB_NAME}} > backup_$(date +%Y%m%d%H%M%S).sql
+tar czf backend_backup_$(date +%Y%m%d%H%M%S).tar.gz {{DEPLOY_PATH}}/shopxo-backend/
 ```
 
 ---
@@ -48,25 +71,41 @@ tar czf backend_backup_$(date +%Y%m%d%H%M%S).tar.gz /path/to/shopxo-backend/
 |------|------|----------|------|
 | D0 | 备份数据库 | — | 必须先做 |
 | D1 | ShopXO 原生建表 | 安装向导自动执行 | 全新环境走安装向导；已有环境跳过 |
-| D2 | 母婴基础建表 | `muying-final-migration.sql` A 段 | 4 张新表 |
-| D3 | 母婴增量补丁 | `muying-final-migration.sql` B 段 | **必须执行**，含 P0 缺失字段 |
+| D2 | 母婴基础建表 | `muying-final-migration.sql` A 段 | 4 张新表，可重复执行 |
+| D3 | 母婴增量补丁 | `muying-final-migration.sql` B 段 | **必须执行**，含 P0 缺失字段，可重复执行 |
 | D4 | 补邀请码 | `muying-final-migration.sql` C1 段 | 为已有用户生成邀请码 |
-| D5 | 邀请码唯一索引 | `muying-final-migration.sql` C2 段 | D4 确认无空值后执行 |
-| D6 | 邀请奖励去重+唯一约束 | `muying-final-migration.sql` C3 段 | 先去重再加索引 |
+| D5 | 邀请码唯一索引 | `muying-final-migration.sql` C2 段 | D4 确认无空值后执行，**不可重复执行** |
+| D6 | 邀请奖励去重+唯一约束 | `muying-final-migration.sql` C3 段 | 先去重再加索引，**不可重复执行** |
 | D7 | 枚举值修复 | `muying-final-migration.sql` C4 段 | 可选，仅当有旧脏数据 |
-| D8 | 邀请奖励配置项 | `muying-final-migration.sql` C5 段 | **必须执行**，否则奖励为 0 |
+| D8 | 邀请奖励配置项 | `muying-final-migration.sql` C5 段 | **必须执行**，可重复执行（幂等） |
 | D9 | 菜单权限 | `muying-final-migration.sql` C6 段 | 可选，仅当后台无运营菜单 |
 | D10 | 隐藏一期菜单 | `muying-final-migration.sql` C7 段 | 可选 |
+| D11 | 初始化配置项 | `yunxi-init-config.sql` | **必须执行**，可重复执行（幂等） |
+| D12 | 活动演示数据 | `yunxi-init-activity-demo.sql` | 可选，正式环境可替换为真实数据 |
+| D13 | 妈妈说演示数据 | `yunxi-init-feedback-demo.sql` | 可选，正式环境可替换为真实数据 |
 
 ### 2.2 不要执行的 SQL
 
 | 文件 | 原因 |
 |------|------|
 | `config/shopxo.sql`（手动执行） | 含 DROP TABLE，会清空所有数据 |
-| `docs/muying-demo-data.sql` | 演示数据，正式环境不需要 |
 | 旧 migration 文件（已废弃） | 已合并到 `muying-final-migration.sql` |
 
-### 2.3 需要人工确认后执行的 SQL
+### 2.3 可重复执行性说明
+
+| 段/步骤 | 可重复执行 | 说明 |
+|---------|:-:|------|
+| A 段（建表） | ✅ | `CREATE TABLE IF NOT EXISTS` |
+| B 段（补字段） | ✅ | 每条 ALTER 前检查 `information_schema` |
+| C1（补邀请码） | ✅ | 仅处理空值用户 |
+| C2（唯一索引） | ❌ | 重复执行报 Duplicate key |
+| C3（去重+索引） | ❌ | 重复执行报 Duplicate key |
+| C4（枚举修复） | ✅ | UPDATE 无匹配则无影响 |
+| C5（奖励配置） | ✅ | `ON DUPLICATE KEY UPDATE` |
+| C6（菜单权限） | ❌ | INSERT 无去重，重复执行产生重复记录 |
+| C7（隐藏菜单） | ✅ | UPDATE 无匹配则无影响 |
+
+### 2.4 需要人工确认后执行的 SQL
 
 | SQL | 确认项 |
 |-----|--------|
@@ -74,7 +113,7 @@ tar czf backend_backup_$(date +%Y%m%d%H%M%S).tar.gz /path/to/shopxo-backend/
 | C3 邀请奖励去重 | `SELECT inviter_id, invitee_id, trigger_event, COUNT(*) AS cnt FROM sxo_invite_reward GROUP BY inviter_id, invitee_id, trigger_event HAVING cnt > 1;` |
 | C4 枚举值修复 | `SELECT DISTINCT stage FROM sxo_activity WHERE stage NOT IN ('prepare','pregnancy','postpartum','all','');` |
 
-### 2.4 数据库执行后验证
+### 2.5 数据库执行后验证
 
 ```sql
 SHOW TABLES LIKE 'sxo_activity%';
@@ -96,7 +135,7 @@ SELECT * FROM sxo_config WHERE only_tag IN ('muying_invite_register_reward', 'mu
 ### 3.1 代码部署
 
 ```bash
-cd /var/www/
+cd {{DEPLOY_PATH}}/
 git clone https://github.com/kHuner9712/xiyun.git yunxi
 cd yunxi/shopxo-backend
 composer install --no-dev --optimize-autoloader
@@ -105,7 +144,7 @@ composer install --no-dev --optimize-autoloader
 ### 3.2 目录权限
 
 ```bash
-chown -R www-data:www-data /var/www/yunxi/shopxo-backend
+chown -R www-data:www-data {{DEPLOY_PATH}}/yunxi/shopxo-backend
 chmod -R 755 runtime/
 chmod -R 755 public/static/upload/
 chmod -R 755 public/download/
@@ -124,15 +163,17 @@ chmod -R 755 resources/
 
 ### 3.3 Nginx 配置
 
+> 以下配置中 `{{API_DOMAIN}}`、`{{DEPLOY_PATH}}`、`{{SSL_CERT_PATH}}` 需替换为实际值。
+
 ```nginx
 server {
     listen 443 ssl http2;
-    server_name api.yunxi.com;
+    server_name {{API_DOMAIN}};
 
-    ssl_certificate     /etc/nginx/ssl/api.yunxi.com.pem;
-    ssl_certificate_key /etc/nginx/ssl/api.yunxi.com.key;
+    ssl_certificate     {{SSL_CERT_PATH}}/{{API_DOMAIN}}.pem;
+    ssl_certificate_key {{SSL_CERT_PATH}}/{{API_DOMAIN}}.key;
 
-    root /var/www/yunxi/shopxo-backend/public;
+    root {{DEPLOY_PATH}}/yunxi/shopxo-backend/public;
     index index.php index.html;
 
     location / {
@@ -163,7 +204,7 @@ server {
 | 1 | PHP 版本 | `php -v` | ≥8.0.2 |
 | 2 | PHP 扩展 | `php -m` | 包含 pdo_mysql, mbstring, curl, gd, openssl |
 | 3 | `config/database.php` 存在 | `ls config/database.php` | 安装后生成 |
-| 4 | 数据库表前缀 | 查看该文件 `prefix` 字段 | `sxo_` |
+| 4 | 数据库表前缀 | 查看该文件 `prefix` 字段 | `sxo_`（必须与 SQL 文件一致） |
 | 5 | 时区配置 | `config/app.php` → `default_timezone` | `Asia/Shanghai` |
 | 6 | 调试模式关闭 | `config/app.php` → `show_error_msg` | `false` |
 | 7 | `.env` 不存在或 `APP_DEBUG = false` | `cat .env` | 生产环境必须关闭 |
@@ -172,8 +213,8 @@ server {
 
 ### 3.5 安装向导（仅全新环境）
 
-1. 浏览器访问 `https://api.yunxi.com/install.php`
-2. 填写数据库信息，**表前缀必须为 `sxo_`**
+1. 浏览器访问 `https://{{API_DOMAIN}}/install.php`
+2. 填写数据库信息，**表前缀必须为 `sxo_`**（与 SQL 文件一致）
 3. 安装完成后删除 `public/install.php`，记录管理后台入口地址
 4. 安装后不要再执行 `config/shopxo.sql`
 
@@ -185,22 +226,22 @@ server {
 
 | 序号 | 配置项 | 文件 | 操作 |
 |------|--------|------|------|
-| 1 | 微信小程序 AppID | `project.config.json` → `appid` | 确认为正式 AppID |
-| 2 | API 接口域名 | 环境变量 `UNI_APP_REQUEST_URL` | `https://api.yunxi.com/` |
-| 3 | 静态资源域名 | 环境变量 `UNI_APP_STATIC_URL` | `https://cdn.yunxi.com/` 或留空 |
+| 1 | 微信小程序 AppID | `project.config.json` → `appid` | 替换为 `{{APP_ID}}` 实际值 |
+| 2 | API 接口域名 | 环境变量 `UNI_APP_REQUEST_URL` | `https://{{API_DOMAIN}}/` |
+| 3 | 静态资源域名 | 环境变量 `UNI_APP_STATIC_URL` | `https://{{CDN_DOMAIN}}/` 或留空 |
 | 4 | manifest.local.json | 从 `manifest.local.json.example` 复制 | 填入微信支付/OAuth 等密钥 |
 
 ### 4.2 构建步骤（HBuilderX）
 
 1. 打开 HBuilderX，导入 `shopxo-uniapp` 项目
 2. 菜单：发行 → 小程序-微信
-3. 设置环境变量：`UNI_APP_REQUEST_URL` = `https://api.yunxi.com/`
+3. 设置环境变量：`UNI_APP_REQUEST_URL` = `https://{{API_DOMAIN}}/`
 4. 点击发行，构建产物在 `unpackage/dist/build/mp-weixin/`
 
 ### 4.3 微信开发者工具上传
 
 1. 打开微信开发者工具，导入 `unpackage/dist/build/mp-weixin/`
-2. 确认 AppID 与正式 AppID 一致
+2. 确认 AppID 与 `{{APP_ID}}` 实际值一致
 3. 本地调试确认接口可通
 4. 点击"上传"，版本号 `1.0.0`
 5. 登录微信后台 → 版本管理 → 提交审核
@@ -209,8 +250,8 @@ server {
 
 | 配置项 | 测试环境 | 正式环境 |
 |--------|----------|----------|
-| `UNI_APP_REQUEST_URL` | `https://test-api.yunxi.com/` | `https://api.yunxi.com/` |
-| 微信 AppID | 测试号 AppID | 正式 AppID |
+| `UNI_APP_REQUEST_URL` | `https://test-{{API_DOMAIN}}/` | `https://{{API_DOMAIN}}/` |
+| 微信 AppID | 测试号 AppID | 正式 `{{APP_ID}}` |
 | `APP_DEBUG` | `true` | `false` |
 | 后端 `show_error_msg` | `true` | `false` |
 
@@ -218,7 +259,7 @@ server {
 
 ## 5. 后台配置步骤
 
-登录管理后台：`https://api.yunxi.com/admin{随机字符}.php`
+登录管理后台：`https://{{API_DOMAIN}}/{{ADMIN_ENTRY}}`
 
 ### 5.1 站点基础配置
 

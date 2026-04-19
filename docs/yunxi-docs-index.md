@@ -4,9 +4,32 @@
 
 | 文档 | 路径 | 用途 |
 |------|------|------|
-| 最终上线 SQL | [docs/muying-final-migration.sql](docs/muying-final-migration.sql) | 数据库建表+补丁+索引，唯一真相源 |
-| 正式部署手册 | [docs/yunxi-production-deployment.md](docs/yunxi-production-deployment.md) | 服务器部署全流程，照着执行 |
-| 首批内容清单 | [docs/yunxi-launch-content-checklist.md](docs/yunxi-launch-content-checklist.md) | 后台初始化内容，照着配置 |
+| 最终上线 SQL | [docs/muying-final-migration.sql](muying-final-migration.sql) | 数据库建表+补丁+索引，唯一真相源 |
+| 正式部署手册 | [docs/yunxi-production-deployment.md](yunxi-production-deployment.md) | 服务器部署全流程，照着执行 |
+| 首批内容清单 | [docs/yunxi-launch-content-checklist.md](yunxi-launch-content-checklist.md) | 后台初始化内容，照着配置 |
+| 首页内容填写模板 | [docs/templates/yunxi-home-content-template.md](templates/yunxi-home-content-template.md) | 后台人工填写操作模板 |
+
+## 初始化 SQL 脚本
+
+| 脚本 | 路径 | 用途 | 可重复执行 |
+|------|------|------|:-:|
+| 自定义配置项 | [docs/sql/yunxi-init-config.sql](sql/yunxi-init-config.sql) | 邀请奖励/品牌/登录/搜索配置 | ✅ |
+| 活动演示数据 | [docs/sql/yunxi-init-activity-demo.sql](sql/yunxi-init-activity-demo.sql) | 6条活动样例，覆盖4阶段5分类 | ✅ |
+| 妈妈说演示数据 | [docs/sql/yunxi-init-feedback-demo.sql](sql/yunxi-init-feedback-demo.sql) | 5条反馈样例，覆盖3阶段 | ✅ |
+
+## 执行顺序
+
+1. `muying-final-migration.sql`（A→B→C 段，按段内顺序）
+2. `yunxi-init-config.sql`（配置项初始化）
+3. `yunxi-init-activity-demo.sql`（活动演示数据，可选）
+4. `yunxi-init-feedback-demo.sql`（妈妈说演示数据，可选）
+5. 后台人工配置（参考 `yunxi-home-content-template.md`）
+
+## MySQL 版本要求
+
+- 最低：MySQL 5.6+（utf8mb4）
+- 推荐：MySQL 5.7+ / 8.0
+- 所有 SQL 已兼容 5.6+，不依赖 `ADD COLUMN IF NOT EXISTS` 等仅 8.0+ 支持的语法
 
 ## 已废弃的旧文件
 
@@ -27,5 +50,11 @@
 └── docs/                    # 文档与 SQL
     ├── muying-final-migration.sql       # 最终上线 SQL
     ├── yunxi-production-deployment.md   # 部署手册
-    └── yunxi-launch-content-checklist.md # 内容清单
+    ├── yunxi-launch-content-checklist.md # 内容清单
+    ├── sql/                             # 初始化 SQL 脚本
+    │   ├── yunxi-init-config.sql        # 配置项初始化
+    │   ├── yunxi-init-activity-demo.sql # 活动演示数据
+    │   └── yunxi-init-feedback-demo.sql # 妈妈说演示数据
+    └── templates/                       # 内容填写模板
+        └── yunxi-home-content-template.md # 首页内容模板
 ```

@@ -8,7 +8,7 @@
 --
 -- 【执行时机】
 --   在 muying-final-migration.sql 之后执行
---   如果配置项已存在（only_tag 唯一索引冲突），会报错，可忽略
+--   所有 INSERT 均使用 ON DUPLICATE KEY UPDATE，可重复执行不报错
 --
 -- 【环境说明】
 --   - 演示环境：可直接执行
@@ -30,14 +30,16 @@
 -- 后台修改路径：系统设置 → 搜索 only_tag = muying_invite_register_reward
 -- 后端读取：InviteService.php → MyC('muying_invite_register_reward', 0, true)
 INSERT INTO `sxo_config` (`value`, `name`, `describe`, `error_tips`, `type`, `only_tag`, `upd_time`) VALUES
-('100', '邀请注册奖励积分', '邀请人获得的积分奖励', '请填写邀请注册奖励积分', 'common', 'muying_invite_register_reward', UNIX_TIMESTAMP());
+('100', '邀请注册奖励积分', '邀请人获得的积分奖励', '请填写邀请注册奖励积分', 'common', 'muying_invite_register_reward', UNIX_TIMESTAMP())
+ON DUPLICATE KEY UPDATE `value`=VALUES(`value`), `upd_time`=UNIX_TIMESTAMP();
 
 -- 邀请首单奖励积分
 -- 默认值 200：被邀请人完成首单后，邀请人额外获得 200 积分
 -- 后台修改路径：系统设置 → 搜索 only_tag = muying_invite_first_order_reward
 -- 后端读取：InviteService.php → MyC('muying_invite_first_order_reward', 0, true)
 INSERT INTO `sxo_config` (`value`, `name`, `describe`, `error_tips`, `type`, `only_tag`, `upd_time`) VALUES
-('200', '邀请首单奖励积分', '被邀请人首单后邀请人获得的积分奖励', '请填写邀请首单奖励积分', 'common', 'muying_invite_first_order_reward', UNIX_TIMESTAMP());
+('200', '邀请首单奖励积分', '被邀请人首单后邀请人获得的积分奖励', '请填写邀请首单奖励积分', 'common', 'muying_invite_first_order_reward', UNIX_TIMESTAMP())
+ON DUPLICATE KEY UPDATE `value`=VALUES(`value`), `upd_time`=UNIX_TIMESTAMP();
 
 -- -----------------------------------------------------------
 -- 2. 首页品牌配置（建议执行，缺失则使用 ShopXO 默认值）
