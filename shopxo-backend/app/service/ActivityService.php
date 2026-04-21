@@ -1,6 +1,8 @@
 <?php
 namespace app\service;
 
+use app\service\MuyingLogService;
+
 // [MUYING-二开] 活动报名、收藏、核销服务 - 二开新增文件
 
 use think\facade\Db;
@@ -226,27 +228,36 @@ class ActivityService
             return DataReturn('活动不存在或已下架', -1);
         }
 
-        $exists = Db::name('GoodsFavor')->where([
-            ['user_id', '=', $user_id],
-            ['goods_id', '=', $id],
-            ['type', '=', 'activity'],
-        ])->find();
-
-        if (!empty($exists)) {
-            Db::name('GoodsFavor')->where([
+        Db::startTrans();
+        try {
+            $exists = Db::name('GoodsFavor')->where([
                 ['user_id', '=', $user_id],
                 ['goods_id', '=', $id],
                 ['type', '=', 'activity'],
-            ])->delete();
-            return DataReturn('取消收藏成功', 0, ['is_favored' => false]);
-        } else {
-            Db::name('GoodsFavor')->insert([
-                'user_id'   => $user_id,
-                'goods_id'  => $id,
-                'type'      => 'activity',
-                'add_time'  => time(),
-            ]);
-            return DataReturn('收藏成功', 0, ['is_favored' => true]);
+            ])->lock(true)->find();
+
+            if (!empty($exists)) {
+                Db::name('GoodsFavor')->where([
+                    ['user_id', '=', $user_id],
+                    ['goods_id', '=', $id],
+                    ['type', '=', 'activity'],
+                ])->delete();
+                Db::commit();
+                return DataReturn('取消收藏成功', 0, ['is_favored' => false]);
+            } else {
+                Db::name('GoodsFavor')->insert([
+                    'user_id'   => $user_id,
+                    'goods_id'  => $id,
+                    'type'      => 'activity',
+                    'add_time'  => time(),
+                ]);
+                Db::commit();
+                return DataReturn('收藏成功', 0, ['is_favored' => true]);
+            }
+        } catch (\Exception $e) {
+            Db::rollback();
+            Log::error('活动收藏切换异常 activity_id=' . $id . ' user_id=' . $user_id . ' error=' . $e->getMessage());
+            return DataReturn('操作失败，请稍后重试', -1);
         }
     }
 
@@ -474,11 +485,12 @@ class ActivityService
             }
 
             Db::commit();
+            MuyingLogService::LogSuccess(MuyingLogService::TYPE_ACTIVITY_SIGNUP, 'create', $user_id, $activity_id, '活动报名成功');
             return DataReturn('报名成功', 0);
         } catch (\Exception $e) {
             Db::rollback();
             Log::error('活动报名异常 activity_id=' . $activity_id . ' user_id=' . $user_id . ' error=' . $e->getMessage());
-            return DataReturn('报名失败：' . $e->getMessage(), -100);
+            return DataReturn('报名失败，请稍后重试', -100);
         }
     }
 
@@ -845,31 +857,45 @@ class ActivityService
         }
 
         $id = intval($params['id']);
-        $signup = Db::name('ActivitySignup')->where([
-            ['id', '=', $id],
-            ['is_delete_time', '=', 0],
-        ])->find();
-        if (empty($signup)) {
-            return DataReturn('报名记录不存在', -1);
-        }
 
-        if ($signup['status'] == self::SIGNUP_STATUS_CANCELLED) {
-            return DataReturn('已取消的报名不能签到', -1);
-        }
+        Db::startTrans();
+        try {
+            $signup = Db::name('ActivitySignup')->where([
+                ['id', '=', $id],
+                ['is_delete_time', '=', 0],
+            ])->lock(true)->find();
+            if (empty($signup)) {
+                Db::rollback();
+                return DataReturn('报名记录不存在', -1);
+            }
 
-        if ($signup['checkin_status'] == self::CHECKIN_STATUS_YES) {
-            return DataReturn('已签到，请勿重复签到', -1);
-        }
+            if ($signup['status'] == self::SIGNUP_STATUS_CANCELLED) {
+                Db::rollback();
+                return DataReturn('已取消的报名不能签到', -1);
+            }
 
-        $checkin_result = Db::name('ActivitySignup')->where(['id' => $id])->update([
-            'checkin_status' => self::CHECKIN_STATUS_YES,
-            'checkin_time'   => time(),
-            'upd_time'       => time(),
-        ]);
-        if ($checkin_result !== false) {
-            return DataReturn('签到成功', 0);
+            if ($signup['checkin_status'] == self::CHECKIN_STATUS_YES) {
+                Db::rollback();
+                return DataReturn('已签到，请勿重复签到', -1);
+            }
+
+            $checkin_result = Db::name('ActivitySignup')->where(['id' => $id])->update([
+                'checkin_status' => self::CHECKIN_STATUS_YES,
+                'checkin_time'   => time(),
+                'upd_time'       => time(),
+            ]);
+            if ($checkin_result !== false) {
+                Db::commit();
+                MuyingLogService::LogSuccess(MuyingLogService::TYPE_ACTIVITY_CHECKIN, 'update', $signup['user_id'], $id, '签到成功');
+                return DataReturn('签到成功', 0);
+            }
+            Db::rollback();
+            return DataReturn('签到失败', -100);
+        } catch (\Exception $e) {
+            Db::rollback();
+            Log::error('签到异常 id=' . $id . ' error=' . $e->getMessage());
+            return DataReturn('签到操作失败，请稍后重试', -100);
         }
-        return DataReturn('签到失败', -100);
     }
 
     public static function SignupConfirm($params = [])
@@ -887,30 +913,44 @@ class ActivityService
         }
 
         $id = intval($params['id']);
-        $signup = Db::name('ActivitySignup')->where([
-            ['id', '=', $id],
-            ['is_delete_time', '=', 0],
-        ])->find();
-        if (empty($signup)) {
-            return DataReturn('报名记录不存在', -1);
-        }
 
-        if ($signup['status'] == self::SIGNUP_STATUS_CONFIRMED) {
-            return DataReturn('该报名已确认，请勿重复确认', -1);
-        }
+        Db::startTrans();
+        try {
+            $signup = Db::name('ActivitySignup')->where([
+                ['id', '=', $id],
+                ['is_delete_time', '=', 0],
+            ])->lock(true)->find();
+            if (empty($signup)) {
+                Db::rollback();
+                return DataReturn('报名记录不存在', -1);
+            }
 
-        if ($signup['status'] == self::SIGNUP_STATUS_CANCELLED) {
-            return DataReturn('已取消的报名不能确认', -1);
-        }
+            if ($signup['status'] == self::SIGNUP_STATUS_CONFIRMED) {
+                Db::rollback();
+                return DataReturn('该报名已确认，请勿重复确认', -1);
+            }
 
-        $upd_result = Db::name('ActivitySignup')->where(['id' => $id])->update([
-            'status'   => self::SIGNUP_STATUS_CONFIRMED,
-            'upd_time' => time(),
-        ]);
-        if ($upd_result !== false) {
-            return DataReturn('确认成功', 0);
+            if ($signup['status'] == self::SIGNUP_STATUS_CANCELLED) {
+                Db::rollback();
+                return DataReturn('已取消的报名不能确认', -1);
+            }
+
+            $upd_result = Db::name('ActivitySignup')->where(['id' => $id])->update([
+                'status'   => self::SIGNUP_STATUS_CONFIRMED,
+                'upd_time' => time(),
+            ]);
+            if ($upd_result !== false) {
+                Db::commit();
+                MuyingLogService::LogSuccess(MuyingLogService::TYPE_ACTIVITY_CONFIRM, 'update', $signup['user_id'], $id, '确认报名成功');
+                return DataReturn('确认成功', 0);
+            }
+            Db::rollback();
+            return DataReturn('确认失败', -100);
+        } catch (\Exception $e) {
+            Db::rollback();
+            Log::error('确认报名异常 id=' . $id . ' error=' . $e->getMessage());
+            return DataReturn('确认操作失败，请稍后重试', -100);
         }
-        return DataReturn('确认失败', -100);
     }
 
     public static function SignupExport($params = [])

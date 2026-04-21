@@ -71,25 +71,25 @@
                     <!-- 母婴专属导航 -->
                     <view class="muying-nav-section padding-main border-radius-main bg-white spacing-mb">
                         <view class="muying-nav-row flex-row jc-sa">
-                            <view class="muying-nav-item tc cp" data-value="/pages/my-activity/my-activity?tab=activity" @tap="url_event">
+                            <view v-if="is_feature_enabled('feature_activity_enabled')" class="muying-nav-item tc cp" data-value="/pages/my-activity/my-activity?tab=activity" @tap="url_event">
                                 <view class="muying-nav-icon-wrap">
                                     <text class="muying-nav-icon-text">🎉</text>
                                 </view>
                                 <view class="item-name cr-base text-size-sm">我的活动</view>
                             </view>
-                            <view class="muying-nav-item tc cp" data-value="/pages/my-activity/my-activity?tab=signup" @tap="url_event">
+                            <view v-if="is_feature_enabled('feature_activity_enabled')" class="muying-nav-item tc cp" data-value="/pages/my-activity/my-activity?tab=signup" @tap="url_event">
                                 <view class="muying-nav-icon-wrap">
                                     <text class="muying-nav-icon-text">📋</text>
                                 </view>
                                 <view class="item-name cr-base text-size-sm">我的报名</view>
                             </view>
-                            <view class="muying-nav-item tc cp" data-value="/pages/my-invite/my-invite" @tap="url_event">
+                            <view v-if="is_feature_enabled('feature_invite_enabled')" class="muying-nav-item tc cp" data-value="/pages/my-invite/my-invite" @tap="url_event">
                                 <view class="muying-nav-icon-wrap">
                                     <text class="muying-nav-icon-text">🎁</text>
                                 </view>
                                 <view class="item-name cr-base text-size-sm">我的邀请</view>
                             </view>
-                            <view class="muying-nav-item tc cp" @tap="stage_nav_event">
+                            <view v-if="is_feature_enabled('feature_activity_enabled')" class="muying-nav-item tc cp" @tap="stage_nav_event">
                                 <view class="muying-nav-icon-wrap">
                                     <text class="muying-nav-icon-text">{{ current_stage_text ? '🏷️' : '➕' }}</text>
                                 </view>
@@ -226,8 +226,11 @@
     import componentCopyright from '@/components/copyright/copyright';
     import componentOnlineService from '@/components/online-service/online-service';
     import componentStageGuide from '@/components/stage-guide/stage-guide';
-    import { filter_phase_one_navigation } from '@/common/js/config/phase-one-scope.js';
+    import { filter_phase_one_navigation, is_feature_enabled } from '@/common/js/config/phase-one-scope.js';
     import { MuyingStage } from '@/common/js/config/muying-enum';
+    import { request as http_request } from '@/common/js/http.js';
+    import { userStore } from '@/common/js/user-store.js';
+    import { logger } from '@/common/js/logger.js';
 
     var common_static_url = app.globalData.get_static_url('common');
     var static_url = app.globalData.get_static_url('user');
@@ -309,7 +312,10 @@
         },
 
         methods: {
-            // 资源设置
+            is_feature_enabled(key) {
+                return is_feature_enabled(key);
+            },
+
             set_resources_data() {
                 // 当前用户信息
                 var user = app.globalData.get_user_cache_info() || null;
@@ -510,7 +516,7 @@
                             upd_data['current_stage_text'] = stage_text;
 
                             if (user_stage && !stage_text) {
-                                console.warn('[user] current_stage有值但无法映射 user_stage=' + user_stage);
+                                logger.warn('user', 'current_stage有值但无法映射 user_stage=' + user_stage);
                             }
 
                             this.setData(upd_data);
@@ -620,36 +626,34 @@
 
             // 阶段引导确认
             stage_guide_confirm_event(stage) {
-                uni.setStorageSync('stage_guide_shown', '1');
-                this.setData({ stage_guide_show: false });
-                this.setData({ current_stage_text: MuyingStage.getName(stage) });
-                // 更新本地缓存
-                var user = app.globalData.get_user_cache_info();
-                if (user) {
-                    user.current_stage = stage;
-                    uni.setStorageSync(app.globalData.data.cache_user_info_key, user);
-                }
-                // 保存到后端
-                uni.request({
-                    url: app.globalData.get_request_url('save', 'personal'),
-                    method: 'POST',
+                var self = this;
+                var prev_stage_text = self.current_stage_text;
+                var prev_user = app.globalData.get_user_cache_info();
+                var prev_user_stage = prev_user ? prev_user.current_stage : '';
+                self.setData({ stage_guide_show: false });
+                http_request({
+                    action: 'save',
+                    controller: 'personal',
                     data: { current_stage: stage },
-                    dataType: 'json',
-                    success: (res) => {
-                        if (res.data.code == 0) {
-                            if (res.data.data) {
-                                uni.setStorageSync(app.globalData.data.cache_user_info_key, res.data.data);
-                            }
-                            app.globalData.showToast('阶段设置成功', 'success');
+                    success: function(data) {
+                        uni.setStorageSync('stage_guide_shown', '1');
+                        self.setData({ current_stage_text: MuyingStage.getName(stage) });
+                        if (data) {
+                            userStore.set(data);
                         } else {
-                            app.globalData.showToast('阶段信息保存失败，请稍后重试');
-                            console.warn('[user] 阶段保存失败', res.data);
+                            if (prev_user) {
+                                prev_user.current_stage = stage;
+                                userStore.set(prev_user);
+                            }
+                        }
+                        app.globalData.showToast('阶段设置成功', 'success');
+                    },
+                    fail: function(err) {
+                        self.setData({ stage_guide_show: true });
+                        if (err && err.network_error) {
+                            app.globalData.showToast('网络异常，阶段保存失败');
                         }
                     },
-                    fail: () => {
-                        app.globalData.showToast('网络异常，阶段保存失败');
-                        console.warn('[user] 阶段保存网络请求失败');
-                    }
                 });
             },
 

@@ -1,10 +1,11 @@
-﻿<script>
+<script>
     import base64 from './common/js/lib/base64.js';
     // 多语言引入并初始化
     import i18n from './locale/index';
     import devConfig from './common/js/config/dev.js';
     import prodConfig from './common/js/config/prod.js';
-    import { PHASE_ONE_DISABLED_PLUGIN_NAMES, PHASE_ONE_DISABLED_ROUTE_PREFIXES, is_phase_one_disabled_route as is_phase_one_disabled_route_match } from './common/js/config/phase-one-scope.js';
+    import { PHASE_ONE_DISABLED_PLUGIN_NAMES, PHASE_ONE_DISABLED_ROUTE_PREFIXES, is_phase_one_disabled_route as is_phase_one_disabled_route_match, init_feature_flags, is_feature_enabled } from './common/js/config/phase-one-scope.js';
+    import { logger } from './common/js/logger.js';
     var isProd = process.env.NODE_ENV === 'production';
     var appConfig = isProd ? prodConfig : devConfig;
     var request_url_value = appConfig.request_url;
@@ -1624,10 +1625,23 @@
 
             // 公共配置初始化返回处理
             init_config_result_handle(data, self) {
-                // 记录已初始化公共数据状态
                 self.data.common_data_init_status = 1;
 
-                // 主题设置
+                if (data) {
+                    var feature_flags = {};
+                    var feature_keys = ['feature_shop_enabled', 'feature_realstore_enabled', 'feature_distribution_enabled', 'feature_wallet_enabled', 'feature_coin_enabled', 'feature_ugc_enabled', 'feature_membership_enabled', 'feature_seckill_enabled', 'feature_coupon_enabled', 'feature_signin_enabled', 'feature_points_enabled', 'feature_video_enabled', 'feature_hospital_enabled', 'feature_giftcard_enabled', 'feature_givegift_enabled', 'feature_complaint_enabled', 'feature_invoice_enabled', 'feature_certificate_enabled', 'feature_scanpay_enabled', 'feature_live_enabled', 'feature_intellectstools_enabled', 'feature_activity_enabled', 'feature_invite_enabled', 'feature_content_enabled'];
+                    for (var i = 0; i < feature_keys.length; i++) {
+                        var key = feature_keys[i];
+                        if (typeof data[key] !== 'undefined') {
+                            feature_flags[key] = parseInt(data[key]) || 0;
+                        }
+                    }
+                    if (Object.keys(feature_flags).length > 0) {
+                        init_feature_flags(feature_flags);
+                        self.data.feature_flags = feature_flags;
+                    }
+                }
+
                 self.set_theme_value(data.plugins_themestyle_data);
 
                 // 设置底部菜单、存在开屏广告则延迟加载
@@ -1845,6 +1859,10 @@
             // 是否为一期禁用路由
             is_phase_one_disabled_route(url) {
                 return is_phase_one_disabled_route_match(url);
+            },
+
+            is_feature_enabled(flag_key) {
+                return is_feature_enabled(flag_key);
             },
 
             // 一期路由守卫
@@ -3018,6 +3036,9 @@
                                 var shop_arr = ['/shop-index-detail-', '/plugins/index/pluginsname/shop/pluginscontrol/index/pluginsaction/detail/id/', '=plugins/index/pluginsname/shop/pluginscontrol/index/pluginsaction/detail/id/'];
                                 var shop_ret = self.web_url_value_mate(value, shop_arr);
                                 if (shop_ret.status == 1 && shop_ret.value != null) {
+                                    if (self.phase_one_route_guard('/pages/plugins/shop/detail/detail')) {
+                                        return;
+                                    }
                                     uni.navigateTo({
                                         url: '/pages/plugins/shop/detail/detail?id=' + shop_ret.value,
                                     });
@@ -3028,6 +3049,9 @@
                                 var scanpay_arr = ['/scanpay-index-index', 'plugins/index/pluginsname/scanpay/pluginscontrol/index/pluginsaction/index', 'plugins/index/pluginsname/scanpay', '/scanpay'];
                                 var scanpay_ret = self.web_url_value_mate(value, scanpay_arr);
                                 if (scanpay_ret.status == 1) {
+                                    if (self.phase_one_route_guard('/pages/plugins/scanpay/index/index')) {
+                                        return;
+                                    }
                                     var url = '/pages/plugins/scanpay/index/index';
                                     if (scanpay_ret.value != null) {
                                         var first = scanpay_ret.value.substr(0, 1);
@@ -3372,6 +3396,22 @@
         // 监听应用退出
         onExit() {
             this.globalData.clear_interval_handle();
+        },
+
+        // 全局错误捕获
+        onError(err) {
+            logger.error('AppOnError', err);
+        },
+
+        // 未处理的 Promise rejection
+        onUnhandledRejection(err) {
+            logger.error('AppUnhandledRejection', err && (err.reason || err));
+        },
+
+        // 页面不存在
+        onPageNotFound(res) {
+            logger.warn('AppPageNotFound', res);
+            uni.redirectTo({ url: '/pages/error/error' });
         },
         methods: {},
     };

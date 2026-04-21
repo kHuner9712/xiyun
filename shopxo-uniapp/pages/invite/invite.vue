@@ -116,6 +116,8 @@
     import componentCommon from '@/components/common/common';
     import componentNoData from '@/components/no-data/no-data';
     import componentBottomLine from '@/components/bottom-line/bottom-line';
+    import { request as http_request } from '@/common/js/http.js';
+    import { logger } from '@/common/js/logger.js';
 
     export default {
         data() {
@@ -187,21 +189,22 @@
 
             get_invite_index() {
                 var self = this;
-                uni.request({
-                    url: app.globalData.get_request_url('index', 'invite'),
-                    method: 'POST',
-                    dataType: 'json',
-                    success: function(res) {
-                        if (res.data.code == 0) {
-                            var data = res.data.data || {};
-                            self.setData({
-                                invite_code: data.invite_code || '',
-                                invite_count: data.invite_count || 0,
-                                reward_total: data.reward_total || 0,
-                            });
+                http_request({
+                    action: 'index',
+                    controller: 'invite',
+                    loading: false,
+                    success: function(data) {
+                        self.setData({
+                            invite_code: data.invite_code || '',
+                            invite_count: data.invite_count || 0,
+                            reward_total: data.reward_total || 0,
+                        });
+                    },
+                    fail: function(err) {
+                        if (err && err.network_error) {
+                            app.globalData.showToast('网络异常，邀请信息加载失败');
                         }
                     },
-                    fail: function() {},
                 });
             },
 
@@ -211,34 +214,32 @@
 
                 var self = this;
                 this.setData({ data_is_loading: 1 });
-                uni.request({
-                    url: app.globalData.get_request_url('rewardlist', 'invite'),
-                    method: 'POST',
-                    dataType: 'json',
+                http_request({
+                    action: 'rewardlist',
+                    controller: 'invite',
                     data: { page: this.data_page },
-                    success: function(res) {
-                        if (res.data.code == 0) {
-                            var result = res.data.data || {};
-                            var list = result.data || [];
-                            var new_list = [];
-                            for (var i = 0; i < list.length; i++) {
-                                var item = list[i];
-                                var info = item.invitee_info || {};
-                                new_list.push({
-                                    id: item.id,
-                                    avatar: info.avatar || '',
-                                    nickname: info.nickname || '',
-                                    status: item.status,
-                                    register_time: item.add_time_text || '',
-                                });
-                            }
-                            var merged = is_mandatory ? new_list : self.invite_list.concat(new_list);
-                            self.setData({
-                                invite_list: merged,
-                                data_page_total: result.page_total || 1,
-                                data_list_loding_status: (result.page_total || 1) <= self.data_page ? 0 : 1,
+                    loading: false,
+                    success: function(data) {
+                        var result = data || {};
+                        var list = result.data || [];
+                        var new_list = [];
+                        for (var i = 0; i < list.length; i++) {
+                            var item = list[i];
+                            var info = item.invitee_info || {};
+                            new_list.push({
+                                id: item.id,
+                                avatar: info.avatar || '',
+                                nickname: info.nickname || '',
+                                status: item.status,
+                                register_time: item.add_time_text || '',
                             });
                         }
+                        var merged = is_mandatory ? new_list : self.invite_list.concat(new_list);
+                        self.setData({
+                            invite_list: merged,
+                            data_page_total: result.page_total || 1,
+                            data_list_loding_status: (result.page_total || 1) <= self.data_page ? 0 : 1,
+                        });
                     },
                     complete: function() {
                         self.setData({ data_is_loading: 0 });
@@ -271,18 +272,18 @@
 
             get_reward_config() {
                 var self = this;
-                uni.request({
-                    url: app.globalData.get_request_url('rewardconfigpublic', 'invite'),
-                    method: 'POST',
-                    dataType: 'json',
-                    success: function(res) {
-                        if (res.data.code == 0) {
-                            var data = res.data.data || {};
-                            self.setData({
-                                register_reward: data.register_reward || 0,
-                                first_order_reward: data.first_order_reward || 0,
-                            });
-                        }
+                http_request({
+                    action: 'rewardconfigpublic',
+                    controller: 'invite',
+                    loading: false,
+                    success: function(data) {
+                        self.setData({
+                            register_reward: data.register_reward || 0,
+                            first_order_reward: data.first_order_reward || 0,
+                        });
+                    },
+                    fail: function() {
+                        logger.warn('invite', '奖励配置加载失败');
                     },
                 });
             },

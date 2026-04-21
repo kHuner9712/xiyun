@@ -101,6 +101,13 @@
             if ((this.$refs.common || null) != null) {
                 this.$refs.common.on_show();
             }
+            if (!app.globalData.is_user_login()) {
+                app.globalData.showToast('请先登录');
+                setTimeout(function() {
+                    app.globalData.url_open('/pages/login/login');
+                }, 1500);
+                return;
+            }
             this.get_invite_info();
             this.setData({ data_page: 1, reward_list: [] });
             this.get_reward_list();

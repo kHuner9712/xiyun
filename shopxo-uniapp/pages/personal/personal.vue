@@ -108,6 +108,8 @@
     import componentCommon from '@/components/common/common';
     import componentNoData from '@/components/no-data/no-data';
     import { MuyingStage } from '@/common/js/config/muying-enum';
+    import { request as http_request } from '@/common/js/http.js';
+    import { userStore } from '@/common/js/user-store.js';
     export default {
         data() {
             return {
@@ -169,43 +171,34 @@
 
             // 获取数据
             get_data() {
-                uni.request({
-                    url: app.globalData.get_request_url('index', 'personal'),
-                    method: 'POST',
+                http_request({
+                    action: 'index',
+                    controller: 'personal',
                     data: { lang_can_key: 'gender_list' },
-                    dataType: 'json',
-                    success: (res) => {
-                        if (res.data.code == 0) {
-                            var user_data = res.data.data.data || {};
-                            var stage_index = 0;
-                            if (user_data.current_stage) {
-                                for (var i = 0; i < this.stage_list.length; i++) {
-                                    if (this.stage_list[i].value === user_data.current_stage) {
-                                        stage_index = i;
-                                        break;
-                                    }
+                    success: (data) => {
+                        var user_data = (data && data.data) || {};
+                        var stage_index = 0;
+                        if (user_data.current_stage) {
+                            for (var i = 0; i < this.stage_list.length; i++) {
+                                if (this.stage_list[i].value === user_data.current_stage) {
+                                    stage_index = i;
+                                    break;
                                 }
                             }
-                            this.setData({
-                                data_list_loding_status: 3,
-                                user_data: user_data,
-                                gender_list: res.data.data.gender_list || [],
-                                current_stage_index: stage_index,
-                            });
-                            this.calc_baby_month_age();
-                        } else {
-                            this.setData({
-                                data_list_loding_status: 0,
-                                data_list_loding_msg: res.data.msg,
-                            });
                         }
+                        this.setData({
+                            data_list_loding_status: 3,
+                            user_data: user_data,
+                            gender_list: (data && data.gender_list) || [],
+                            current_stage_index: stage_index,
+                        });
+                        this.calc_baby_month_age();
                     },
                     fail: () => {
                         this.setData({
                             data_list_loding_status: 2,
                             data_list_loding_msg: this.$t('common.internet_error_tips'),
                         });
-                        app.globalData.showToast(this.$t('common.internet_error_tips'));
                     },
                 });
             },
@@ -355,28 +348,17 @@
 
             // form上传url
             upload_url_handle(image, self) {
-                uni.showLoading({
-                    title: this.$t('common.upload_in_text'),
-                });
-                uni.request({
-                    url: app.globalData.get_request_url('useravatarupload', 'personal'),
-                    method: 'POST',
+                http_request({
+                    action: 'useravatarupload',
+                    controller: 'personal',
                     data: { file: image },
-                    dataType: 'json',
-                    success: (res) => {
-                        uni.hideLoading();
-                        if (res.data.code == 0) {
-                            var temp = self.user_data;
-                            temp['avatar'] = res.data.data;
-                            self.setData({ user_data: temp });
-                        } else {
-                            app.globalData.showToast(res.data.msg);
-                        }
+                    loading_title: this.$t('common.upload_in_text'),
+                    success: (data) => {
+                        var temp = self.user_data;
+                        temp['avatar'] = data;
+                        self.setData({ user_data: temp });
                     },
-                    fail: () => {
-                        uni.hideLoading();
-                        app.globalData.showToast(this.$t('common.internet_error_tips'));
-                    },
+                    fail: () => {},
                 });
             },
 
@@ -397,58 +379,55 @@
 
             // 数据提交
             form_submit(e) {
-                // 表单数据
                 var form_data = e.detail.value;
-                // 头像
                 form_data['avatar'] = this.user_data.avatar || '';
-                // 生日
                 form_data['birthday'] = this.user_data.birthday || '';
-                // 性别
                 form_data['gender'] = this.user_data.gender || 0;
-                // 当前阶段
                 form_data['current_stage'] = this.user_data.current_stage || '';
-                // 预产期
                 form_data['due_date'] = this.user_data.due_date || '';
-                // 宝宝生日
                 form_data['baby_birthday'] = this.user_data.baby_birthday || '';
 
-                // 数据保存
+                if (!form_data['nickname'] || !form_data['nickname'].trim()) {
+                    app.globalData.showToast('请输入昵称');
+                    return;
+                }
+                if (form_data['current_stage'] === 'pregnancy' && !form_data['due_date']) {
+                    app.globalData.showToast('孕期请选择预产期');
+                    return;
+                }
+                if (form_data['current_stage'] === 'postpartum' && !form_data['baby_birthday']) {
+                    app.globalData.showToast('产后请选择宝宝生日');
+                    return;
+                }
+
                 this.setData({
                     form_submit_disabled_status: true,
                 });
-                uni.showLoading({
-                    title: this.$t('common.processing_in_text'),
-                });
-                uni.request({
-                    url: app.globalData.get_request_url('save', 'personal'),
-                    method: 'POST',
+                http_request({
+                    action: 'save',
+                    controller: 'personal',
                     data: form_data,
-                    dataType: 'json',
-                    success: (res) => {
-                        uni.hideLoading();
+                    loading_title: this.$t('common.processing_in_text'),
+                    success: (data) => {
                         this.setData({
                             form_submit_disabled_status: false,
                         });
-                        if (res.data.code == 0) {
-                            uni.setStorageSync(app.globalData.data.cache_user_info_key, res.data.data);
-                            app.globalData.showToast(res.data.msg, 'success');
-                            setTimeout(function () {
-                                uni.navigateBack();
-                            }, 1000);
-                        } else {
-                            if (app.globalData.is_login_check(res.data)) {
-                                app.globalData.showToast(res.data.msg);
-                            } else {
-                                app.globalData.showToast(this.$t('common.sub_error_retry_tips'));
-                            }
-                        }
+                        userStore.set(data);
+                        app.globalData.showToast('保存成功', 'success');
+                        setTimeout(function () {
+                            uni.navigateBack();
+                        }, 1000);
                     },
-                    fail: () => {
-                        uni.hideLoading();
+                    fail: (err) => {
                         this.setData({
                             form_submit_disabled_status: false,
                         });
-                        app.globalData.showToast(this.$t('common.internet_error_tips'));
+                        if (err && err.login_expired) {
+                            return;
+                        }
+                        if (err && !err.network_error) {
+                            app.globalData.showToast(this.$t('common.sub_error_retry_tips'));
+                        }
                     },
                 });
             },

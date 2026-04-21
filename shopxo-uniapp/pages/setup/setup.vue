@@ -58,7 +58,7 @@
                         <text>{{ $t('setup.setup.42mba7') }}</text>
                         <text class="fr cr-grey">{{ $t('setup.setup.5eltza') }}</text>
                     </view>
-                    <view v-if="(plugins_invoice || null) != null" class="item padding-vertical-xxl padding-right-xxxl arrow-right" data-value="/pages/plugins/invoice/invoice/invoice" @tap="url_event">
+                    <view v-if="is_feature_enabled('feature_invoice_enabled') && (plugins_invoice || null) != null" class="item padding-vertical-xxl padding-right-xxxl arrow-right" data-value="/pages/plugins/invoice/invoice/invoice" @tap="url_event">
                         <text>{{ $t('setup.setup.t60222') }}</text>
                         <text class="fr cr-grey">{{ $t('setup.setup.izg78g') }}</text>
                     </view>
@@ -85,7 +85,7 @@
                     <text>{{ $t('setup.setup.11k15d') }}</text>
                     <text class="fr cr-grey">{{ $t('setup.setup.48r261') }}</text>
                 </view>
-                <view v-if="plugins_complaint_is_user_setup_app && (plugins_complaint_run_name || null) != null" class="item padding-vertical-xxl padding-right-xxxl arrow-right" data-value="/pages/plugins/complaint/form/form" @tap="url_event">
+                <view v-if="is_feature_enabled('feature_complaint_enabled') && plugins_complaint_is_user_setup_app && (plugins_complaint_run_name || null) != null" class="item padding-vertical-xxl padding-right-xxxl arrow-right" data-value="/pages/plugins/complaint/form/form" @tap="url_event">
                     <text>{{plugins_complaint_run_name}}</text>
                 </view>
                 <view class="item padding-vertical-xxl padding-right-xxxl arrow-right" data-value="/pages/about/about" @tap="url_event">
@@ -105,6 +105,7 @@
     import componentCommon from '@/components/common/common';
     import componentPopup from '@/components/popup/popup';
     import componentLangSwitch from '@/components/lang-switch/lang-switch';
+    import { is_feature_enabled } from '@/common/js/config/phase-one-scope.js';
     export default {
         data() {
             return {
@@ -159,7 +160,10 @@
         },
 
         methods: {
-            // 初始化配置
+            is_feature_enabled(key) {
+                return is_feature_enabled(key);
+            },
+
             init_config(status) {
                 if ((status || false) == true) {
                     var complaint_config = app.globalData.get_config('plugins_base.complaint.data') || {};

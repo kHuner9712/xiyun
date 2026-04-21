@@ -108,15 +108,14 @@
                     <!-- 内容 -->
                     <view class="content padding-horizontal-main pr">
                         <!-- 三大阶段入口 -->
-                        <component-stage-nav ref="stageNav" @stage-click="stage_click_event"></component-stage-nav>
+                        <component-stage-nav v-if="is_feature_enabled('feature_activity_enabled')" ref="stageNav" @stage-click="stage_click_event"></component-stage-nav>
 
-                        <!-- 推荐活动 -->
-                        <view class="muying-section" v-if="muying_activity_list.length > 0">
+                        <view class="muying-section" v-if="is_feature_enabled('feature_activity_enabled')">
                             <view class="muying-section-header">
                                 <text class="muying-section-title">推荐活动</text>
                                 <text class="muying-section-more" @tap="activity_more_event">更多 ›</text>
                             </view>
-                            <scroll-view scroll-x class="muying-activity-scroll">
+                            <scroll-view v-if="muying_activity_list.length > 0" scroll-x class="muying-activity-scroll">
                                 <view v-for="(item, index) in muying_activity_list" :key="index" class="muying-activity-item" @tap="activity_item_event(item)">
                                     <image :src="item.cover" mode="aspectFill" class="muying-activity-cover"></image>
                                     <view class="muying-activity-info">
@@ -129,6 +128,9 @@
                                     </view>
                                 </view>
                             </scroll-view>
+                            <view v-else class="muying-goods-empty tc padding-vertical-main">
+                                <text class="cr-grey text-size-sm">暂无推荐活动</text>
+                            </view>
                         </view>
 
                         <!-- 按阶段推荐商品 -->
@@ -156,27 +158,30 @@
                             </view>
                         </view>
 
-                        <!-- 内容资讯 -->
-                        <view class="muying-section" v-if="muying_article_list.length > 0">
+                        <view class="muying-section" v-if="is_feature_enabled('feature_content_enabled')">
                             <view class="muying-section-header">
                                 <text class="muying-section-title">孕育知识</text>
                                 <text class="muying-section-more" @tap="article_more_event">更多 ›</text>
                             </view>
-                            <view v-for="(item, index) in muying_article_list" :key="index" class="muying-article-item muying-card" @tap="article_item_event(item)">
-                                <text class="muying-article-title">{{item.title}}</text>
-                                <text class="muying-article-desc">{{item.desc}}</text>
-                                <view class="muying-article-tags">
-                                    <text v-for="(tag, ti) in item.tags" :key="ti" class="muying-article-tag">{{tag}}</text>
+                            <view v-if="muying_article_list.length > 0">
+                                <view v-for="(item, index) in muying_article_list" :key="index" class="muying-article-item muying-card" @tap="article_item_event(item)">
+                                    <text class="muying-article-title">{{item.title}}</text>
+                                    <text class="muying-article-desc">{{item.desc}}</text>
+                                    <view class="muying-article-tags">
+                                        <text v-for="(tag, ti) in item.tags" :key="ti" class="muying-article-tag">{{tag}}</text>
+                                    </view>
                                 </view>
+                            </view>
+                            <view v-else class="muying-goods-empty tc padding-vertical-main">
+                                <text class="cr-grey text-size-sm">暂无孕育知识</text>
                             </view>
                         </view>
 
-                        <!-- 用户反馈/案例 -->
-                        <view class="muying-section" v-if="muying_feedback_list.length > 0">
+                        <view class="muying-section" v-if="is_feature_enabled('feature_content_enabled')">
                             <view class="muying-section-header">
                                 <text class="muying-section-title">妈妈说</text>
                             </view>
-                            <scroll-view scroll-x class="muying-feedback-scroll">
+                            <scroll-view v-if="muying_feedback_list.length > 0" scroll-x class="muying-feedback-scroll">
                                 <view v-for="(item, index) in muying_feedback_list" :key="index" class="muying-feedback-item muying-card">
                                     <view class="muying-feedback-user">
                                         <text class="muying-feedback-avatar">{{item.avatar_emoji}}</text>
@@ -186,10 +191,12 @@
                                     <text class="muying-feedback-stage">{{item.stage_text}}</text>
                                 </view>
                             </scroll-view>
+                            <view v-else class="muying-goods-empty tc padding-vertical-main">
+                                <text class="cr-grey text-size-sm">暂无用户反馈</text>
+                            </view>
                         </view>
 
-                        <!-- 邀请有礼 -->
-                        <view class="muying-section">
+                        <view class="muying-section" v-if="is_feature_enabled('feature_invite_enabled')">
                             <view class="muying-invite-entry" @tap="invite_event">
                                 <view class="muying-invite-text">
                                     <text class="muying-invite-title">邀请有礼</text>
@@ -250,8 +257,10 @@
     import componentDiy from '@/pages/diy/components/diy/diy';
     import componentChoiceLocation from '@/components/choice-location/choice-location';
     import componentStageNav from '@/components/stage-nav/stage-nav';
-    import { filter_phase_one_navigation, filter_phase_one_plugin_sort_list } from '@/common/js/config/phase-one-scope.js';
+    import { filter_phase_one_navigation, filter_phase_one_plugin_sort_list, is_feature_enabled } from '@/common/js/config/phase-one-scope.js';
     import { MuyingStage } from '@/common/js/config/muying-enum';
+    import { request as http_request } from '@/common/js/http.js';
+    import { logger } from '@/common/js/logger.js';
 
     // 状态栏高度
     var bar_height = parseInt(app.globalData.get_system_info('statusBarHeight', 0, true));
@@ -403,7 +412,10 @@
         },
 
         methods: {
-            // 初始化配置
+            is_feature_enabled(key) {
+                return is_feature_enabled(key);
+            },
+
             init_config(status) {
                 if ((status || false) == true) {
                     this.setData({
@@ -443,7 +455,7 @@
                 var cache_context = this.read_home_base_cache(request_params);
 
                 // #ifdef APP
-                // 缃戠粶妫€鏌?
+                // 网络检查
                 if ((request_params || null) == null || (request_params.loading || 0) == 0) {
                     app.globalData.network_type_handle(this, 'init', request_params);
                     return false;
@@ -550,12 +562,16 @@
                     plugins_label_data: (data.plugins_label_data || null) == null || (data.plugins_label_data.base || null) == null || (data.plugins_label_data.data || null) == null || data.plugins_label_data.data.length <= 0 ? null : data.plugins_label_data,
                     plugins_homemiddleadv_data: (data.plugins_homemiddleadv_data || null) == null || data.plugins_homemiddleadv_data.length <= 0 ? null : data.plugins_homemiddleadv_data,
                     plugins_mourning_data_is_app: parseInt(data.plugins_mourning_data || 0) == 1,
-                    // Phase-1 scope: keep these plugin payloads out of homepage rendering
                     plugins_blog_data: null,
                     plugins_realstore_data: null,
                     plugins_shop_data: null,
-                    plugins_binding_data: data.plugins_binding_data || null,
-                    plugins_magic_data: data.plugins_magic_data || null,
+                    plugins_seckill_data: null,
+                    plugins_salerecords_data: null,
+                    plugins_activity_data: null,
+                    plugins_label_data: null,
+                    plugins_homemiddleadv_data: null,
+                    plugins_binding_data: null,
+                    plugins_magic_data: null,
                 };
                 if (upd_data.plugins_mourning_data_is_app == 1) {
                     upd_data.common_app_is_header_nav_fixed = 0;
@@ -662,37 +678,34 @@
                 if (stage) {
                     post_data.stage = stage;
                 }
-                uni.request({
-                    url: app.globalData.get_request_url('datalist', 'search'),
-                    method: 'POST',
+                http_request({
+                    action: 'datalist',
+                    controller: 'search',
                     data: post_data,
-                    dataType: 'json',
-                    success: function(res) {
-                        if (res.data.code == 0) {
-                            var raw = (res.data.data && res.data.data.data) || [];
-                            var list = raw.map(function(item) {
-                                return {
-                                    id: item.id,
-                                    title: item.title || '',
-                                    images: item.images || '',
-                                    price: item.price || '0.00',
-                                    original_price: item.original_price || '',
-                                    tags: (item.category_names || '').split(',').filter(function(t) { return t; }),
-                                    url: '/pages/goods-detail/goods-detail?id=' + item.id,
-                                };
-                            });
-                            self.setData({ muying_goods_list: list });
-                            if (list.length === 0 && stage) {
-                                console.warn('[index] 阶段推荐返回空列表 stage=' + stage);
-                            }
-                        } else {
-                            self.setData({ muying_goods_list: [] });
-                            console.warn('[index] 阶段推荐请求失败 stage=' + stage, res.data);
+                    loading: false,
+                    success: function(data) {
+                        var raw = (data && data.data) || [];
+                        var list = raw.map(function(item) {
+                            return {
+                                id: item.id,
+                                title: item.title || '',
+                                images: item.images || '',
+                                price: item.price || '0.00',
+                                original_price: item.original_price || '',
+                                tags: (item.category_names || '').split(',').filter(function(t) { return t; }),
+                                url: '/pages/goods-detail/goods-detail?id=' + item.id,
+                            };
+                        });
+                        self.setData({ muying_goods_list: list });
+                        if (list.length === 0 && stage) {
+                            logger.warn('index', '阶段推荐返回空列表 stage=' + stage);
                         }
                     },
-                    fail: function() {
+                    fail: function(err) {
                         self.setData({ muying_goods_list: [] });
-                        console.warn('[index] 阶段推荐网络请求失败 stage=' + stage);
+                        if (err && !err.feature_disabled) {
+                            logger.warn('index', '阶段推荐请求失败 stage=' + stage);
+                        }
                     },
                 });
             },
@@ -710,16 +723,17 @@
             // 母婴模块 - 活动列表
             get_muying_activity_list() {
                 var self = this;
-                uni.request({
-                    url: app.globalData.get_request_url('index', 'activity'),
-                    method: 'POST',
+                http_request({
+                    action: 'index',
+                    controller: 'activity',
                     data: { n: 4 },
-                    dataType: 'json',
-                    success: function(res) {
-                        if (res.data.code == 0) {
-                            var list = (res.data.data && res.data.data.data) || [];
-                            self.setData({ muying_activity_list: list });
-                        }
+                    loading: false,
+                    success: function(data) {
+                        var list = (data && data.data) || [];
+                        self.setData({ muying_activity_list: list });
+                    },
+                    fail: function() {
+                        self.setData({ muying_activity_list: [] });
                     },
                 });
             },
@@ -746,48 +760,50 @@
 
             get_muying_article_list() {
                 var self = this;
-                uni.request({
-                    url: app.globalData.get_request_url('datalist', 'article'),
-                    method: 'POST',
+                http_request({
+                    action: 'datalist',
+                    controller: 'article',
                     data: { n: 3 },
-                    dataType: 'json',
-                    success: function(res) {
-                        if (res.data.code == 0) {
-                            var raw = (res.data.data && res.data.data.data) || [];
-                            var list = raw.map(function(item) {
-                                return {
-                                    id: item.id,
-                                    title: item.title || '',
-                                    desc: item.describe || '',
-                                    tags: (item.article_category_name || '').split(',').filter(function(t) { return t; }),
-                                };
-                            });
-                            self.setData({ muying_article_list: list });
-                        }
+                    loading: false,
+                    success: function(data) {
+                        var raw = (data && data.data) || [];
+                        var list = raw.map(function(item) {
+                            return {
+                                id: item.id,
+                                title: item.title || '',
+                                desc: item.describe || '',
+                                tags: (item.article_category_name || '').split(',').filter(function(t) { return t; }),
+                            };
+                        });
+                        self.setData({ muying_article_list: list });
+                    },
+                    fail: function() {
+                        self.setData({ muying_article_list: [] });
                     },
                 });
             },
 
             get_muying_feedback_list() {
                 var self = this;
-                uni.request({
-                    url: app.globalData.get_request_url('index', 'feedback'),
-                    method: 'POST',
+                http_request({
+                    action: 'index',
+                    controller: 'feedback',
                     data: { n: 3 },
-                    dataType: 'json',
-                    success: function(res) {
-                        if (res.data.code == 0) {
-                            var raw = (res.data.data && res.data.data.data) || [];
-                            var list = raw.map(function(item) {
-                                return {
-                                    avatar_emoji: '\u{1F931}',
-                                    name: item.nickname || '',
-                                    content: item.content || '',
-                                    stage_text: item.stage_text || '',
-                                };
-                            });
-                            self.setData({ muying_feedback_list: list });
-                        }
+                    loading: false,
+                    success: function(data) {
+                        var raw = (data && data.data) || [];
+                        var list = raw.map(function(item) {
+                            return {
+                                avatar_emoji: '\u{1F931}',
+                                name: item.nickname || '',
+                                content: item.content || '',
+                                stage_text: item.stage_text || '',
+                            };
+                        });
+                        self.setData({ muying_feedback_list: list });
+                    },
+                    fail: function() {
+                        self.setData({ muying_feedback_list: [] });
                     },
                 });
             },

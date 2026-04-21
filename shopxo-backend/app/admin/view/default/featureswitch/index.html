@@ -1,0 +1,92 @@
+{{:ModuleInclude('public/header')}}
+
+<style>
+.feature-switch-group{margin-bottom:24px;}
+.feature-switch-group-title{font-size:16px;font-weight:600;color:#333;padding:12px 0 8px;border-bottom:2px solid #ff6e8b;margin-bottom:12px;}
+.feature-switch-item{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #f0f0f0;transition:background 0.2s;}
+.feature-switch-item:hover{background:#fafafa;}
+.feature-switch-item:last-child{border-bottom:none;}
+.feature-switch-info{flex:1;}
+.feature-switch-name{font-size:14px;font-weight:500;color:#333;}
+.feature-switch-desc{font-size:12px;color:#999;margin-top:4px;}
+.feature-switch-toggle{position:relative;width:48px;height:26px;cursor:pointer;}
+.feature-switch-toggle input{opacity:0;width:0;height:0;}
+.feature-switch-slider{position:absolute;top:0;left:0;right:0;bottom:0;background-color:#ccc;border-radius:26px;transition:0.3s;}
+.feature-switch-slider:before{position:absolute;content:"";height:20px;width:20px;left:3px;bottom:3px;background-color:white;border-radius:50%;transition:0.3s;}
+.feature-switch-toggle input:checked+.feature-switch-slider{background-color:#ff6e8b;}
+.feature-switch-toggle input:checked+.feature-switch-slider:before{transform:translateX(22px);}
+.feature-switch-status{font-size:12px;margin-left:8px;min-width:40px;}
+.feature-switch-status.on{color:#52c41a;}
+.feature-switch-status.off{color:#999;}
+</style>
+
+<div class="content-right">
+    <div class="content">
+        <form id="feature-switch-form" class="am-form form-validation-extend" action="{{:MyUrl('admin/featureswitch/save')}}" method="post">
+            <input type="hidden" name="is_submit" value="1" />
+
+            {{foreach $feature_list as $group}}
+            <div class="feature-switch-group">
+                <div class="feature-switch-group-title">{{$group.group_name}}</div>
+                {{foreach $group.items as $item}}
+                <div class="feature-switch-item">
+                    <div class="feature-switch-info">
+                        <div class="feature-switch-name">{{$item.name}}</div>
+                        <div class="feature-switch-desc">{{$item.desc}}</div>
+                    </div>
+                    <div style="display:flex;align-items:center;">
+                        <label class="feature-switch-toggle">
+                            <input type="checkbox" name="{{$item.key}}" value="1" {{if MyC($item['key'], 0) eq 1}}checked{{/if}} />
+                            <span class="feature-switch-slider"></span>
+                        </label>
+                        <span class="feature-switch-status {{if MyC($item['key'], 0) eq 1}}on{{else}}off{{/if}}">
+                            {{if MyC($item['key'], 0) eq 1}}已开启{{else}}已关闭{{/if}}
+                        </span>
+                    </div>
+                </div>
+                {{/foreach}}
+            </div>
+            {{/foreach}}
+
+            <div class="am-margin-top-lg">
+                <button type="button" class="am-btn am-btn-primary am-radius feature-switch-save">保存设置</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+$(function(){
+    $('.feature-switch-toggle input').on('change', function(){
+        var status = $(this).closest('.feature-switch-item').find('.feature-switch-status');
+        if($(this).is(':checked')){
+            status.removeClass('off').addClass('on').text('已开启');
+        } else {
+            status.removeClass('on').addClass('off').text('已关闭');
+        }
+    });
+
+    $('.feature-switch-save').on('click', function(){
+        var form = $('#feature-switch-form');
+        var data = form.serialize();
+        $.ajax({
+            url: form.attr('action'),
+            type: 'POST',
+            data: data,
+            dataType: 'json',
+            success: function(res){
+                if(res.code == 0){
+                    Prompt('保存成功');
+                } else {
+                    Prompt(res.msg || '保存失败', 'error');
+                }
+            },
+            error: function(){
+                Prompt('网络异常，请重试', 'error');
+            }
+        });
+    });
+});
+</script>
+
+{{:ModuleInclude('public/footer')}}

@@ -222,6 +222,35 @@ class SystemBaseService
             'common_app_mini_kuaishou_describe'                  => AppMiniUserService::AppMiniConfig('common_app_mini_kuaishou_describe'),
         ];
 
+        // 孕禧一期功能开关
+        $feature_flags = [
+            'feature_shop_enabled'              => (int) MyC('feature_shop_enabled', 0),
+            'feature_realstore_enabled'          => (int) MyC('feature_realstore_enabled', 0),
+            'feature_distribution_enabled'       => (int) MyC('feature_distribution_enabled', 0),
+            'feature_wallet_enabled'             => (int) MyC('feature_wallet_enabled', 0),
+            'feature_coin_enabled'               => (int) MyC('feature_coin_enabled', 0),
+            'feature_ugc_enabled'                => (int) MyC('feature_ugc_enabled', 0),
+            'feature_membership_enabled'         => (int) MyC('feature_membership_enabled', 0),
+            'feature_seckill_enabled'            => (int) MyC('feature_seckill_enabled', 0),
+            'feature_coupon_enabled'             => (int) MyC('feature_coupon_enabled', 0),
+            'feature_signin_enabled'             => (int) MyC('feature_signin_enabled', 0),
+            'feature_points_enabled'             => (int) MyC('feature_points_enabled', 0),
+            'feature_video_enabled'              => (int) MyC('feature_video_enabled', 0),
+            'feature_hospital_enabled'           => (int) MyC('feature_hospital_enabled', 0),
+            'feature_giftcard_enabled'           => (int) MyC('feature_giftcard_enabled', 0),
+            'feature_givegift_enabled'           => (int) MyC('feature_givegift_enabled', 0),
+            'feature_complaint_enabled'          => (int) MyC('feature_complaint_enabled', 0),
+            'feature_invoice_enabled'            => (int) MyC('feature_invoice_enabled', 0),
+            'feature_certificate_enabled'        => (int) MyC('feature_certificate_enabled', 0),
+            'feature_scanpay_enabled'            => (int) MyC('feature_scanpay_enabled', 0),
+            'feature_live_enabled'               => (int) MyC('feature_live_enabled', 0),
+            'feature_intellectstools_enabled'    => (int) MyC('feature_intellectstools_enabled', 0),
+            'feature_activity_enabled'           => (int) MyC('feature_activity_enabled', 1),
+            'feature_invite_enabled'             => (int) MyC('feature_invite_enabled', 1),
+            'feature_content_enabled'            => (int) MyC('feature_content_enabled', 1),
+        ];
+        $config = array_merge($config, $feature_flags);
+
         // 首页数据模式、存在diy则等于3
         $diy_id = DiyService::AppClientHomeDiyId();
         if(!empty($diy_id))

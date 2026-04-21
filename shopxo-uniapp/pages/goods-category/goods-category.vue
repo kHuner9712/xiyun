@@ -362,7 +362,7 @@
         </view>
         
         <!-- 互联网医院问诊下单弹窗 -->
-        <component-popup :propShow="plugins_hospital_prescription_status" propPosition="bottom" @onclose="hospital_prescription_close_event">
+        <component-popup v-if="is_feature_enabled('feature_hospital_enabled')" :propShow="plugins_hospital_prescription_status" propPosition="bottom" @onclose="hospital_prescription_close_event">
             <view class="padding-horizontal-main padding-top-main bg-white">
                 <view class="oh tc">
                     <text class="text-size">{{ (plugins_hospital_prescription_data || null) != null ? (plugins_hospital_prescription_data.title || '') : '' }}</text>
@@ -402,6 +402,7 @@
     import componentBadge from '@/components/badge/badge';
     import componentCartParaCurve from '@/components/cart-para-curve/cart-para-curve';
     import componentNavMore from '@/components/nav-more/nav-more';
+    import { is_feature_enabled } from '@/common/js/config/phase-one-scope.js';
 
     var theme_static_url = app.globalData.get_static_url('goods-category');
     var common_static_url = app.globalData.get_static_url('common');
@@ -542,7 +543,10 @@
         },
 
         methods: {
-            // 资源设置
+            is_feature_enabled(key) {
+                return is_feature_enabled(key);
+            },
+
             set_resources_data() {
                 var search_nav_sort_list = [
                     {

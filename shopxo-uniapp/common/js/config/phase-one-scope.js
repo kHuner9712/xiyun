@@ -1,7 +1,4 @@
-// [MUYING-二开] 一期范围过滤 - 控制哪些插件入口在用户中心/首页可见
-// 新增隐藏项只需在 PHASE_ONE_DISABLED_PLUGIN_NAMES 数组中添加插件名
-
-const PHASE_ONE_DISABLED_PLUGIN_NAMES = [
+var PHASE_ONE_DISABLED_PLUGIN_NAMES = [
     'distribution',
     'wallet',
     'coin',
@@ -10,9 +7,113 @@ const PHASE_ONE_DISABLED_PLUGIN_NAMES = [
     'ask',
     'blog',
     'membershiplevelvip',
+    'seckill',
+    'coupon',
+    'signin',
+    'points',
+    'video',
+    'hospital',
+    'giftcard',
+    'givegift',
+    'complaint',
+    'invoice',
+    'certificate',
+    'scanpay',
+    'weixinliveplayer',
+    'intellectstools',
+    'excellentbuyreturntocash',
+    'exchangerate',
+    'goodscompare',
+    'orderfeed',
+    'ordergoodsform',
+    'orderresources',
+    'antifakecode',
+    'form',
+    'binding',
+    'label',
 ];
 
-const PHASE_ONE_DISABLED_ROUTE_PREFIXES = PHASE_ONE_DISABLED_PLUGIN_NAMES.map((name) => '/pages/plugins/' + name + '/').concat(['/pages/plugins/coupon/shop/shop']);
+var FeatureFlagKey = {
+    SHOP: 'feature_shop_enabled',
+    REALSTORE: 'feature_realstore_enabled',
+    DISTRIBUTION: 'feature_distribution_enabled',
+    WALLET: 'feature_wallet_enabled',
+    COIN: 'feature_coin_enabled',
+    UGC: 'feature_ugc_enabled',
+    MEMBERSHIP: 'feature_membership_enabled',
+    SECKILL: 'feature_seckill_enabled',
+    COUPON: 'feature_coupon_enabled',
+    SIGNIN: 'feature_signin_enabled',
+    POINTS: 'feature_points_enabled',
+    VIDEO: 'feature_video_enabled',
+    HOSPITAL: 'feature_hospital_enabled',
+    GIFTCARD: 'feature_giftcard_enabled',
+    GIVEGIFT: 'feature_givegift_enabled',
+    COMPLAINT: 'feature_complaint_enabled',
+    INVOICE: 'feature_invoice_enabled',
+    CERTIFICATE: 'feature_certificate_enabled',
+    SCANPAY: 'feature_scanpay_enabled',
+    LIVE: 'feature_live_enabled',
+    INTELLECTSTOOLS: 'feature_intellectstools_enabled',
+};
+
+var FEATURE_FLAG_PLUGIN_MAP = {};
+FEATURE_FLAG_PLUGIN_MAP[FeatureFlagKey.SHOP] = 'shop';
+FEATURE_FLAG_PLUGIN_MAP[FeatureFlagKey.REALSTORE] = 'realstore';
+FEATURE_FLAG_PLUGIN_MAP[FeatureFlagKey.DISTRIBUTION] = 'distribution';
+FEATURE_FLAG_PLUGIN_MAP[FeatureFlagKey.WALLET] = 'wallet';
+FEATURE_FLAG_PLUGIN_MAP[FeatureFlagKey.COIN] = 'coin';
+FEATURE_FLAG_PLUGIN_MAP[FeatureFlagKey.UGC] = ['ask', 'blog'];
+FEATURE_FLAG_PLUGIN_MAP[FeatureFlagKey.MEMBERSHIP] = 'membershiplevelvip';
+FEATURE_FLAG_PLUGIN_MAP[FeatureFlagKey.SECKILL] = 'seckill';
+FEATURE_FLAG_PLUGIN_MAP[FeatureFlagKey.COUPON] = 'coupon';
+FEATURE_FLAG_PLUGIN_MAP[FeatureFlagKey.SIGNIN] = 'signin';
+FEATURE_FLAG_PLUGIN_MAP[FeatureFlagKey.POINTS] = 'points';
+FEATURE_FLAG_PLUGIN_MAP[FeatureFlagKey.VIDEO] = 'video';
+FEATURE_FLAG_PLUGIN_MAP[FeatureFlagKey.HOSPITAL] = 'hospital';
+FEATURE_FLAG_PLUGIN_MAP[FeatureFlagKey.GIFTCARD] = 'giftcard';
+FEATURE_FLAG_PLUGIN_MAP[FeatureFlagKey.GIVEGIFT] = 'givegift';
+FEATURE_FLAG_PLUGIN_MAP[FeatureFlagKey.COMPLAINT] = 'complaint';
+FEATURE_FLAG_PLUGIN_MAP[FeatureFlagKey.INVOICE] = 'invoice';
+FEATURE_FLAG_PLUGIN_MAP[FeatureFlagKey.CERTIFICATE] = 'certificate';
+FEATURE_FLAG_PLUGIN_MAP[FeatureFlagKey.SCANPAY] = 'scanpay';
+FEATURE_FLAG_PLUGIN_MAP[FeatureFlagKey.LIVE] = 'weixinliveplayer';
+FEATURE_FLAG_PLUGIN_MAP[FeatureFlagKey.INTELLECTSTOOLS] = 'intellectstools';
+
+var _feature_flags = null;
+
+function init_feature_flags(flags) {
+    _feature_flags = flags || {};
+    var dynamic_disabled = [];
+    for (var flag_key in FEATURE_FLAG_PLUGIN_MAP) {
+        if (!_feature_flags[flag_key]) {
+            var plugin_names = FEATURE_FLAG_PLUGIN_MAP[flag_key];
+            if (Array.isArray(plugin_names)) {
+                for (var i = 0; i < plugin_names.length; i++) {
+                    if (dynamic_disabled.indexOf(plugin_names[i]) === -1) {
+                        dynamic_disabled.push(plugin_names[i]);
+                    }
+                }
+            } else {
+                if (dynamic_disabled.indexOf(plugin_names) === -1) {
+                    dynamic_disabled.push(plugin_names);
+                }
+            }
+        }
+    }
+    PHASE_ONE_DISABLED_PLUGIN_NAMES = dynamic_disabled;
+    _rebuild_route_prefixes();
+}
+
+function _rebuild_route_prefixes() {
+    PHASE_ONE_DISABLED_ROUTE_PREFIXES = PHASE_ONE_DISABLED_PLUGIN_NAMES.map(function(name) {
+        return '/pages/plugins/' + name + '/';
+    });
+}
+
+var PHASE_ONE_DISABLED_ROUTE_PREFIXES = PHASE_ONE_DISABLED_PLUGIN_NAMES.map(function(name) {
+    return '/pages/plugins/' + name + '/';
+});
 
 function normalize_page_path(url) {
     if ((url || null) == null) {
@@ -59,6 +160,13 @@ function is_phase_one_disabled_plugin(plugins) {
         return false;
     }
     return PHASE_ONE_DISABLED_PLUGIN_NAMES.indexOf(String(plugins).toLowerCase()) !== -1;
+}
+
+function is_feature_enabled(flag_key) {
+    if (_feature_flags && typeof _feature_flags[flag_key] !== 'undefined') {
+        return !!_feature_flags[flag_key];
+    }
+    return false;
 }
 
 function route_value_from_navigation_item(item) {
@@ -109,9 +217,12 @@ function filter_phase_one_plugin_sort_list(list) {
 export {
     PHASE_ONE_DISABLED_PLUGIN_NAMES,
     PHASE_ONE_DISABLED_ROUTE_PREFIXES,
+    FEATURE_FLAG_PLUGIN_MAP,
+    init_feature_flags,
     normalize_page_path,
     is_phase_one_disabled_route,
     is_phase_one_disabled_plugin,
+    is_feature_enabled,
     filter_phase_one_navigation,
     filter_phase_one_plugin_sort_list,
 };

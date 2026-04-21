@@ -5,6 +5,7 @@ use think\facade\Db;
 use think\facade\Log;
 use app\service\IntegralService;
 use app\service\ResourcesService;
+use app\service\MuyingLogService;
 
 class InviteService
 {
@@ -188,9 +189,24 @@ class InviteService
             'upd_time'      => time(),
         ];
 
+        Db::startTrans();
         try {
             $id = Db::name('InviteReward')->insertGetId($data);
+
+            if ($id > 0 && $register_reward > 0) {
+                $grant_result = self::GrantRewardInner($id);
+                if (!$grant_result) {
+                    Db::rollback();
+                    Log::error('邀请注册奖励发放失败，回滚 inviter_id=' . $inviter_id . ' invitee_id=' . $params['user_id']);
+                    return DataReturn('邀请注册奖励处理失败', -1);
+                }
+            }
+
+            Db::commit();
+            MuyingLogService::LogSuccess(MuyingLogService::TYPE_INVITE_REWARD, 'create', $inviter_id, $id, '注册邀请奖励 inviter_id=' . $inviter_id . ' invitee_id=' . $params['user_id']);
+            return DataReturn('邀请注册奖励记录已创建', 0);
         } catch (\Exception $e) {
+            Db::rollback();
             $msg = $e->getMessage();
             if (self::IsDuplicateEntryError($msg)) {
                 Log::info('邀请注册奖励重复插入拦截(唯一约束) inviter_id=' . $inviter_id . ' invitee_id=' . $params['user_id']);
@@ -199,12 +215,6 @@ class InviteService
             Log::error('邀请注册奖励插入异常 inviter_id=' . $inviter_id . ' invitee_id=' . $params['user_id'] . ' error=' . $msg);
             return DataReturn('邀请注册奖励处理失败', -1);
         }
-
-        if ($id > 0 && $register_reward > 0) {
-            self::GrantReward($id);
-        }
-
-        return DataReturn('邀请注册奖励记录已创建', 0);
     }
 
     public static function OnFirstOrder($params = [])
@@ -265,11 +275,18 @@ class InviteService
                 return DataReturn('首单邀请奖励处理失败', -1);
             }
 
+            if ($id > 0 && $first_order_reward > 0) {
+                $grant_result = self::GrantRewardInner($id);
+                if (!$grant_result) {
+                    Db::rollback();
+                    Log::error('首单邀请奖励发放失败，回滚 reward_id=' . $id . ' inviter_id=' . $inviter_id . ' invitee_id=' . $invitee_id);
+                    return DataReturn('首单邀请奖励处理失败', -1);
+                }
+            }
+
             Db::commit();
 
-            if ($id > 0 && $first_order_reward > 0) {
-                self::GrantReward($id);
-            }
+            MuyingLogService::LogSuccess(MuyingLogService::TYPE_INVITE_REWARD, 'create', $inviter_id, $id, '首单邀请奖励 inviter_id=' . $inviter_id . ' invitee_id=' . $invitee_id);
 
             return DataReturn('首单邀请奖励记录已创建', 0);
         } catch (\Exception $e) {
@@ -350,45 +367,53 @@ class InviteService
     {
         Db::startTrans();
         try {
-            $reward = Db::name('InviteReward')->where(['id' => $reward_id, 'status' => 0])->lock(true)->find();
-            if (empty($reward)) {
+            $result = self::GrantRewardInner($reward_id);
+            if ($result) {
+                Db::commit();
+            } else {
                 Db::rollback();
-                return false;
             }
-
-            if ($reward['reward_type'] === 'integral' && $reward['reward_value'] > 0) {
-                $user = Db::name('User')->where(['id' => $reward['inviter_id']])->find();
-                if (empty($user)) {
-                    Db::rollback();
-                    return false;
-                }
-
-                Db::name('User')->where(['id' => $reward['inviter_id']])->inc('integral', $reward['reward_value'])->update();
-
-                if (class_exists('app\service\IntegralService')) {
-                    $inviter_integral = Db::name('User')->where(['id' => $reward['inviter_id']])->value('integral');
-                    IntegralService::UserIntegralLogAdd(
-                        $reward['inviter_id'],
-                        intval($inviter_integral),
-                        $reward['reward_value'],
-                        '邀请奖励(用户ID:' . $reward['invitee_id'] . ')',
-                        1,
-                        0
-                    );
-                }
-            }
-
-            Db::name('InviteReward')->where(['id' => $reward_id])->update([
-                'status'   => 1,
-                'upd_time' => time(),
-            ]);
-
-            Db::commit();
-            return true;
+            return $result;
         } catch (\Exception $e) {
             Db::rollback();
             Log::error('邀请奖励发放失败 reward_id=' . $reward_id . ' error=' . $e->getMessage());
             return false;
         }
+    }
+
+    private static function GrantRewardInner($reward_id)
+    {
+        $reward = Db::name('InviteReward')->where(['id' => $reward_id, 'status' => 0])->lock(true)->find();
+        if (empty($reward)) {
+            return false;
+        }
+
+        if ($reward['reward_type'] === 'integral' && $reward['reward_value'] > 0) {
+            $user = Db::name('User')->where(['id' => $reward['inviter_id']])->find();
+            if (empty($user)) {
+                return false;
+            }
+
+            Db::name('User')->where(['id' => $reward['inviter_id']])->inc('integral', $reward['reward_value'])->update();
+
+            if (class_exists('app\service\IntegralService')) {
+                $inviter_integral = Db::name('User')->where(['id' => $reward['inviter_id']])->value('integral');
+                IntegralService::UserIntegralLogAdd(
+                    $reward['inviter_id'],
+                    intval($inviter_integral),
+                    $reward['reward_value'],
+                    '邀请奖励(用户ID:' . $reward['invitee_id'] . ')',
+                    1,
+                    0
+                );
+            }
+        }
+
+        Db::name('InviteReward')->where(['id' => $reward_id])->update([
+            'status'   => 1,
+            'upd_time' => time(),
+        ]);
+
+        return true;
     }
 }

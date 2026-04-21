@@ -177,6 +177,8 @@
     var bar_height = parseInt(app.globalData.get_system_info('statusBarHeight')) || 0;
     import componentCommon from '@/components/common/common';
     import { MuyingStage } from '@/common/js/config/muying-enum';
+    import { request as http_request } from '@/common/js/http.js';
+    import { logger } from '@/common/js/logger.js';
 
     export default {
         data() {
@@ -258,45 +260,46 @@
         methods: {
             load_user_profile() {
                 var self = this;
-                uni.request({
-                    url: app.globalData.get_request_url('index', 'personal'),
-                    method: 'POST',
+                http_request({
+                    action: 'index',
+                    controller: 'personal',
                     data: {},
-                    dataType: 'json',
-                    success: function (res) {
-                        if (res.data.code == 0) {
-                            var profile = res.data.data.data || {};
-                            var form = self.form;
-                            if (!form.name && profile.user_name_view) {
-                                form.name = profile.user_name_view;
-                            }
-                            if (!form.phone && profile.mobile) {
-                                form.phone = profile.mobile;
-                            }
-                            if (profile.current_stage) {
-                                var stage_idx = self.stage_values.indexOf(profile.current_stage);
-                                if (stage_idx >= 0) {
-                                    self.setData({ stage_index: stage_idx, selected_stage: profile.current_stage });
-                                }
-                            }
-                            if (profile.due_date) {
-                                form.due_date = profile.due_date;
-                            }
-                            if (profile.baby_birthday) {
-                                form.baby_birthday = profile.baby_birthday;
-                                var b = new Date(profile.baby_birthday);
-                                var now = new Date();
-                                if (!isNaN(b.getTime())) {
-                                    var months = (now.getFullYear() - b.getFullYear()) * 12 + (now.getMonth() - b.getMonth());
-                                    if (months >= 1 && months <= 36) {
-                                        var baby_idx = months - 1;
-                                        self.setData({ baby_month_age_index: baby_idx });
-                                        form.baby_month_age = months;
-                                    }
-                                }
-                            }
-                            self.setData({ form: form });
+                    loading: false,
+                    success: function (data) {
+                        var profile = (data && data.data) || {};
+                        var form = self.form;
+                        if (!form.name && profile.user_name_view) {
+                            form.name = profile.user_name_view;
                         }
+                        if (!form.phone && profile.mobile) {
+                            form.phone = profile.mobile;
+                        }
+                        if (profile.current_stage) {
+                            var stage_idx = self.stage_values.indexOf(profile.current_stage);
+                            if (stage_idx >= 0) {
+                                self.setData({ stage_index: stage_idx, selected_stage: profile.current_stage });
+                            }
+                        }
+                        if (profile.due_date) {
+                            form.due_date = profile.due_date;
+                        }
+                        if (profile.baby_birthday) {
+                            form.baby_birthday = profile.baby_birthday;
+                            var b = new Date(profile.baby_birthday);
+                            var now = new Date();
+                            if (!isNaN(b.getTime())) {
+                                var months = (now.getFullYear() - b.getFullYear()) * 12 + (now.getMonth() - b.getMonth());
+                                if (months >= 1 && months <= 36) {
+                                    var baby_idx = months - 1;
+                                    self.setData({ baby_month_age_index: baby_idx });
+                                    form.baby_month_age = months;
+                                }
+                            }
+                        }
+                        self.setData({ form: form });
+                    },
+                    fail: function () {
+                        logger.warn('activity-signup', '用户画像加载失败');
                     },
                 });
             },
@@ -304,25 +307,25 @@
             get_activity_summary() {
                 if (!this.activity_id) return;
                 var self = this;
-                uni.request({
-                    url: app.globalData.get_request_url('detail', 'activity'),
-                    method: 'POST',
+                http_request({
+                    action: 'detail',
+                    controller: 'activity',
                     data: { id: this.activity_id },
-                    dataType: 'json',
-                    success: function (res) {
-                        if (res.data.code == 0) {
-                            var activity = (res.data.data || {}).activity || {};
-                            self.setData({
-                                activity: {
-                                    id: activity.id || self.activity_id,
-                                    title: activity.title || '',
-                                    time: activity.time || activity.time_text || '',
-                                    price: activity.price || 0,
-                                },
-                            });
-                        }
+                    loading: false,
+                    success: function (data) {
+                        var activity = (data || {}).activity || {};
+                        self.setData({
+                            activity: {
+                                id: activity.id || self.activity_id,
+                                title: activity.title || '',
+                                time: activity.time || activity.time_text || '',
+                                price: activity.price || 0,
+                            },
+                        });
                     },
-                    fail: function () {},
+                    fail: function () {
+                        self.setData({ data_loaded: true });
+                    },
                 });
             },
 
@@ -435,7 +438,6 @@
             submit_event() {
                 if (!this.validate_form()) return;
 
-                uni.showLoading({ title: '提交中...' });
                 var self = this;
                 var post_data = {
                     activity_id: this.activity_id,
@@ -449,34 +451,30 @@
                     privacy_agreed: this.privacy_agreed ? 1 : 0,
                 };
 
-                uni.request({
-                    url: app.globalData.get_request_url('signup', 'activity'),
-                    method: 'POST',
+                http_request({
+                    action: 'signup',
+                    controller: 'activity',
                     data: post_data,
-                    dataType: 'json',
-                    success: function (res) {
-                        uni.hideLoading();
-                        if (res.data.code == 0) {
-                            uni.showToast({
-                                title: '报名成功',
-                                icon: 'success',
-                                duration: 1500,
-                            });
-                            setTimeout(function () {
-                                var pages = getCurrentPages();
-                                var prevPage = pages.length > 1 ? pages[pages.length - 2] : null;
-                                if (prevPage && prevPage.get_activity_detail) {
-                                    prevPage.get_activity_detail();
-                                }
-                                uni.navigateBack();
-                            }, 1500);
-                        } else {
-                            app.globalData.showToast(res.data.msg || '报名失败，请重试');
-                        }
+                    loading_title: '提交中...',
+                    success: function (data) {
+                        uni.showToast({
+                            title: '报名成功',
+                            icon: 'success',
+                            duration: 1500,
+                        });
+                        setTimeout(function () {
+                            var pages = getCurrentPages();
+                            var prevPage = pages.length > 1 ? pages[pages.length - 2] : null;
+                            if (prevPage && prevPage.get_activity_detail) {
+                                prevPage.get_activity_detail();
+                            }
+                            uni.navigateBack();
+                        }, 1500);
                     },
-                    fail: function () {
-                        uni.hideLoading();
-                        app.globalData.showToast('网络异常，报名信息未提交，请检查网络后重试');
+                    fail: function (err) {
+                        if (err && err.network_error) {
+                            app.globalData.showToast('网络异常，报名信息未提交，请检查网络后重试');
+                        }
                     },
                 });
             },
