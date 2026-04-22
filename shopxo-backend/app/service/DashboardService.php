@@ -149,24 +149,12 @@ class DashboardService
         $metrics['repurchase'] = 0;
 
         foreach ($metrics as $key => $value) {
-            $exists = Db::name('MuyingStatSnapshot')->where([
-                ['stat_date', '=', $today],
-                ['metric_key', '=', $key],
-            ])->find();
-
-            if (!empty($exists)) {
-                Db::name('MuyingStatSnapshot')->where(['id' => $exists['id']])->update([
-                    'metric_value' => $value,
-                    'add_time'     => time(),
-                ]);
-            } else {
-                Db::name('MuyingStatSnapshot')->insert([
-                    'stat_date'    => $today,
-                    'metric_key'   => $key,
-                    'metric_value' => $value,
-                    'add_time'     => time(),
-                ]);
-            }
+            Db::name('MuyingStatSnapshot')->save([
+                'stat_date'    => $today,
+                'metric_key'   => $key,
+                'metric_value' => $value,
+                'add_time'     => time(),
+            ]);
         }
 
         Log::info('仪表盘每日快照生成完成 date=' . $today);

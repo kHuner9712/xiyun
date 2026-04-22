@@ -199,15 +199,28 @@ SET @usertag_id = LAST_INSERT_ID();
 INSERT INTO `sxo_power` (`pid`, `name`, `control`, `action`, `url`, `sort`, `is_show`, `icon`, `add_time`, `upd_time`) VALUES
 (@usertag_id, '标签详情', 'usertag', 'detail', '', 1, 0, '', UNIX_TIMESTAMP(), UNIX_TIMESTAMP()),
 (@usertag_id, '标签保存', 'usertag', 'save', '', 2, 0, '', UNIX_TIMESTAMP(), UNIX_TIMESTAMP()),
-(@usertag_id, '标签删除', 'usertag', 'delete', '', 3, 0, '', UNIX_TIMESTAMP(), UNIX_TIMESTAMP());
+(@usertag_id, '标签删除', 'usertag', 'delete', '', 3, 0, '', UNIX_TIMESTAMP(), UNIX_TIMESTAMP()),
+(@usertag_id, '标签启停', 'usertag', 'statusupdate', '', 4, 0, '', UNIX_TIMESTAMP(), UNIX_TIMESTAMP()),
+(@usertag_id, '用户打标签', 'usertag', 'usertagset', '', 5, 0, '', UNIX_TIMESTAMP(), UNIX_TIMESTAMP()),
+(@usertag_id, '用户备注', 'usertag', 'adminremark', '', 6, 0, '', UNIX_TIMESTAMP(), UNIX_TIMESTAMP());
 
 -- 邀请配置（放在运营菜单下）
 INSERT INTO `sxo_power` (`pid`, `name`, `control`, `action`, `url`, `sort`, `is_show`, `icon`, `add_time`, `upd_time`) VALUES
 (@op_power_id, '邀请配置', 'inviteconfig', 'index', '', 7, 1, '', UNIX_TIMESTAMP(), UNIX_TIMESTAMP());
+SET @inviteconfig_id = LAST_INSERT_ID();
+
+INSERT INTO `sxo_power` (`pid`, `name`, `control`, `action`, `url`, `sort`, `is_show`, `icon`, `add_time`, `upd_time`) VALUES
+(@inviteconfig_id, '配置保存', 'inviteconfig', 'save', '', 1, 0, '', UNIX_TIMESTAMP(), UNIX_TIMESTAMP());
 
 -- 仪表盘（放在运营菜单下，排在最前面）
 INSERT INTO `sxo_power` (`pid`, `name`, `control`, `action`, `url`, `sort`, `is_show`, `icon`, `add_time`, `upd_time`) VALUES
 (@op_power_id, '数据仪表盘', 'dashboard', 'index', '', 0, 1, 'icon-admin-home', UNIX_TIMESTAMP(), UNIX_TIMESTAMP());
+SET @dashboard_id = LAST_INSERT_ID();
+
+INSERT INTO `sxo_power` (`pid`, `name`, `control`, `action`, `url`, `sort`, `is_show`, `icon`, `add_time`, `upd_time`) VALUES
+(@dashboard_id, '概览数据', 'dashboard', 'overview', '', 1, 0, '', UNIX_TIMESTAMP(), UNIX_TIMESTAMP()),
+(@dashboard_id, '趋势数据', 'dashboard', 'trend', '', 2, 0, '', UNIX_TIMESTAMP(), UNIX_TIMESTAMP()),
+(@dashboard_id, '生成快照', 'dashboard', 'generatesnapshot', '', 3, 0, '', UNIX_TIMESTAMP(), UNIX_TIMESTAMP());
 
 -- D5.4 回滚
 -- DROP TABLE IF EXISTS sxo_muying_stat_snapshot;

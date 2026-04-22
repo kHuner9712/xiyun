@@ -15,11 +15,18 @@ class UserTagService
         if (!empty($params['name'])) {
             $where[] = ['name', 'like', '%' . $params['name'] . '%'];
         }
+        if (!empty($params['where']) && is_array($params['where'])) {
+            $where = array_merge($where, $params['where']);
+        }
 
         $field = empty($params['field']) ? '*' : $params['field'];
         $order_by = empty($params['order_by']) ? 'sort_level asc, id asc' : trim($params['order_by']);
+
+        $total = self::TagTotal($where);
+
         $m = isset($params['m']) ? intval($params['m']) : 0;
         $n = isset($params['n']) ? intval($params['n']) : 100;
+        $page_total = ($n > 0) ? ceil($total / $n) : 1;
 
         $data = Db::name('MuyingUserTag')->field($field)->where($where)->order($order_by)->limit($m, $n)->select()->toArray();
 
@@ -29,7 +36,11 @@ class UserTagService
             $v['user_count'] = Db::name('MuyingUserTagRel')->where(['tag_id' => $v['id']])->count();
         }
 
-        return DataReturn(MyLang('handle_success'), 0, $data);
+        return DataReturn(MyLang('handle_success'), 0, [
+            'total'      => $total,
+            'page_total' => $page_total,
+            'items'      => $data,
+        ]);
     }
 
     public static function TagTotal($where = [])

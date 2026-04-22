@@ -1,0 +1,158 @@
+{{extend name="../../../module/view/form_table/index" /}}
+
+{{block name="content"}}
+<div class="am-g am-margin-bottom">
+    <div class="am-u-sm-12">
+        <div class="am-g">
+            <div class="am-u-md-3 am-u-sm-6 am-margin-bottom-sm">
+                <div class="am-panel am-panel-default">
+                    <div class="am-panel-hd">今日新增用户</div>
+                    <div class="am-panel-bd am-text-center am-text-xl am-text-primary" id="stat-today-users">-</div>
+                </div>
+            </div>
+            <div class="am-u-md-3 am-u-sm-6 am-margin-bottom-sm">
+                <div class="am-panel am-panel-default">
+                    <div class="am-panel-hd">今日活动报名</div>
+                    <div class="am-panel-bd am-text-center am-text-xl am-text-success" id="stat-today-signups">-</div>
+                </div>
+            </div>
+            <div class="am-u-md-3 am-u-sm-6 am-margin-bottom-sm">
+                <div class="am-panel am-panel-default">
+                    <div class="am-panel-hd">今日邀请奖励</div>
+                    <div class="am-panel-bd am-text-center am-text-xl am-text-warning" id="stat-today-invites">-</div>
+                </div>
+            </div>
+            <div class="am-u-md-3 am-u-sm-6 am-margin-bottom-sm">
+                <div class="am-panel am-panel-default">
+                    <div class="am-panel-hd">今日反馈</div>
+                    <div class="am-panel-bd am-text-center am-text-xl am-text-danger" id="stat-today-feedback">-</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="am-g am-margin-bottom">
+    <div class="am-u-sm-12">
+        <div class="am-panel am-panel-default">
+            <div class="am-panel-hd am-cf">
+                <span>阶段分布</span>
+            </div>
+            <div class="am-panel-bd">
+                <table class="am-table am-table-bordered am-table-striped am-margin-bottom-0">
+                    <thead>
+                        <tr>
+                            <th>阶段</th>
+                            <th>用户数</th>
+                            <th>占比</th>
+                        </tr>
+                    </thead>
+                    <tbody id="stage-distribution">
+                        <tr><td colspan="3" class="am-text-center">加载中...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="am-g am-margin-bottom">
+    <div class="am-u-sm-12">
+        <div class="am-panel am-panel-default">
+            <div class="am-panel-hd am-cf">
+                <span>汇总数据</span>
+            </div>
+            <div class="am-panel-bd">
+                <table class="am-table am-table-bordered am-table-striped am-margin-bottom-0">
+                    <thead>
+                        <tr>
+                            <th>指标</th>
+                            <th>数值</th>
+                        </tr>
+                    </thead>
+                    <tbody id="total-stats">
+                        <tr><td>总用户</td><td id="stat-total-users">-</td></tr>
+                        <tr><td>进行中活动</td><td id="stat-total-activities">-</td></tr>
+                        <tr><td>总报名数</td><td id="stat-total-signups">-</td></tr>
+                        <tr><td>邀请人数</td><td id="stat-total-invites">-</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="am-g am-margin-bottom">
+    <div class="am-u-sm-12 am-margin-bottom-sm">
+        {{if AdminIsPower('dashboard', 'generatesnapshot')}}
+        <button type="button" class="am-btn am-btn-warning am-btn-sm" id="btn-generate-snapshot">手动生成今日快照</button>
+        {{/if}}
+    </div>
+</div>
+
+<script type="text/javascript">
+$(function() {
+    function load_overview() {
+        $.ajax({
+            url: "{{:MyUrl('admin/dashboard/overview')}}",
+            type: 'POST',
+            dataType: 'json',
+            success: function(res) {
+                if(res.code == 0 && res.data) {
+                    var d = res.data;
+                    if(d.today) {
+                        $('#stat-today-users').text(d.today.new_users || 0);
+                        $('#stat-today-signups').text(d.today.activity_signups || 0);
+                        $('#stat-today-invites').text(d.today.invite_rewards || 0);
+                        $('#stat-today-feedback').text(d.today.feedback_count || 0);
+                    }
+                    if(d.total) {
+                        $('#stat-total-users').text(d.total.users || 0);
+                        $('#stat-total-activities').text(d.total.activities || 0);
+                        $('#stat-total-signups').text(d.total.signups || 0);
+                        $('#stat-total-invites').text(d.total.invites || 0);
+                    }
+                    if(d.stage_distribution && d.stage_distribution.length > 0) {
+                        var total_stage = 0;
+                        d.stage_distribution.forEach(function(s) { total_stage += s.count; });
+                        var html = '';
+                        d.stage_distribution.forEach(function(s) {
+                            var pct = total_stage > 0 ? (s.count / total_stage * 100).toFixed(1) : '0.0';
+                            html += '<tr><td>' + s.name + '</td><td>' + s.count + '</td><td>' + pct + '%</td></tr>';
+                        });
+                        $('#stage-distribution').html(html);
+                    } else {
+                        $('#stage-distribution').html('<tr><td colspan="3" class="am-text-center">暂无数据</td></tr>');
+                    }
+                }
+            }
+        });
+    }
+
+    load_overview();
+
+    $('#btn-generate-snapshot').on('click', function() {
+        var btn = $(this);
+        btn.prop('disabled', true).text('生成中...');
+        $.ajax({
+            url: "{{:MyUrl('admin/dashboard/generatesnapshot')}}",
+            type: 'POST',
+            dataType: 'json',
+            success: function(res) {
+                btn.prop('disabled', false).text('手动生成今日快照');
+                if(res.code == 0) {
+                    Prompt('快照生成成功');
+                    load_overview();
+                } else {
+                    Prompt(res.msg || '生成失败', 'danger');
+                }
+            },
+            error: function() {
+                btn.prop('disabled', false).text('手动生成今日快照');
+                Prompt('网络异常', 'danger');
+            }
+        });
+    });
+});
+</script>
+{{/block}}

@@ -1,0 +1,166 @@
+{{extend name="../../../module/view/form_table/index" /}}
+
+{{block name="content"}}
+<div class="am-g">
+    <div class="am-u-sm-12">
+        <div class="am-panel am-panel-default">
+            <div class="am-panel-hd am-cf">
+                <span>标签列表</span>
+                {{if AdminIsPower('usertag', 'save')}}
+                <button type="button" class="am-btn am-btn-success am-btn-xs am-fr" onclick="tag_save_win(0)">添加标签</button>
+                {{/if}}
+            </div>
+            <div class="am-panel-bd">
+                <table class="am-table am-table-bordered am-table-striped am-margin-bottom-0">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>标签名称</th>
+                            <th>颜色</th>
+                            <th>用户数</th>
+                            <th>排序</th>
+                            <th>状态</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tag-list">
+                        <tr><td colspan="7" class="am-text-center">加载中...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="am-modal" id="tag-save-win" tabindex="-1">
+    <div class="am-modal-dialog">
+        <div class="am-modal-hd">标签编辑</div>
+        <div class="am-modal-bd">
+            <input type="hidden" id="tag-id" value="0">
+            <div class="am-form-group">
+                <label>标签名称</label>
+                <input type="text" id="tag-name" class="am-radius" placeholder="请输入标签名称" maxlength="30">
+            </div>
+            <div class="am-form-group">
+                <label>标签颜色</label>
+                <input type="color" id="tag-color" value="#F5A0B1" class="am-radius">
+            </div>
+            <div class="am-form-group">
+                <label>排序</label>
+                <input type="number" id="tag-sort" class="am-radius" value="0">
+            </div>
+            <div class="am-form-group">
+                <label>是否启用</label>
+                <select id="tag-enable" class="am-radius">
+                    <option value="1">启用</option>
+                    <option value="0">禁用</option>
+                </select>
+            </div>
+        </div>
+        <div class="am-modal-footer">
+            <button type="button" class="am-btn am-btn-primary" id="btn-tag-save">保存</button>
+            <button type="button" class="am-btn am-btn-default" data-am-modal-close>取消</button>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+function tag_save_win(id) {
+    $('#tag-id').val(id);
+    if(id > 0) {
+        var row = $('#tag-row-' + id);
+        $('#tag-name').val(row.data('name'));
+        $('#tag-color').val(row.data('color'));
+        $('#tag-sort').val(row.data('sort'));
+        $('#tag-enable').val(row.data('enable'));
+    } else {
+        $('#tag-name').val('');
+        $('#tag-color').val('#F5A0B1');
+        $('#tag-sort').val('0');
+        $('#tag-enable').val('1');
+    }
+    $('#tag-save-win').modal('open');
+}
+
+function load_tags() {
+    $.ajax({
+        url: "{{:MyUrl('admin/usertag/dataindex')}}",
+        type: 'POST',
+        dataType: 'json',
+        success: function(res) {
+            if(res.code == 0 && res.data && res.data.items) {
+                var html = '';
+                res.data.items.forEach(function(tag) {
+                    html += '<tr id="tag-row-' + tag.id + '" data-name="' + tag.name + '" data-color="' + tag.color + '" data-sort="' + tag.sort_level + '" data-enable="' + tag.is_enable + '">';
+                    html += '<td>' + tag.id + '</td>';
+                    html += '<td><span style="display:inline-block;padding:2px 8px;border-radius:3px;background:' + tag.color + ';color:#fff;font-size:12px;">' + tag.name + '</span></td>';
+                    html += '<td>' + tag.color + '</td>';
+                    html += '<td>' + (tag.user_count || 0) + '</td>';
+                    html += '<td>' + tag.sort_level + '</td>';
+                    html += '<td>' + (tag.is_enable == 1 ? '启用' : '禁用') + '</td>';
+                    html += '<td>';
+                    html += '{{if AdminIsPower("usertag", "save")}}<a href="javascript:;" onclick="tag_save_win(' + tag.id + ')" class="am-btn am-btn-xs am-btn-primary">编辑</a>{{/if}} ';
+                    html += '{{if AdminIsPower("usertag", "statusupdate")}}<a href="javascript:;" onclick="tag_toggle(' + tag.id + ',' + (tag.is_enable == 1 ? 0 : 1) + ')" class="am-btn am-btn-xs am-btn-' + (tag.is_enable == 1 ? 'warning' : 'success') + '">' + (tag.is_enable == 1 ? '禁用' : '启用') + '</a>{{/if}} ';
+                    html += '{{if AdminIsPower("usertag", "delete")}}<a href="javascript:;" onclick="tag_delete(' + tag.id + ')" class="am-btn am-btn-xs am-btn-danger">删除</a>{{/if}}';
+                    html += '</td></tr>';
+                });
+                $('#tag-list').html(html || '<tr><td colspan="7" class="am-text-center">暂无标签</td></tr>');
+            }
+        }
+    });
+}
+
+function tag_toggle(id, enable) {
+    $.ajax({
+        url: "{{:MyUrl('admin/usertag/statusupdate')}}",
+        type: 'POST',
+        data: {id: id, is_enable: enable},
+        dataType: 'json',
+        success: function(res) {
+            if(res.code == 0) { load_tags(); } else { Prompt(res.msg, 'danger'); }
+        }
+    });
+}
+
+function tag_delete(id) {
+    if(!confirm('确定删除该标签？')) return;
+    $.ajax({
+        url: "{{:MyUrl('admin/usertag/delete')}}",
+        type: 'POST',
+        data: {id: id},
+        dataType: 'json',
+        success: function(res) {
+            if(res.code == 0) { load_tags(); } else { Prompt(res.msg, 'danger'); }
+        }
+    });
+}
+
+$(function() {
+    load_tags();
+
+    $('#btn-tag-save').on('click', function() {
+        var params = {
+            id: $('#tag-id').val(),
+            name: $('#tag-name').val(),
+            color: $('#tag-color').val(),
+            sort_level: $('#tag-sort').val(),
+            is_enable: $('#tag-enable').val(),
+        };
+        $.ajax({
+            url: "{{:MyUrl('admin/usertag/save')}}",
+            type: 'POST',
+            data: params,
+            dataType: 'json',
+            success: function(res) {
+                if(res.code == 0) {
+                    $('#tag-save-win').modal('close');
+                    load_tags();
+                } else {
+                    Prompt(res.msg, 'danger');
+                }
+            }
+        });
+    });
+});
+</script>
+{{/block}}

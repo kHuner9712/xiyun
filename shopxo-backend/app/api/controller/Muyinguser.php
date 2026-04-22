@@ -16,6 +16,7 @@ class Muyinguser extends Common
 
     public function TagList()
     {
+        $this->IsLogin();
         $data = UserTagService::TagList(['is_enable' => 1, 'n' => 100]);
         return ApiService::ApiDataReturn($data);
     }

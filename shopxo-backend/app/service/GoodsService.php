@@ -609,18 +609,23 @@ class GoodsService
                 if(isset($v['stage']))
                 {
                     $v['muying_stage_tags'] = [];
+                    $v['stage_text'] = '';
                     if(!empty($v['stage']))
                     {
                         $stage_values = array_filter(array_map('trim', explode(',', $v['stage'])));
+                        $stage_labels = [];
                         foreach($stage_values as $sv)
                         {
                             $sv_lower = strtolower($sv);
+                            $label = \app\extend\muying\MuyingStage::getName($sv_lower);
                             $v['muying_stage_tags'][] = [
                                 'key'    => $sv_lower,
-                                'label'  => \app\extend\muying\MuyingStage::getName($sv_lower),
+                                'label'  => $label,
                                 'active' => true,
                             ];
+                            $stage_labels[] = $label;
                         }
+                        $v['stage_text'] = implode('/', $stage_labels);
                     }
                 }
 

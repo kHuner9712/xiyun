@@ -1,0 +1,93 @@
+{{extend name="../../../module/view/form_table/index" /}}
+
+{{block name="content"}}
+<div class="am-g">
+    <div class="am-u-sm-12">
+        <div class="am-panel am-panel-default">
+            <div class="am-panel-hd">邀请配置</div>
+            <div class="am-panel-bd">
+                <div class="am-g am-margin-bottom">
+                    <div class="am-u-md-3 am-u-sm-6 am-margin-bottom-sm">
+                        <div class="am-panel am-panel-default">
+                            <div class="am-panel-hd">累计邀请人数</div>
+                            <div class="am-panel-bd am-text-center am-text-xl am-text-primary">{{$total_invites || 0}}</div>
+                        </div>
+                    </div>
+                    <div class="am-u-md-3 am-u-sm-6 am-margin-bottom-sm">
+                        <div class="am-panel am-panel-default">
+                            <div class="am-panel-hd">累计发放积分</div>
+                            <div class="am-panel-bd am-text-center am-text-xl am-text-success">{{$total_reward_value || 0}}</div>
+                        </div>
+                    </div>
+                    <div class="am-u-md-3 am-u-sm-6 am-margin-bottom-sm">
+                        <div class="am-panel am-panel-default">
+                            <div class="am-panel-hd">待审核奖励</div>
+                            <div class="am-panel-bd am-text-center am-text-xl am-text-warning">{{$pending_count || 0}}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <form id="invite-config-form" class="am-form">
+                    <div class="am-form-group">
+                        <label>注册奖励积分</label>
+                        <input type="number" name="muying_invite_register_reward" value="{{$config_data.muying_invite_register_reward || 0}}" class="am-radius" min="0">
+                    </div>
+                    <div class="am-form-group">
+                        <label>注册奖励是否自动发放</label>
+                        <select name="muying_invite_register_auto_grant" class="am-radius">
+                            <option value="1" {{if $config_data.muying_invite_register_auto_grant == 1}}selected{{/if}}>自动发放</option>
+                            <option value="0" {{if $config_data.muying_invite_register_auto_grant == 0}}selected{{/if}}>需手动审核</option>
+                        </select>
+                    </div>
+                    <div class="am-form-group">
+                        <label>首单奖励积分</label>
+                        <input type="number" name="muying_invite_first_order_reward" value="{{$config_data.muying_invite_first_order_reward || 0}}" class="am-radius" min="0">
+                    </div>
+                    <div class="am-form-group">
+                        <label>首单奖励是否自动发放</label>
+                        <select name="muying_invite_first_order_auto_grant" class="am-radius">
+                            <option value="1" {{if $config_data.muying_invite_first_order_auto_grant == 1}}selected{{/if}}>自动发放</option>
+                            <option value="0" {{if $config_data.muying_invite_first_order_auto_grant == 0}}selected{{/if}}>需手动审核</option>
+                        </select>
+                    </div>
+                    <div class="am-form-group">
+                        <label>邀请奖励每日上限（0=不限制）</label>
+                        <input type="number" name="muying_invite_daily_limit" value="{{$config_data.muying_invite_daily_limit || 0}}" class="am-radius" min="0">
+                    </div>
+                    <div class="am-form-group">
+                        <label>邀请页宣传语</label>
+                        <input type="text" name="muying_invite_slogan" value="{{$config_data.muying_invite_slogan || ''}}" class="am-radius" maxlength="100">
+                    </div>
+                    {{if AdminIsPower('inviteconfig', 'save')}}
+                    <button type="button" class="am-btn am-btn-primary" id="btn-save-config">保存配置</button>
+                    {{/if}}
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+$(function() {
+    $('#btn-save-config').on('click', function() {
+        var form_data = $('#invite-config-form').serialize();
+        $.ajax({
+            url: "{{:MyUrl('admin/inviteconfig/save')}}",
+            type: 'POST',
+            data: form_data,
+            dataType: 'json',
+            success: function(res) {
+                if(res.code == 0) {
+                    Prompt('保存成功');
+                } else {
+                    Prompt(res.msg || '保存失败', 'danger');
+                }
+            },
+            error: function() {
+                Prompt('网络异常', 'danger');
+            }
+        });
+    });
+});
+</script>
+{{/block}}

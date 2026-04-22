@@ -3,7 +3,6 @@ namespace app\admin\controller;
 
 use app\admin\controller\Base;
 use app\service\ApiService;
-use app\service\SystemBaseService;
 use app\service\UserTagService;
 
 class Usertag extends Base
@@ -24,8 +23,6 @@ class Usertag extends Base
             $where[] = ['is_enable', '=', intval($params['is_enable'])];
         }
 
-        $total = UserTagService::TagTotal($where);
-        $page_total = ceil($total / $this->page_size);
         $start = intval(($this->page - 1) * $this->page_size);
 
         $data_params = array_merge($params, [
@@ -35,12 +32,7 @@ class Usertag extends Base
         ]);
         $data = UserTagService::TagList($data_params);
 
-        $result = [
-            'total'      => $total,
-            'page_total' => $page_total,
-            'items'      => $data['data'],
-        ];
-        return ApiService::ApiDataReturn(SystemBaseService::DataReturn($result));
+        return ApiService::ApiDataReturn($data);
     }
 
     public function Detail()

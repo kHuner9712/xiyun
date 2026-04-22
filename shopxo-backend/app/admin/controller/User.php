@@ -44,6 +44,25 @@ class User extends Base
      */
     public function Detail()
     {
+        $data = $this->data_detail;
+        if (!empty($data) && !empty($data['id'])) {
+            $data['muying_tags'] = \app\service\UserTagService::UserTags($data['id']);
+            $invite_count = \think\facade\Db::name('InviteReward')->where([
+                ['inviter_id', '=', $data['id']],
+                ['status', '=', 1],
+            ])->group('invitee_id')->count();
+            $reward_total = \think\facade\Db::name('InviteReward')->where([
+                ['inviter_id', '=', $data['id']],
+                ['status', '=', 1],
+            ])->sum('reward_value');
+            if ($invite_count > 0) {
+                $data['invite_info'] = [
+                    'invite_count' => $invite_count,
+                    'reward_total' => intval($reward_total),
+                ];
+            }
+            MyViewAssign(['data' => $data]);
+        }
         return MyView();
     }
 

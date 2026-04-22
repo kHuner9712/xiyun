@@ -12,6 +12,10 @@
             [
                 'name' => MyLang('common_service.user.detail_platform_title'),
                 'key'  => 'platform-data',
+            ],
+            [
+                'name' => '母婴信息',
+                'key'  => 'muying-data',
             ]
         ]
     ])}}
@@ -65,6 +69,54 @@
             {{else /}}
                 {{:ModuleInclude('public/not_data')}}
             {{/if}}
+        </div>
+
+        <!-- 母婴信息 -->
+        <div class="item" data-key="muying-data">
+            <div class="am-scrollable-horizontal">
+                <table class="am-table am-table-bordered am-table-striped am-text-nowrap am-margin-bottom-0">
+                    <tbody>
+                        <tr>
+                            <th style="width:120px;">当前阶段</th>
+                            <td>{{if !empty($data['current_stage'])}}{{$data.current_stage}}{{else /}}未设置{{/if}}</td>
+                            <th style="width:120px;">邀请码</th>
+                            <td>{{if !empty($data['invite_code'])}}{{$data.invite_code}}{{else /}}未生成{{/if}}</td>
+                        </tr>
+                        <tr>
+                            <th>预产期</th>
+                            <td>{{if !empty($data['due_date'])}}{{$data.due_date}}{{else /}}未设置{{/if}}</td>
+                            <th>宝宝生日</th>
+                            <td>{{if !empty($data['baby_birthday'])}}{{$data.baby_birthday}}{{else /}}未设置{{/if}}</td>
+                        </tr>
+                        <tr>
+                            <th>用户标签</th>
+                            <td colspan="3">
+                                {{if !empty($data['muying_tags'])}}
+                                    {{foreach $data.muying_tags as $tag}}
+                                        <span style="display:inline-block;padding:2px 8px;margin:2px;border-radius:3px;background:{{$tag.color}};color:#fff;font-size:12px;">{{$tag.name}}</span>
+                                    {{/foreach}}
+                                {{else /}}
+                                    无标签
+                                {{/if}}
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>运营备注</th>
+                            <td colspan="3">{{if !empty($data['admin_remark'])}}{{$data.admin_remark}}{{else /}}无{{/if}}</td>
+                        </tr>
+                        <tr>
+                            <th>邀请关系</th>
+                            <td colspan="3">
+                                {{if !empty($data['invite_info'])}}
+                                    邀请 {{$data.invite_info.invite_count}} 人，获得 {{$data.invite_info.reward_total}} 积分
+                                {{else /}}
+                                    无邀请记录
+                                {{/if}}
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 {{/block}}

@@ -104,13 +104,13 @@ class Goods
                     ],
                 ],
                 [
-                    'label'             => $lang['brand_name'],
-                    'view_type'         => 'field',
-                    'view_key'          => 'brand_name',
+                    'label'         => $lang['brand_name'],
+                    'view_type'     => 'field',
+                    'view_key'      => 'brand_name',
                     'params_where_name' => 'brand_ids',
-                    'is_sort'           => 1,
-                    'width'             => 140,
-                    'search_config'     => [
+                    'is_sort'       => 1,
+                    'width'         => 140,
+                    'search_config' => [
                         'form_type'         => 'select',
                         'form_name'         => 'brand_id',
                         'where_type'        => 'in',
@@ -118,6 +118,35 @@ class Goods
                         'data_key'          => 'id',
                         'data_name'         => 'name',
                         'is_multiple'       => 1,
+                    ],
+                ],
+                [
+                    'label'         => '适用阶段',
+                    'view_type'     => 'field',
+                    'view_key'      => 'stage_text',
+                    'width'         => 120,
+                    'search_config' => [
+                        'form_type'         => 'select',
+                        'form_name'         => 'stage',
+                        'where_type'        => 'like',
+                        'data'              => [
+                            ['id' => 'prepare', 'name' => '备孕'],
+                            ['id' => 'pregnancy', 'name' => '孕期'],
+                            ['id' => 'postpartum', 'name' => '产后'],
+                            ['id' => 'all', 'name' => '通用'],
+                        ],
+                        'data_key'          => 'id',
+                        'data_name'         => 'name',
+                    ],
+                ],
+                [
+                    'label'         => '卖点标签',
+                    'view_type'     => 'field',
+                    'view_key'      => 'selling_point',
+                    'width'         => 160,
+                    'search_config' => [
+                        'form_type'         => 'input',
+                        'where_type'        => 'like',
                     ],
                 ],
                 [
