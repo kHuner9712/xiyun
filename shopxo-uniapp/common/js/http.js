@@ -21,7 +21,6 @@ FEATURE_FLAG_ACTION_MAP['video'] = FeatureFlagKey.VIDEO;
 FEATURE_FLAG_ACTION_MAP['hospital'] = FeatureFlagKey.HOSPITAL;
 FEATURE_FLAG_ACTION_MAP['membershiplevelvip'] = FeatureFlagKey.MEMBERSHIP;
 FEATURE_FLAG_ACTION_MAP['muyinguser'] = FeatureFlagKey.MEMBERSHIP;
-FEATURE_FLAG_ACTION_MAP['muyingdashboard'] = FeatureFlagKey.ACTIVITY;
 
 var LOGIN_EXPIRED_CODES = [-100, -9999];
 var FEATURE_DISABLED_CODE = -403;

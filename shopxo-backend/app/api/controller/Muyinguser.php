@@ -3,10 +3,17 @@ namespace app\api\controller;
 
 use app\service\ApiService;
 use app\service\UserTagService;
-use app\service\DashboardService;
 
 class Muyinguser extends Common
 {
+    private static $FEATURE_FLAG_KEY = 'feature_membership_enabled';
+
+    public function __construct()
+    {
+        parent::__construct();
+        self::CheckFeatureEnabled(self::$FEATURE_FLAG_KEY);
+    }
+
     public function TagList()
     {
         $data = UserTagService::TagList(['is_enable' => 1, 'n' => 100]);
@@ -26,15 +33,5 @@ class Muyinguser extends Common
         $params = $this->data_request;
         $params['user_id'] = $this->user['id'];
         return ApiService::ApiDataReturn(UserTagService::UserTagSet($params));
-    }
-
-    public function AdminRemark()
-    {
-        $this->IsLogin();
-        if (empty($this->admin)) {
-            return ApiService::ApiDataReturn(DataReturn('无权限', -1));
-        }
-        $params = $this->data_request;
-        return ApiService::ApiDataReturn(UserTagService::AdminUserRemark($params));
     }
 }

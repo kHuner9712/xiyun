@@ -34,7 +34,7 @@ class DashboardService
 
         $total_users = Db::name('User')->count();
         $total_activities = Db::name('Activity')->where(['is_enable' => 1, 'is_delete_time' => 0])->count();
-        $total_signups = Db::name('ActivitySignup')->where(['status' => 'in', [0, 1]])->count();
+        $total_signups = Db::name('ActivitySignup')->where([['status', 'in', [0, 1]]])->count();
         $total_invites = Db::name('InviteReward')->where(['status' => 1])->group('invitee_id')->count();
 
         $stage_distribution = [];
@@ -73,13 +73,26 @@ class DashboardService
         }
         $metric_key = isset($params['metric_key']) ? trim($params['metric_key']) : '';
 
+        $start_date = date('Y-m-d', strtotime("-{$days} days"));
+
         if (!empty($metric_key)) {
             $data = Db::name('MuyingStatSnapshot')->where([
                 ['metric_key', '=', $metric_key],
-                ['stat_date', '>=', date('Y-m-d', strtotime("-{$days} days"))],
-            ])->order('stat_date asc')->select()->toArray();
+                ['stat_date', '>=', $start_date],
+            ])->order('stat_date asc')->field('stat_date,metric_value')->select()->toArray();
 
-            return DataReturn(MyLang('handle_success'), 0, $data);
+            $items = [];
+            foreach ($data as $row) {
+                $items[] = [
+                    'date'  => $row['stat_date'],
+                    'value' => floatval($row['metric_value']),
+                ];
+            }
+
+            return DataReturn(MyLang('handle_success'), 0, [
+                'metric_key' => $metric_key,
+                'items'      => $items,
+            ]);
         }
 
         $metrics = ['registration_conversion', 'activity_signup_conversion', 'invite_referral', 'repurchase', 'stage_completion'];
@@ -87,10 +100,17 @@ class DashboardService
         foreach ($metrics as $key) {
             $snapshots = Db::name('MuyingStatSnapshot')->where([
                 ['metric_key', '=', $key],
-                ['stat_date', '>=', date('Y-m-d', strtotime("-{$days} days"))],
-            ])->order('stat_date asc')->column('stat_date,metric_value', 'stat_date');
+                ['stat_date', '>=', $start_date],
+            ])->order('stat_date asc')->field('stat_date,metric_value')->select()->toArray();
 
-            $result[$key] = array_values($snapshots);
+            $items = [];
+            foreach ($snapshots as $row) {
+                $items[] = [
+                    'date'  => $row['stat_date'],
+                    'value' => floatval($row['metric_value']),
+                ];
+            }
+            $result[$key] = $items;
         }
 
         return DataReturn(MyLang('handle_success'), 0, $result);
@@ -110,34 +130,43 @@ class DashboardService
             ['add_time', '<', $yesterday_end],
             ['current_stage', '<>', ''],
         ])->count();
-        $stage_rate = $total_new > 0 ? round($with_stage / $total_new * 100, 2) : 0;
-        $metrics['stage_completion'] = $stage_rate;
+        $metrics['stage_completion'] = $total_new > 0 ? round($with_stage / $total_new * 100, 2) : 0;
 
         $activity_views = Db::name('Activity')->where(['is_enable' => 1, 'is_delete_time' => 0])->sum('access_count');
         $activity_signups = Db::name('ActivitySignup')->where([
             ['add_time', '>=', $yesterday_start],
             ['add_time', '<', $yesterday_end],
         ])->count();
-        $signup_rate = $activity_views > 0 ? round($activity_signups / $activity_views * 100, 4) : 0;
-        $metrics['activity_signup_conversion'] = $signup_rate;
+        $metrics['activity_signup_conversion'] = $activity_views > 0 ? round($activity_signups / $activity_views * 100, 4) : 0;
 
         $invite_count = Db::name('InviteReward')->where([
             ['add_time', '>=', $yesterday_start],
             ['add_time', '<', $yesterday_end],
         ])->group('invitee_id')->count();
-        $invite_rate = $total_new > 0 ? round($invite_count / $total_new * 100, 4) : 0;
-        $metrics['invite_referral'] = $invite_rate;
+        $metrics['invite_referral'] = $total_new > 0 ? round($invite_count / $total_new * 100, 4) : 0;
 
         $metrics['registration_conversion'] = 0;
         $metrics['repurchase'] = 0;
 
         foreach ($metrics as $key => $value) {
-            Db::name('MuyingStatSnapshot')->insert([
-                'stat_date'    => $today,
-                'metric_key'   => $key,
-                'metric_value' => $value,
-                'add_time'     => time(),
-            ]);
+            $exists = Db::name('MuyingStatSnapshot')->where([
+                ['stat_date', '=', $today],
+                ['metric_key', '=', $key],
+            ])->find();
+
+            if (!empty($exists)) {
+                Db::name('MuyingStatSnapshot')->where(['id' => $exists['id']])->update([
+                    'metric_value' => $value,
+                    'add_time'     => time(),
+                ]);
+            } else {
+                Db::name('MuyingStatSnapshot')->insert([
+                    'stat_date'    => $today,
+                    'metric_key'   => $key,
+                    'metric_value' => $value,
+                    'add_time'     => time(),
+                ]);
+            }
         }
 
         Log::info('仪表盘每日快照生成完成 date=' . $today);

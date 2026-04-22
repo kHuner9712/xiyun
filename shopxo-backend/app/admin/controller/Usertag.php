@@ -3,6 +3,7 @@ namespace app\admin\controller;
 
 use app\admin\controller\Base;
 use app\service\ApiService;
+use app\service\SystemBaseService;
 use app\service\UserTagService;
 
 class Usertag extends Base
@@ -77,5 +78,19 @@ class Usertag extends Base
         $params = $this->data_request;
         $params['admin'] = $this->admin;
         return ApiService::ApiDataReturn(UserTagService::TagStatusUpdate($params));
+    }
+
+    public function AdminRemark()
+    {
+        $params = $this->data_request;
+        $params['admin'] = $this->admin;
+        return ApiService::ApiDataReturn(UserTagService::AdminUserRemark($params));
+    }
+
+    public function UserTagSet()
+    {
+        $params = $this->data_request;
+        $params['admin'] = $this->admin;
+        return ApiService::ApiDataReturn(UserTagService::UserTagSet($params));
     }
 }

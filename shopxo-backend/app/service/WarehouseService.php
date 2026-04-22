@@ -11,6 +11,7 @@
 namespace app\service;
 
 use think\facade\Db;
+use think\facade\Log;
 use app\service\RegionService;
 use app\service\WarehouseGoodsService;
 use app\service\SystemBaseService;

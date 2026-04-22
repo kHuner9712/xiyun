@@ -26,18 +26,12 @@ use app\service\ResourcesService;
  */
 class Article extends Common
 {
-    /**
-     * 构造方法
-     * @author  Devil
-     * @blog    http://gong.gg/
-     * @version 1.0.0
-     * @date    2021-11-08
-     * @desc    description
-     */
+    private static $FEATURE_FLAG_KEY = 'feature_content_enabled';
+
     public function __construct()
     {
-        // 调用父类前置方法
         parent::__construct();
+        self::CheckFeatureEnabled(self::$FEATURE_FLAG_KEY);
     }
     
     /**
@@ -93,7 +87,7 @@ class Article extends Common
         $result = [
             'total'         => $total,
             'page_total'    => $page_total,
-            'data'          => $data['data'],
+            'items'         => $data['data'],
         ];
         return ApiService::ApiDataReturn(SystemBaseService::DataReturn($result));
     }
