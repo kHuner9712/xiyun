@@ -654,7 +654,7 @@
                             setTimeout(function () {
                                 uni.showModal({
                                     title: '完善信息',
-                                    content: stage === 'pregnancy' ? '建议补充预产期信息，以便为您推荐更适合的活动' : '建议补充宝宝生日信息，以便为您推荐更适合的活动',
+                                    content: stage === 'pregnancy' ? '建议补充预产期信息，以便为您推荐更适合的活动（选填）' : '建议补充宝宝生日信息，以便为您推荐更适合的活动（选填）',
                                     confirmText: '去完善',
                                     cancelText: '稍后',
                                     success: function (res) {

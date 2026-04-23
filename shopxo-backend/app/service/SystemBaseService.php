@@ -249,6 +249,10 @@ class SystemBaseService
             'feature_invite_enabled'             => (int) MyC('feature_invite_enabled', 1),
             'feature_content_enabled'            => (int) MyC('feature_content_enabled', 1),
             'feature_feedback_enabled'           => (int) MyC('feature_feedback_enabled', 1),
+            'feature_coupon_v2_enabled'          => (int) MyC('feature_coupon_v2_enabled', 0),
+            'feature_points_v2_enabled'          => (int) MyC('feature_points_v2_enabled', 0),
+            'feature_membership_v2_enabled'      => (int) MyC('feature_membership_v2_enabled', 0),
+            'feature_wallet_v2_enabled'          => (int) MyC('feature_wallet_v2_enabled', 0),
         ];
         $config = array_merge($config, $feature_flags);
 

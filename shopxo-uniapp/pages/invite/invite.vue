@@ -6,7 +6,7 @@
                 <view class="invite-banner-content padding-horizontal-main padding-top-xxxl padding-bottom-main">
                     <view class="invite-banner-slogan tc">
                         <view class="invite-banner-title">{{ slogan || '邀请好友 赢积分' }}</view>
-                        <view class="invite-banner-sub">每邀一位好友，最高可获{{ register_reward + first_order_reward }}积分</view>
+                        <view class="invite-banner-sub">邀请好友完成首单，即可获得积分奖励</view>
                     </view>
                     <view v-if="is_logged_in" class="invite-stats-row flex-row jc-sa tc margin-top-xl">
                         <view class="flex-1">
@@ -20,7 +20,7 @@
                         </view>
                     </view>
                     <view v-else class="invite-stats-row tc margin-top-xl">
-                        <view class="invite-banner-sub">好友通过邀请码注册，您即可获得积分奖励</view>
+                        <view class="invite-banner-sub">好友通过邀请码注册并完成首单，您即可获得积分奖励</view>
                     </view>
                 </view>
             </view>
@@ -34,13 +34,12 @@
                             <view class="text-size">邀请好友注册</view>
                             <view class="text-size-sm cr-grey margin-top-xs">好友通过您的邀请码注册成功</view>
                         </view>
-                        <view class="invite-rule-reward cr-white">+{{ register_reward }}积分</view>
                     </view>
                     <view class="invite-rule-item flex-row align-c">
                         <view class="invite-rule-icon">2</view>
                         <view class="flex-1">
-                            <view class="text-size">好友首单完成</view>
-                            <view class="text-size-sm cr-grey margin-top-xs">被邀请好友首次下单并完成</view>
+                            <view class="text-size">好友完成首单</view>
+                            <view class="text-size-sm cr-grey margin-top-xs">被邀请好友首次下单并支付成功</view>
                         </view>
                         <view class="invite-rule-reward cr-white">+{{ first_order_reward }}积分</view>
                     </view>
@@ -128,7 +127,6 @@
                 invite_count: 0,
                 reward_total: 0,
                 invite_list: [],
-                register_reward: 0,
                 first_order_reward: 0,
                 slogan: '',
                 data_page: 1,
@@ -279,7 +277,6 @@
                     loading: false,
                     success: function (data) {
                         self.setData({
-                            register_reward: data.register_reward || 0,
                             first_order_reward: data.first_order_reward || 0,
                             slogan: data.slogan || '',
                         });

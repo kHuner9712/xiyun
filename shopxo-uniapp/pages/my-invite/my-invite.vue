@@ -30,7 +30,7 @@
                     </view>
                     <view class="muying-divider margin-top-main margin-bottom-main"></view>
                     <view class="invite-share-btn tc" @tap="share_event">
-                        <text class="cr-white text-size">邀请好友 赢奖励</text>
+                        <text class="cr-white text-size">邀请好友 赢积分</text>
                     </view>
                 </view>
             </view>

@@ -147,10 +147,15 @@
                         contact: self.form.contact ? self.form.contact.trim() : '',
                     },
                     success: function() {
-                        uni.showToast({ title: '提交成功', icon: 'success' });
-                        setTimeout(function() {
-                            uni.navigateBack();
-                        }, 1500);
+                        uni.showModal({
+                            title: '提交成功',
+                            content: '您的反馈已提交，审核通过后将在首页展示',
+                            showCancel: false,
+                            confirmText: '我知道了',
+                            success: function() {
+                                uni.navigateBack();
+                            },
+                        });
                     },
                     fail: function(err) {
                         if (!err.feature_disabled && !err.login_expired) {

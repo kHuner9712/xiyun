@@ -14,10 +14,12 @@
                             <view class="margin-bottom-main">
                                 <text class="fw-b">一、我们如何收集和使用您的个人信息</text>
                                 <text class="block margin-top-xs">在您使用孕禧平台服务的过程中，我们可能会收集和使用您的以下信息：</text>
-                                <text class="block margin-top-xs">1. 账号信息：手机号、昵称、头像等，用于创建和登录账号。</text>
+                                <text class="block margin-top-xs">1. 账号信息：手机号（用于登录和身份验证）、昵称、头像等，用于创建和登录账号。</text>
                                 <text class="block margin-top-xs">2. 孕育信息：备孕/孕期/产后阶段、预产期、宝宝生日、宝宝月龄等，用于为您提供个性化的活动和内容推荐。</text>
                                 <text class="block margin-top-xs">3. 活动报名信息：姓名、联系方式等，用于活动报名确认和签到核实。</text>
-                                <text class="block margin-top-xs">4. 设备信息：设备型号、操作系统版本等，用于保障服务正常运行。</text>
+                                <text class="block margin-top-xs">4. 位置信息：当您使用活动签到、收货地址选择等功能时，我们会申请获取您的地理位置，用于提供基于位置的服务。您可以选择拒绝授权，不影响其他功能使用。</text>
+                                <text class="block margin-top-xs">5. 相册/摄像头：当您更换头像或提交反馈图片时，我们会申请访问您的相册或摄像头，用于选择或拍摄图片。您可以选择拒绝授权，不影响其他功能使用。</text>
+                                <text class="block margin-top-xs">6. 设备信息：设备型号、操作系统版本等，用于保障服务正常运行。</text>
                             </view>
                             <view class="margin-bottom-main">
                                 <text class="fw-b">二、我们如何使用您的个人信息</text>
@@ -40,6 +42,7 @@
                                 <text class="fw-b">五、您的权利</text>
                                 <text class="block margin-top-xs">1. 您可以随时查看、修改您的个人信息。</text>
                                 <text class="block margin-top-xs">2. 您可以选择注销账号，注销后我们将删除或匿名化您的个人信息。</text>
+                                <text class="block margin-top-xs">3. 您可以在系统设置中随时关闭位置、相册等权限授权。</text>
                             </view>
                             <view class="margin-bottom-main">
                                 <text class="fw-b">六、未成年人保护</text>
@@ -51,7 +54,7 @@
                             </view>
                             <view class="margin-bottom-main">
                                 <text class="fw-b">八、联系我们</text>
-                                <text class="block margin-top-xs">如您对本隐私政策有任何疑问或意见，请通过平台内的反馈功能与我们联系。</text>
+                                <text class="block margin-top-xs">如您对本隐私政策有任何疑问或意见，请通过平台内的反馈功能或联系客服与我们联系。</text>
                             </view>
                         </block>
 

@@ -32,7 +32,8 @@ INSERT INTO `sxo_config` (`value`, `name`, `describe`, `error_tips`, `type`, `on
 ('0', '智能工具开关', '控制智能工具功能是否开放', '请选择是否开启', 'admin', 'feature_intellectstools_enabled', UNIX_TIMESTAMP()),
 ('1', '活动模块开关', '控制活动报名功能是否开放', '请选择是否开启', 'admin', 'feature_activity_enabled', UNIX_TIMESTAMP()),
 ('1', '邀请裂变开关', '控制邀请裂变功能是否开放', '请选择是否开启', 'admin', 'feature_invite_enabled', UNIX_TIMESTAMP()),
-('1', '官方内容开关', '控制文章/资讯等官方内容功能是否开放', '请选择是否开启', 'admin', 'feature_content_enabled', UNIX_TIMESTAMP())
+('1', '官方内容开关', '控制文章/资讯等官方内容功能是否开放', '请选择是否开启', 'admin', 'feature_content_enabled', UNIX_TIMESTAMP()),
+('1', '用户反馈开关', '控制用户反馈/妈妈说功能是否开放', '请选择是否开启', 'admin', 'feature_feedback_enabled', UNIX_TIMESTAMP())
 ON DUPLICATE KEY UPDATE `value`=VALUES(`value`), `upd_time`=UNIX_TIMESTAMP();
 
 -- F2. 后台"功能开关"菜单（挂在"运营"一级菜单下）

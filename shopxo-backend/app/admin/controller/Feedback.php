@@ -7,27 +7,26 @@ use app\service\SystemBaseService;
 use app\service\FeedbackService;
 use app\extend\muying\MuyingStage;
 
-/**
- * 用户反馈管理
- */
 class Feedback extends Base
 {
-    /**
-     * 列表
-     */
     public function Index()
     {
         $stage_list = [];
         foreach (MuyingStage::getList() as $value => $name) {
             $stage_list[] = ['value' => $value, 'name' => $name];
         }
-        MyViewAssign(['common_service_muying_stage_list' => $stage_list]);
+        $review_status_list = [
+            ['value' => 'pending', 'name' => '待审核'],
+            ['value' => 'approved', 'name' => '已通过'],
+            ['value' => 'rejected', 'name' => '已驳回'],
+        ];
+        MyViewAssign([
+            'common_service_muying_stage_list' => $stage_list,
+            'common_service_review_status_list' => $review_status_list,
+        ]);
         return MyView();
     }
 
-    /**
-     * 数据列表
-     */
     public function DataIndex()
     {
         $params = $this->data_request;
@@ -51,9 +50,6 @@ class Feedback extends Base
         return ApiService::ApiDataReturn(SystemBaseService::DataReturn($result));
     }
 
-    /**
-     * 详情
-     */
     public function Detail()
     {
         $params = $this->data_request;
@@ -67,6 +63,15 @@ class Feedback extends Base
             $data['stage_text'] = \app\extend\muying\MuyingStage::getName(\app\extend\muying\MuyingStage::Normalize($data['stage'] ?? ''));
             $data['add_time_text'] = empty($data['add_time']) ? '' : date('Y-m-d H:i:s', $data['add_time']);
             $data['upd_time_text'] = empty($data['upd_time']) ? '' : date('Y-m-d H:i:s', $data['upd_time']);
+            $data['review_status_text'] = FeedbackService::GetReviewStatusText($data['review_status'] ?? 'pending');
+            $data['review_time_text'] = empty($data['review_time']) ? '' : date('Y-m-d H:i:s', $data['review_time']);
+
+            if (!empty($data['review_admin_id'])) {
+                $admin = \think\facade\Db::name('Admin')->where(['id' => $data['review_admin_id']])->field('id,username')->find();
+                $data['review_admin_name'] = !empty($admin) ? $admin['username'] : '';
+            } else {
+                $data['review_admin_name'] = '';
+            }
 
             $user = \think\facade\Db::name('User')->where(['id' => $data['user_id']])->field('id,nickname,mobile')->find();
             $data['user_info'] = $user;
@@ -77,9 +82,13 @@ class Feedback extends Base
         return MyView();
     }
 
-    /**
-     * 状态更新（启用/禁用）
-     */
+    public function Review()
+    {
+        $params = $this->data_request;
+        $params['admin'] = $this->admin;
+        return ApiService::ApiDataReturn(FeedbackService::FeedbackReview($params));
+    }
+
     public function StatusUpdate()
     {
         $params = $this->data_request;
@@ -87,9 +96,6 @@ class Feedback extends Base
         return ApiService::ApiDataReturn(FeedbackService::FeedbackStatusUpdate($params));
     }
 
-    /**
-     * 删除
-     */
     public function Delete()
     {
         $params = $this->data_request;
@@ -97,4 +103,3 @@ class Feedback extends Base
         return ApiService::ApiDataReturn(FeedbackService::FeedbackDelete($params));
     }
 }
-?>

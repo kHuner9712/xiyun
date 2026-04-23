@@ -12,6 +12,7 @@ class InviteService
     const REWARD_STATUS_PENDING = 0;
     const REWARD_STATUS_GRANTED = 1;
     const REWARD_STATUS_CANCELLED = 2;
+    const REWARD_STATUS_REVOKED = 3;
 
     public static function GenerateInviteCode()
     {
@@ -58,6 +59,7 @@ class InviteService
         $pending_count = Db::name('InviteReward')->where([
             ['inviter_id', '=', $user_id],
             ['status', '=', self::REWARD_STATUS_PENDING],
+            ['trigger_event', '=', 'first_order'],
         ])->count();
 
         return DataReturn(MyLang('handle_success'), 0, [
@@ -76,10 +78,6 @@ class InviteService
 
         if (isset($params['status']) && $params['status'] !== '') {
             $where[] = ['status', '=', intval($params['status'])];
-        }
-
-        if (!empty($params['reward_type'])) {
-            $where[] = ['reward_type', '=', $params['reward_type']];
         }
 
         if (!empty($params['trigger_event'])) {
@@ -114,9 +112,9 @@ class InviteService
                 if (!empty($v['invitee_info']['avatar'])) {
                     $v['invitee_info']['avatar'] = ResourcesService::AttachmentPathViewHandle($v['invitee_info']['avatar']);
                 }
-                $v['status_text'] = [self::REWARD_STATUS_PENDING => '待发放', self::REWARD_STATUS_GRANTED => '已发放', self::REWARD_STATUS_CANCELLED => '已取消'][$v['status']] ?? '';
-                $v['reward_type_text'] = ['integral' => '积分', 'coupon' => '优惠券'][$v['reward_type']] ?? $v['reward_type'];
-                $v['trigger_event_text'] = ['register' => '注册', 'first_order' => '首单'][$v['trigger_event']] ?? $v['trigger_event'];
+                $v['status_text'] = self::GetStatusText($v['status']);
+                $v['reward_type_text'] = self::GetRewardTypeText($v['reward_type']);
+                $v['trigger_event_text'] = self::GetTriggerEventText($v['trigger_event']);
                 $v['add_time_text'] = empty($v['add_time']) ? '' : date('Y-m-d H:i:s', $v['add_time']);
             }
         }
@@ -156,13 +154,39 @@ class InviteService
     public static function RewardConfig()
     {
         return [
-            'register_reward'        => intval(MyC('muying_invite_register_reward', 0, true)),
             'first_order_reward'     => intval(MyC('muying_invite_first_order_reward', 0, true)),
-            'register_auto_grant'    => intval(MyC('muying_invite_register_auto_grant', 1, true)),
-            'first_order_auto_grant' => intval(MyC('muying_invite_first_order_auto_grant', 0, true)),
+            'first_order_auto_grant' => intval(MyC('muying_invite_first_order_auto_grant', 1, true)),
             'daily_limit'            => intval(MyC('muying_invite_daily_limit', 0, true)),
             'slogan'                 => MyC('muying_invite_slogan', '邀请好友 赢积分', true),
         ];
+    }
+
+    public static function GetStatusText($status)
+    {
+        $map = [
+            self::REWARD_STATUS_PENDING   => '待发放',
+            self::REWARD_STATUS_GRANTED   => '已发放',
+            self::REWARD_STATUS_CANCELLED => '已取消',
+            self::REWARD_STATUS_REVOKED   => '已撤销',
+        ];
+        return $map[$status] ?? '未知';
+    }
+
+    public static function GetRewardTypeText($type)
+    {
+        $map = [
+            'integral' => '积分',
+        ];
+        return $map[$type] ?? $type;
+    }
+
+    public static function GetTriggerEventText($event)
+    {
+        $map = [
+            'register'    => '注册绑定',
+            'first_order' => '好友首单',
+        ];
+        return $map[$event] ?? $event;
     }
 
     private static function CheckDailyLimit($inviter_id)
@@ -174,7 +198,8 @@ class InviteService
         $today_start = strtotime(date('Y-m-d'));
         $today_count = Db::name('InviteReward')->where([
             ['inviter_id', '=', $inviter_id],
-            ['status', '<>', self::REWARD_STATUS_CANCELLED],
+            ['trigger_event', '=', 'first_order'],
+            ['status', 'in', [self::REWARD_STATUS_PENDING, self::REWARD_STATUS_GRANTED]],
             ['add_time', '>=', $today_start],
         ])->count();
         return $today_count < $daily_limit;
@@ -200,50 +225,33 @@ class InviteService
             return DataReturn('不能邀请自己', 0);
         }
 
-        if (!self::CheckDailyLimit($inviter_id)) {
-            Log::info('邀请注册奖励被每日上限拦截 inviter_id=' . $inviter_id);
-            return DataReturn('邀请人今日已达奖励上限', 0);
-        }
-
-        $register_reward = intval(MyC('muying_invite_register_reward', 0, true));
-        $auto_grant = intval(MyC('muying_invite_register_auto_grant', 1, true));
-
         $data = [
             'inviter_id'    => $inviter_id,
             'invitee_id'    => $params['user_id'],
             'reward_type'   => 'integral',
-            'reward_value'  => $register_reward,
+            'reward_value'  => 0,
             'trigger_event' => 'register',
-            'status'        => ($register_reward > 0 && $auto_grant) ? self::REWARD_STATUS_PENDING : self::REWARD_STATUS_PENDING,
+            'status'        => self::REWARD_STATUS_GRANTED,
             'add_time'      => time(),
             'upd_time'      => time(),
         ];
 
         Db::startTrans();
         try {
-            $id = Db::name('InviteReward')->insertGetId($data);
+            Db::name('InviteReward')->insertGetId($data);
 
-            if ($id > 0 && $register_reward > 0 && $auto_grant) {
-                $grant_result = self::GrantRewardInner($id);
-                if (!$grant_result) {
-                    Db::rollback();
-                    Log::error('邀请注册奖励发放失败，回滚 inviter_id=' . $inviter_id . ' invitee_id=' . $params['user_id']);
-                    return DataReturn('邀请注册奖励处理失败', -1);
-                }
-            }
-
-            MuyingLogService::LogSuccess(MuyingLogService::TYPE_INVITE_REWARD, 'create', $inviter_id, $id, '注册邀请奖励 inviter_id=' . $inviter_id . ' invitee_id=' . $params['user_id']);
+            MuyingLogService::LogSuccess(MuyingLogService::TYPE_INVITE_REWARD, 'bind', $inviter_id, 0, '注册绑定邀请关系 inviter_id=' . $inviter_id . ' invitee_id=' . $params['user_id']);
             Db::commit();
-            return DataReturn('邀请注册奖励记录已创建', 0);
+            return DataReturn('邀请关系绑定成功', 0);
         } catch (\Exception $e) {
             Db::rollback();
             $msg = $e->getMessage();
             if (self::IsDuplicateEntryError($msg)) {
-                Log::info('邀请注册奖励重复插入拦截(唯一约束) inviter_id=' . $inviter_id . ' invitee_id=' . $params['user_id']);
-                return DataReturn('已存在注册邀请记录', 0);
+                Log::info('邀请关系重复绑定拦截(唯一约束) inviter_id=' . $inviter_id . ' invitee_id=' . $params['user_id']);
+                return DataReturn('已存在邀请关系', 0);
             }
-            Log::error('邀请注册奖励插入异常 inviter_id=' . $inviter_id . ' invitee_id=' . $params['user_id'] . ' error=' . $msg);
-            return DataReturn('邀请注册奖励处理失败', -1);
+            Log::error('邀请关系绑定异常 inviter_id=' . $inviter_id . ' invitee_id=' . $params['user_id'] . ' error=' . $msg);
+            return DataReturn('邀请关系绑定失败', -1);
         }
     }
 
@@ -255,18 +263,26 @@ class InviteService
 
         $invitee_id = intval($params['user_id']);
 
+        if (!empty($params['order_id'])) {
+            $order = Db::name('Order')->where(['id' => intval($params['order_id'])])->find();
+            if (!empty($order) && in_array($order['status'], [5, 6])) {
+                Log::info('首单邀请奖励跳过：异常订单 order_id=' . $order['id'] . ' status=' . $order['status']);
+                return DataReturn('订单状态异常，不发放奖励', 0);
+            }
+        }
+
         Db::startTrans();
         try {
-            $register_reward = Db::name('InviteReward')->where([
+            $register_record = Db::name('InviteReward')->where([
                 ['invitee_id', '=', $invitee_id],
                 ['trigger_event', '=', 'register'],
             ])->lock(true)->find();
-            if (empty($register_reward)) {
+            if (empty($register_record)) {
                 Db::rollback();
                 return DataReturn('无邀请记录', 0);
             }
 
-            $inviter_id = $register_reward['inviter_id'];
+            $inviter_id = $register_record['inviter_id'];
 
             $exists = Db::name('InviteReward')->where([
                 ['inviter_id', '=', $inviter_id],
@@ -285,7 +301,7 @@ class InviteService
             }
 
             $first_order_reward = intval(MyC('muying_invite_first_order_reward', 0, true));
-            $auto_grant = intval(MyC('muying_invite_first_order_auto_grant', 0, true));
+            $auto_grant = intval(MyC('muying_invite_first_order_auto_grant', 1, true));
 
             $data = [
                 'inviter_id'    => $inviter_id,
@@ -344,16 +360,26 @@ class InviteService
         if (empty($reward)) {
             return DataReturn('记录不存在', -1);
         }
-        if ($reward['status'] != self::REWARD_STATUS_PENDING) {
-            return DataReturn('只有待发放状态才能审核发放', -1);
+        if (!in_array($reward['status'], [self::REWARD_STATUS_PENDING, self::REWARD_STATUS_CANCELLED, self::REWARD_STATUS_REVOKED])) {
+            return DataReturn('当前状态不允许补发', -1);
+        }
+        if ($reward['reward_value'] <= 0) {
+            return DataReturn('奖励值为0，无需补发', -1);
+        }
+
+        if ($reward['status'] !== self::REWARD_STATUS_PENDING) {
+            Db::name('InviteReward')->where(['id' => $id])->update([
+                'status'   => self::REWARD_STATUS_PENDING,
+                'upd_time' => time(),
+            ]);
         }
 
         $result = self::GrantReward($id);
         if ($result) {
-            MuyingLogService::LogSuccess(MuyingLogService::TYPE_INVITE_REWARD, 'grant', $reward['inviter_id'], $id, '后台手动发放邀请奖励');
-            return DataReturn('发放成功', 0);
+            MuyingLogService::LogSuccess(MuyingLogService::TYPE_INVITE_REWARD, 'grant', $reward['inviter_id'], $id, '后台手动补发邀请奖励');
+            return DataReturn('补发成功', 0);
         }
-        return DataReturn('发放失败', -1);
+        return DataReturn('补发失败', -1);
     }
 
     public static function AdminCancel($params = [])
@@ -367,19 +393,55 @@ class InviteService
         if (empty($reward)) {
             return DataReturn('记录不存在', -1);
         }
-        if ($reward['status'] != self::REWARD_STATUS_PENDING) {
-            return DataReturn('只有待发放状态才能取消', -1);
+
+        if ($reward['status'] === self::REWARD_STATUS_PENDING) {
+            $upd = Db::name('InviteReward')->where(['id' => $id])->update([
+                'status'   => self::REWARD_STATUS_CANCELLED,
+                'upd_time' => time(),
+            ]);
+            if ($upd !== false) {
+                MuyingLogService::LogSuccess(MuyingLogService::TYPE_INVITE_REWARD, 'cancel', $reward['inviter_id'], $id, '后台取消邀请奖励');
+                return DataReturn('取消成功', 0);
+            }
+            return DataReturn('取消失败', -1);
         }
 
-        $upd = Db::name('InviteReward')->where(['id' => $id])->update([
-            'status'   => self::REWARD_STATUS_CANCELLED,
-            'upd_time' => time(),
-        ]);
-        if ($upd !== false) {
-            MuyingLogService::LogSuccess(MuyingLogService::TYPE_INVITE_REWARD, 'cancel', $reward['inviter_id'], $id, '后台取消邀请奖励');
-            return DataReturn('取消成功', 0);
+        if ($reward['status'] === self::REWARD_STATUS_GRANTED) {
+            if ($reward['reward_type'] === 'integral' && $reward['reward_value'] > 0) {
+                $user = Db::name('User')->where(['id' => $reward['inviter_id']])->find();
+                if (empty($user)) {
+                    return DataReturn('邀请人不存在', -1);
+                }
+
+                $current_integral = intval($user['integral']);
+                $deduct_value = min($reward['reward_value'], $current_integral);
+
+                Db::name('User')->where(['id' => $reward['inviter_id']])->dec('integral', $deduct_value)->update();
+
+                if (class_exists('app\service\IntegralService')) {
+                    IntegralService::UserIntegralLogAdd(
+                        $reward['inviter_id'],
+                        $current_integral,
+                        -$deduct_value,
+                        '撤销邀请奖励(用户ID:' . $reward['invitee_id'] . ')',
+                        0,
+                        0
+                    );
+                }
+            }
+
+            $upd = Db::name('InviteReward')->where(['id' => $id])->update([
+                'status'   => self::REWARD_STATUS_REVOKED,
+                'upd_time' => time(),
+            ]);
+            if ($upd !== false) {
+                MuyingLogService::LogSuccess(MuyingLogService::TYPE_INVITE_REWARD, 'revoke', $reward['inviter_id'], $id, '后台撤销已发放邀请奖励 value=' . $reward['reward_value']);
+                return DataReturn('撤销成功，已扣回积分', 0);
+            }
+            return DataReturn('撤销失败', -1);
         }
-        return DataReturn('取消失败', -1);
+
+        return DataReturn('当前状态不允许操作', -1);
     }
 
     public static function AdminInviteRewardListHandle($data, $params = [])
@@ -399,9 +461,9 @@ class InviteService
                 if (!empty($v['invitee_info']['avatar'])) {
                     $v['invitee_info']['avatar'] = ResourcesService::AttachmentPathViewHandle($v['invitee_info']['avatar']);
                 }
-                $v['status_text'] = [self::REWARD_STATUS_PENDING => '待发放', self::REWARD_STATUS_GRANTED => '已发放', self::REWARD_STATUS_CANCELLED => '已取消'][$v['status']] ?? '';
-                $v['reward_type_text'] = ['integral' => '积分', 'coupon' => '优惠券'][$v['reward_type']] ?? $v['reward_type'];
-                $v['trigger_event_text'] = ['register' => '注册', 'first_order' => '首单'][$v['trigger_event']] ?? $v['trigger_event'];
+                $v['status_text'] = self::GetStatusText($v['status']);
+                $v['reward_type_text'] = self::GetRewardTypeText($v['reward_type']);
+                $v['trigger_event_text'] = self::GetTriggerEventText($v['trigger_event']);
                 $v['add_time_text'] = empty($v['add_time']) ? '' : date('Y-m-d H:i:s', $v['add_time']);
                 $v['upd_time_text'] = empty($v['upd_time']) ? '' : date('Y-m-d H:i:s', $v['upd_time']);
             }
@@ -426,9 +488,9 @@ class InviteService
 
         $data['inviter_info'] = $inviter;
         $data['invitee_info'] = $invitee;
-        $data['trigger_event_text'] = ['register' => '注册', 'first_order' => '首单'][$data['trigger_event']] ?? $data['trigger_event'];
-        $data['reward_type_text'] = ['integral' => '积分', 'coupon' => '优惠券'][$data['reward_type']] ?? $data['reward_type'];
-        $data['status_text'] = [self::REWARD_STATUS_PENDING => '待发放', self::REWARD_STATUS_GRANTED => '已发放', self::REWARD_STATUS_CANCELLED => '已取消'][$data['status']] ?? '';
+        $data['trigger_event_text'] = self::GetTriggerEventText($data['trigger_event']);
+        $data['reward_type_text'] = self::GetRewardTypeText($data['reward_type']);
+        $data['status_text'] = self::GetStatusText($data['status']);
         $data['add_time_text'] = empty($data['add_time']) ? '' : date('Y-m-d H:i:s', $data['add_time']);
         $data['upd_time_text'] = empty($data['upd_time']) ? '' : date('Y-m-d H:i:s', $data['upd_time']);
 

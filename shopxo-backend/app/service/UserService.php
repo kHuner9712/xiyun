@@ -2381,14 +2381,6 @@ class UserService
             {
                 return DataReturn('请选择有效的孕育阶段', -1);
             }
-            if($normalized_stage === MuyingStage::PREGNANCY && empty($params['due_date']))
-            {
-                return DataReturn('孕期阶段请选择预产期', -1);
-            }
-            if($normalized_stage === MuyingStage::POSTPARTUM && empty($params['baby_birthday']))
-            {
-                return DataReturn('产后阶段请选择宝宝生日', -1);
-            }
         }
 
         // 母婴画像联动清空：current_stage 变化时，清空不相关的关联字段

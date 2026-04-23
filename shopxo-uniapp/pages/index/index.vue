@@ -200,7 +200,7 @@
                             <view class="muying-invite-entry" @tap="invite_event">
                                 <view class="muying-invite-text">
                                     <text class="muying-invite-title">邀请有礼</text>
-                                    <text class="muying-invite-desc">邀好友 得积分 好物共享</text>
+            <text class="muying-invite-desc">邀好友 首单得积分</text>
                                 </view>
                                 <text class="muying-invite-btn">立即邀请 ›</text>
                             </view>

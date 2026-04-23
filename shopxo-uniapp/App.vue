@@ -1637,7 +1637,7 @@
 
                 if (data) {
                     var feature_flags = {};
-                    var feature_keys = [FeatureFlagKey.SHOP, FeatureFlagKey.REALSTORE, FeatureFlagKey.DISTRIBUTION, FeatureFlagKey.WALLET, FeatureFlagKey.COIN, FeatureFlagKey.UGC, FeatureFlagKey.MEMBERSHIP, FeatureFlagKey.SECKILL, FeatureFlagKey.COUPON, FeatureFlagKey.SIGNIN, FeatureFlagKey.POINTS, FeatureFlagKey.VIDEO, FeatureFlagKey.HOSPITAL, FeatureFlagKey.GIFTCARD, FeatureFlagKey.GIVEGIFT, FeatureFlagKey.COMPLAINT, FeatureFlagKey.INVOICE, FeatureFlagKey.CERTIFICATE, FeatureFlagKey.SCANPAY, FeatureFlagKey.LIVE, FeatureFlagKey.INTELLECTSTOOLS, FeatureFlagKey.ACTIVITY, FeatureFlagKey.INVITE, FeatureFlagKey.CONTENT, FeatureFlagKey.FEEDBACK];
+                    var feature_keys = [FeatureFlagKey.SHOP, FeatureFlagKey.REALSTORE, FeatureFlagKey.DISTRIBUTION, FeatureFlagKey.WALLET, FeatureFlagKey.COIN, FeatureFlagKey.UGC, FeatureFlagKey.MEMBERSHIP, FeatureFlagKey.SECKILL, FeatureFlagKey.COUPON, FeatureFlagKey.SIGNIN, FeatureFlagKey.POINTS, FeatureFlagKey.VIDEO, FeatureFlagKey.HOSPITAL, FeatureFlagKey.GIFTCARD, FeatureFlagKey.GIVEGIFT, FeatureFlagKey.COMPLAINT, FeatureFlagKey.INVOICE, FeatureFlagKey.CERTIFICATE, FeatureFlagKey.SCANPAY, FeatureFlagKey.LIVE, FeatureFlagKey.INTELLECTSTOOLS, FeatureFlagKey.ACTIVITY, FeatureFlagKey.INVITE, FeatureFlagKey.CONTENT, FeatureFlagKey.FEEDBACK, FeatureFlagKey.COUPON_V2, FeatureFlagKey.POINTS_V2, FeatureFlagKey.MEMBERSHIP_V2, FeatureFlagKey.WALLET_V2];
                     for (var i = 0; i < feature_keys.length; i++) {
                         var key = feature_keys[i];
                         if (typeof data[key] !== 'undefined') {
@@ -2672,8 +2672,9 @@
 
             // 启动位置监听（0 打开位置实时监听、1小程序后台运行也监听（仅微信、快手）小程序支持）
             start_location_update(type = 0, object, method) {
+                // #ifndef MP-WEIXIN
                 // 非微信和快手小程序type=1则赋值为0
-                // #ifndef MP-WEIXIN || MP-KUAISHOU
+                // #ifndef MP-KUAISHOU
                 if (type == 1) {
                     type = 0;
                 }
@@ -2686,15 +2687,12 @@
                     // 根据类型调用api
                     if (type == 1) {
                         // 开始监听实时地理位置信息变化事件，小程序进入前后台时均接收实时地理位置信息
-                        // 这个方法仅微信和快手小程序支持
-                        // #ifdef MP-WEIXIN || MP-KUAISHOU
+                        // 这个方法仅快手小程序支持
+                        // #ifdef MP-KUAISHOU
                         uni.startLocationUpdateBackground({
                             success: (res) => {
-                                // 增加页面记录
                                 temp_location.push(page);
                                 this.data.location_update_page_temp_record_data = temp_location;
-
-                                // 调用位置监听方法
                                 this.start_location_update_change(object, method);
                             },
                             fail: (res) => {
@@ -2711,11 +2709,8 @@
                         // 打开位置监听
                         uni.startLocationUpdate({
                             success: (res) => {
-                                // 增加页面记录
                                 temp_location.push(page);
                                 this.data.location_update_page_temp_record_data = temp_location;
-
-                                // 调用位置监听方法
                                 this.start_location_update_change(object, method);
                             },
                             fail: (res) => {
@@ -2729,10 +2724,19 @@
                         });
                     }
                 }
+                // #endif
+                // #ifdef MP-WEIXIN
+                if (typeof object === 'object' && (method || null) != null) {
+                    object[method]({
+                        status: 0,
+                        msg: '当前版本不支持位置监听',
+                    });
+                }
+                // #endif
             },
 
-            // 位置监听改变
             start_location_update_change(object, method) {
+                // #ifndef MP-WEIXIN
                 uni.onLocationChange((res) => {
                     if (typeof object === 'object' && (method || null) != null) {
                         object[method]({
@@ -2743,6 +2747,7 @@
                         });
                     }
                 });
+                // #endif
             },
 
             // 网络状态检查处理

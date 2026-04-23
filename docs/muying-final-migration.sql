@@ -17,9 +17,10 @@
 --   - 不要执行 config/shopxo.sql（含 DROP TABLE，会清空所有数据）
 --
 -- 【MySQL 版本要求】
---   最低 MySQL 5.6+（utf8mb4），推荐 5.7+ / 8.0
+--   标准 MySQL 5.7.44（宝塔面板默认）
 --   B 段增量补丁使用 information_schema 检查字段是否存在，兼容 5.6+
 --   不依赖 ADD COLUMN IF NOT EXISTS（该语法仅 MySQL 8.0+ 支持）
+--   不依赖窗口函数、CTE、JSON_TABLE 等 MySQL 8.0+ 专属语法
 --
 -- 【回滚提示】
 --   见每段末尾的回滚 SQL，或从备份恢复：
@@ -136,6 +137,10 @@ CREATE TABLE IF NOT EXISTS `sxo_muying_feedback` (
   `content` text NOT NULL COMMENT '反馈内容',
   `stage` varchar(30) NOT NULL DEFAULT '' COMMENT '当前阶段',
   `contact` varchar(60) NOT NULL DEFAULT '' COMMENT '联系方式',
+  `review_status` char(20) NOT NULL DEFAULT 'pending' COMMENT '审核状态(pending待审核/approved已通过/rejected已驳回)',
+  `review_remark` varchar(255) NOT NULL DEFAULT '' COMMENT '审核备注',
+  `review_admin_id` int unsigned NOT NULL DEFAULT 0 COMMENT '审核管理员ID',
+  `review_time` int unsigned NOT NULL DEFAULT 0 COMMENT '审核时间',
   `sort_level` int NOT NULL DEFAULT 0 COMMENT '排序',
   `is_enable` tinyint NOT NULL DEFAULT 1 COMMENT '是否启用',
   `is_delete_time` int unsigned NOT NULL DEFAULT 0 COMMENT '是否删除',
@@ -143,7 +148,8 @@ CREATE TABLE IF NOT EXISTS `sxo_muying_feedback` (
   `upd_time` int unsigned NOT NULL DEFAULT 0 COMMENT '更新时间',
   PRIMARY KEY (`id`),
   KEY `idx_enable` (`is_enable`, `is_delete_time`),
-  KEY `idx_sort` (`sort_level`)
+  KEY `idx_sort` (`sort_level`),
+  KEY `idx_review_status` (`review_status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='母婴用户反馈';
 
 -- A段回滚：

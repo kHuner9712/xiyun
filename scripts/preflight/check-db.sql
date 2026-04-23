@@ -81,6 +81,10 @@ FROM (
     UNION ALL SELECT 'sxo_activity', 'suitable_crowd'
     UNION ALL SELECT 'sxo_activity', 'stage'
     UNION ALL SELECT 'sxo_activity', 'category'
+    UNION ALL SELECT 'sxo_muying_feedback', 'review_status'
+    UNION ALL SELECT 'sxo_muying_feedback', 'review_remark'
+    UNION ALL SELECT 'sxo_muying_feedback', 'review_admin_id'
+    UNION ALL SELECT 'sxo_muying_feedback', 'review_time'
 ) expected
 LEFT JOIN information_schema.COLUMNS ic
     ON ic.TABLE_SCHEMA = DATABASE()
@@ -92,10 +96,10 @@ GROUP BY expected.table_name, expected.column_name;
 SELECT
     CASE
         WHEN missing_count = 0 THEN 'PASS: 所有关键字段均存在'
-        ELSE CONCAT('FAIL: 缺少 ', missing_count, ' 个关键字段 | 修复: 执行 muying-final-migration.sql B 段')
+        ELSE CONCAT('FAIL: 缺少 ', missing_count, ' 个关键字段 | 修复: 执行 muying-final-migration.sql B 段 或 muying-feedback-review-migration.sql')
     END AS result
 FROM (
-    SELECT 9 - COUNT(*) AS missing_count
+    SELECT 13 - COUNT(*) AS missing_count
     FROM (
         SELECT 'sxo_activity_signup' AS table_name, 'privacy_agreed_time' AS column_name
         UNION ALL SELECT 'sxo_goods_favor', 'type'
@@ -106,6 +110,10 @@ FROM (
         UNION ALL SELECT 'sxo_activity', 'suitable_crowd'
         UNION ALL SELECT 'sxo_activity', 'stage'
         UNION ALL SELECT 'sxo_activity', 'category'
+        UNION ALL SELECT 'sxo_muying_feedback', 'review_status'
+        UNION ALL SELECT 'sxo_muying_feedback', 'review_remark'
+        UNION ALL SELECT 'sxo_muying_feedback', 'review_admin_id'
+        UNION ALL SELECT 'sxo_muying_feedback', 'review_time'
     ) expected
     INNER JOIN information_schema.COLUMNS ic
         ON ic.TABLE_SCHEMA = DATABASE()

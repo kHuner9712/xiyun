@@ -78,7 +78,24 @@ class Feedback
                     ],
                 ],
                 [
-                    'label'              => '状态',
+                    'label'              => '审核状态',
+                    'view_type'          => 'field',
+                    'view_key'           => 'review_status_text',
+                    'align'              => 'center',
+                    'is_sort'            => 1,
+                    'width'              => 100,
+                    'search_config'      => [
+                        'form_type'         => 'select',
+                        'form_name'         => 'review_status',
+                        'where_type'        => 'in',
+                        'data'              => $this->ReviewStatusList(),
+                        'data_key'          => 'value',
+                        'data_name'         => 'name',
+                        'is_multiple'       => 1,
+                    ],
+                ],
+                [
+                    'label'              => '展示状态',
                     'view_type'          => 'status',
                     'view_key'           => 'is_enable',
                     'post_url'           => MyUrl('admin/feedback/statusupdate'),
@@ -95,6 +112,13 @@ class Feedback
                         'data_name'         => 'name',
                         'is_multiple'       => 1,
                     ],
+                ],
+                [
+                    'label'         => '审核时间',
+                    'view_type'     => 'field',
+                    'view_key'      => 'review_time_text',
+                    'is_sort'       => 1,
+                    'width'         => 170,
                 ],
                 [
                     'label'         => '提交时间',
@@ -129,5 +153,14 @@ class Feedback
             $result[] = ['value' => $value, 'name' => $name];
         }
         return $result;
+    }
+
+    public function ReviewStatusList()
+    {
+        return [
+            ['value' => 'pending', 'name' => '待审核'],
+            ['value' => 'approved', 'name' => '已通过'],
+            ['value' => 'rejected', 'name' => '已驳回'],
+        ];
     }
 }

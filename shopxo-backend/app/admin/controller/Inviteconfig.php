@@ -9,9 +9,7 @@ class Inviteconfig extends Base
     public function Index()
     {
         $config_keys = [
-            'muying_invite_register_reward',
             'muying_invite_first_order_reward',
-            'muying_invite_register_auto_grant',
             'muying_invite_first_order_auto_grant',
             'muying_invite_daily_limit',
             'muying_invite_slogan',
@@ -22,9 +20,9 @@ class Inviteconfig extends Base
             $config_data[$key] = MyC($key, '', true);
         }
 
-        $total_invites = \think\facade\Db::name('InviteReward')->group('invitee_id')->count();
-        $total_reward_value = \think\facade\Db::name('InviteReward')->where(['status' => 1])->sum('reward_value');
-        $pending_count = \think\facade\Db::name('InviteReward')->where(['status' => 0])->count();
+        $total_invites = \think\facade\Db::name('InviteReward')->where(['trigger_event' => 'register'])->group('invitee_id')->count();
+        $total_reward_value = \think\facade\Db::name('InviteReward')->where(['status' => 1, 'trigger_event' => 'first_order'])->sum('reward_value');
+        $pending_count = \think\facade\Db::name('InviteReward')->where(['status' => 0, 'trigger_event' => 'first_order'])->count();
 
         MyViewAssign([
             'config_data'        => $config_data,
@@ -41,9 +39,7 @@ class Inviteconfig extends Base
         $params = $this->data_request;
 
         $config_keys = [
-            'muying_invite_register_reward',
             'muying_invite_first_order_reward',
-            'muying_invite_register_auto_grant',
             'muying_invite_first_order_auto_grant',
             'muying_invite_daily_limit',
             'muying_invite_slogan',
@@ -54,6 +50,9 @@ class Inviteconfig extends Base
                 MyC($key, $params[$key], true);
             }
         }
+
+        MyC('muying_invite_register_reward', 0, true);
+        MyC('muying_invite_register_auto_grant', 0, true);
 
         return ApiService::ApiDataReturn(DataReturn('保存成功', 0));
     }

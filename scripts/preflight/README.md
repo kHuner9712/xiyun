@@ -7,6 +7,8 @@
 | `release-gate.sh` | **一键发布门禁（总控）** | `bash release-gate.sh [选项]` |
 | `check-server.sh` | 服务器环境+数据库全量预检 | `bash check-server.sh [选项] [/path/to/backend]` |
 | `check-placeholders.sh` | 占位符残留扫描 | `bash check-placeholders.sh [选项] [/path/to/repo]` |
+| `check-wechat-review.sh` | 小程序提审前自动化检查 | `bash check-wechat-review.sh [/path/to/repo]` |
+| `check-api-health.sh` | API 健康检查（验收用） | `bash check-api-health.sh [BASE_URL]` |
 | `check-db.sql` | 纯数据库结构预检 | `mysql -u root -p shopxo < check-db.sql` |
 
 ## 快速开始

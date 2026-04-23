@@ -24,7 +24,7 @@
                             </view>
 
                             <view class="form-gorup oh flex-row jc-sb align-c">
-                                <view class="form-gorup-title">{{ $t('personal.personal.jibx42') }}</view>
+                                <view class="form-gorup-title">{{ $t('personal.personal.jibx42') }}<text class="cr-grey-9 text-size-xs margin-left-xs">(选填)</text></view>
                                 <view class="flex-1 flex-width flex-row jc-e align-c">
                                     <picker class="margin-right-sm wh-auto tr" name="birthday" mode="date" :value="user_data.birthday || ''" data-field="birthday" @change="select_change_event">
                                         <view :class="'picker ' + ((user_data.birthday || null) == null ? 'cr-grey' : '')">{{ user_data.birthday || $t('personal.personal.85404s') }}</view>
@@ -34,24 +34,17 @@
                             </view>
 
                             <view class="form-gorup oh flex-row jc-sb align-c">
-                                <view class="form-gorup-title">{{ $t('personal.personal.6m33c4') }}</view>
-                                <view class="flex-row align-c flex-1 flex-width">
-                                    <input type="text" name="address" :value="user_data.address || ''" maxlength="30" placeholder-class="cr-grey-9 tr" class="cr-base tr margin-right-sm" :placeholder="$t('personal.personal.re674n')" />
-                                </view>
-                            </view>
-
-                            <view class="form-gorup oh flex-row jc-sb align-c">
-                                <view class="form-gorup-title">{{ $t('personal.personal.x2fofv') }}</view>
+                                <view class="form-gorup-title">{{ $t('personal.personal.x2fofv') }}<text class="cr-grey-9 text-size-xs margin-left-xs">(选填)</text></view>
                                 <view class="flex-row jc-e align-c flex-1 flex-width">
                                     <picker @change="select_change_event" :value="user_data.gender || ''" :range="gender_list" range-key="name" name="gender" data-field="gender" class="margin-right-sm wh-auto tr">
-                                        <view class="uni-input cr-base picker">{{ gender_list[user_data.gender].name || '' }}</view>
+                                        <view class="uni-input cr-base picker">{{ gender_list[user_data.gender] ? gender_list[user_data.gender].name : '请选择' }}</view>
                                     </picker>
                                     <iconfont name="icon-arrow-right" size="34rpx" color="#ccc"></iconfont>
                                 </view>
                             </view>
 
                             <view class="form-gorup oh flex-row jc-sb align-c">
-                                <view class="form-gorup-title">当前阶段<text class="cr-grey-9 text-size-xs margin-left-xs">(选填)</text></view>
+                                <view class="form-gorup-title">当前阶段<text class="cr-grey-9 text-size-xs margin-left-xs">(用于推荐合适的活动和商品)</text></view>
                                 <view class="flex-row jc-e align-c flex-1 flex-width">
                                     <picker @change="stage_change_event" :value="current_stage_index" :range="stage_list" range-key="name" class="margin-right-sm wh-auto tr">
                                         <view class="uni-input cr-base picker">{{ stage_list[current_stage_index].name || '请选择' }}</view>
@@ -61,7 +54,7 @@
                             </view>
 
                             <view v-if="user_data.current_stage === 'pregnancy'" class="form-gorup oh flex-row jc-sb align-c">
-                                <view class="form-gorup-title">预产期<text class="cr-grey-9 text-size-xs margin-left-xs">(用于推荐适合您的活动)</text></view>
+                                <view class="form-gorup-title">预产期<text class="cr-grey-9 text-size-xs margin-left-xs">(选填，用于推荐适合您的活动)</text></view>
                                 <view class="flex-1 flex-width flex-row jc-e align-c">
                                     <picker class="margin-right-sm wh-auto tr" name="due_date" mode="date" :value="user_data.due_date || ''" :start="due_date_start" data-field="due_date" @change="select_change_event">
                                         <view :class="'picker ' + ((user_data.due_date || null) == null ? 'cr-grey' : '')">{{ user_data.due_date || '请选择预产期' }}</view>
@@ -71,7 +64,7 @@
                             </view>
 
                             <view v-if="user_data.current_stage === 'postpartum'" class="form-gorup oh flex-row jc-sb align-c">
-                                <view class="form-gorup-title">宝宝生日<text class="cr-grey-9 text-size-xs margin-left-xs">(用于推荐适合您的活动)</text></view>
+                                <view class="form-gorup-title">宝宝生日<text class="cr-grey-9 text-size-xs margin-left-xs">(选填，用于推荐适合您的活动)</text></view>
                                 <view class="flex-1 flex-width flex-row jc-e align-c">
                                     <picker class="margin-right-sm wh-auto tr" name="baby_birthday" mode="date" :value="user_data.baby_birthday || ''" :end="baby_birthday_end" data-field="baby_birthday" @change="select_change_event">
                                         <view :class="'picker ' + ((user_data.baby_birthday || null) == null ? 'cr-grey' : '')">{{ user_data.baby_birthday || '请选择宝宝生日' }}</view>
@@ -84,6 +77,10 @@
                                 <view class="form-gorup-title">宝宝月龄</view>
                                 <view class="cr-grey text-size-sm">{{ baby_month_age_text }}</view>
                             </view>
+                        </view>
+
+                        <view class="cr-grey-9 text-size-xs padding-top-main padding-horizontal-main">
+                            <text>您的个人信息仅用于活动推荐，我们不会向第三方泄露您的隐私</text>
                         </view>
 
                         <view class="bottom-fixed" :style="bottom_fixed_style">
@@ -405,14 +402,6 @@
 
                 if (!form_data['nickname'] || !form_data['nickname'].trim()) {
                     app.globalData.showToast('请输入昵称');
-                    return;
-                }
-                if (form_data['current_stage'] === 'pregnancy' && !form_data['due_date']) {
-                    app.globalData.showToast('孕期请选择预产期');
-                    return;
-                }
-                if (form_data['current_stage'] === 'postpartum' && !form_data['baby_birthday']) {
-                    app.globalData.showToast('产后请选择宝宝生日');
                     return;
                 }
 

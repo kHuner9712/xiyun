@@ -24,18 +24,20 @@ class DashboardService
             ['add_time', '>=', $today_start],
             ['add_time', '<', $today_start + 86400],
             ['status', '=', 1],
+            ['trigger_event', '=', 'first_order'],
         ])->sum('reward_value');
 
         $feedback_today = Db::name('MuyingFeedback')->where([
             ['add_time', '>=', $today_start],
             ['add_time', '<', $today_start + 86400],
             ['is_delete_time', '=', 0],
+            ['review_status', '=', 'approved'],
         ])->count();
 
         $total_users = Db::name('User')->count();
         $total_activities = Db::name('Activity')->where(['is_enable' => 1, 'is_delete_time' => 0])->count();
         $total_signups = Db::name('ActivitySignup')->where([['status', 'in', [0, 1]]])->count();
-        $total_invites = Db::name('InviteReward')->where(['status' => 1])->group('invitee_id')->count();
+        $total_invites = Db::name('InviteReward')->where(['status' => 1, 'trigger_event' => 'first_order'])->group('invitee_id')->count();
 
         $total_orders = Db::name('Order')->where(['status' => 4])->count();
         $total_sales = Db::name('Order')->where(['status' => 4])->sum('total_price');

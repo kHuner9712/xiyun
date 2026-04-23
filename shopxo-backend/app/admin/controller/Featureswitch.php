@@ -93,6 +93,15 @@ class Featureswitch extends Base
                     ['key' => 'feature_feedback_enabled', 'name' => '用户反馈', 'desc' => '控制用户反馈/妈妈说功能是否开放'],
                 ],
             ],
+            [
+                'group_name' => '二期扩展功能（默认关闭，按需开启）',
+                'items' => [
+                    ['key' => 'feature_coupon_v2_enabled', 'name' => '优惠券二期', 'desc' => '控制优惠券领取/使用功能是否开放（二期扩展）'],
+                    ['key' => 'feature_points_v2_enabled', 'name' => '积分体系二期', 'desc' => '控制积分兑换/积分商城功能是否开放（二期扩展）'],
+                    ['key' => 'feature_membership_v2_enabled', 'name' => '会员等级二期', 'desc' => '控制会员等级/付费VIP功能是否开放（二期扩展）'],
+                    ['key' => 'feature_wallet_v2_enabled', 'name' => '钱包余额二期', 'desc' => '控制钱包/余额/充值/提现功能是否开放（二期扩展）'],
+                ],
+            ],
         ];
     }
 }

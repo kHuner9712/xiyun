@@ -1,6 +1,7 @@
--- Adminer 4.8.1 MySQL 8.0.42 dump
+-- ShopXO 核心建表 SQL
+-- 兼容 MySQL 5.7.44+ / 8.0+
+-- 字符集: utf8mb4 / 排序规则: utf8mb4_general_ci
 
-SET NAMES utf8;
 SET time_zone = '+00:00';
 SET foreign_key_checks = 0;
 SET sql_mode = 'NO_AUTO_VALUE_ON_ZERO';

@@ -29,6 +29,11 @@ export var FeatureFlagKey = {
     INVITE: 'feature_invite_enabled',
     CONTENT: 'feature_content_enabled',
     FEEDBACK: 'feature_feedback_enabled',
+    // 二期扩展能力
+    COUPON_V2: 'feature_coupon_v2_enabled',
+    POINTS_V2: 'feature_points_v2_enabled',
+    MEMBERSHIP_V2: 'feature_membership_v2_enabled',
+    WALLET_V2: 'feature_wallet_v2_enabled',
 };
 
 export var ActivityStatus = {

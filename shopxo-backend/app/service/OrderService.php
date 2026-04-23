@@ -1011,7 +1011,7 @@ class OrderService
                 // 邀请首单钩子
                 try
                 {
-                    InviteService::OnFirstOrder(['user_id' => $order['user_id']]);
+                    InviteService::OnFirstOrder(['user_id' => $order['user_id'], 'order_id' => $order['id']]);
                 } catch(\Exception $e) {
                     \think\facade\Log::error('邀请首单奖励异常 order_id=' . $order['id'] . ' user_id=' . $order['user_id'] . ' error=' . $e->getMessage());
                 }

@@ -8,6 +8,7 @@
 | 正式部署手册 | [docs/yunxi-production-deployment.md](yunxi-production-deployment.md) | 服务器部署全流程，照着执行 |
 | 首批内容清单 | [docs/yunxi-launch-content-checklist.md](yunxi-launch-content-checklist.md) | 后台初始化内容，照着配置 |
 | 首页内容填写模板 | [docs/templates/yunxi-home-content-template.md](templates/yunxi-home-content-template.md) | 后台人工填写操作模板 |
+| 一期验收测试清单 | [docs/release/uat-acceptance-checklist.md](release/uat-acceptance-checklist.md) | 发布前 11 模块验收测试项+自动化脚本 |
 
 ## 初始化 SQL 脚本
 

@@ -1,7 +1,7 @@
 # 数据库迁移执行手册
 
 > 面向：孕禧小程序一期上线
-> 前置条件：MySQL 5.7+，字符集 utf8mb4，表前缀 sxo_
+> 前置条件：MySQL 5.7.44，字符集 utf8mb4，排序规则 utf8mb4_general_ci，表前缀 sxo_
 
 ---
 
@@ -14,7 +14,10 @@
 | 3 | `docs/muying-audit-log-migration.sql` | 审计日志表 | ✅ | ✅ 幂等 | #1 已执行 |
 | 4 | `docs/muying-feature-switch-migration.sql` | 功能开关配置 | ✅ | ✅ 幂等 | #1 已执行 |
 | 5 | `docs/muying-enhancement-migration.sql` | 增强功能迁移 | ✅ | ✅ 幂等 | #2 #3 #4 已执行 |
-| 6 | `docs/muying-demo-data.sql` | 演示数据 | ⬜ 条件执行 | ❌ | #2 已执行 |
+| 6 | `docs/muying-feedback-review-migration.sql` | 反馈审核流迁移 | ✅ | ✅ 幂等 | #2 已执行 |
+| 7 | `docs/muying-invite-reward-unify-migration.sql` | 邀请奖励统一迁移 | ✅ | ✅ 幂等 | #2 已执行 |
+| 8 | `docs/muying-feature-flag-upgrade-migration.sql` | 功能开关升级迁移 | ✅ | ✅ 幂等 | #4 已执行 |
+| 9 | `docs/muying-demo-data.sql` | 演示数据 | ⬜ 条件执行 | ❌ | #2 #6 已执行 |
 
 > 已废弃文件（不要执行）：`shopxo-backend/sql/muying_feedback.sql`
 
@@ -132,7 +135,31 @@ DELETE FROM sxo_config WHERE only_tag LIKE 'muying_%';
 DELETE FROM sxo_power WHERE control IN ('usertag', 'inviteconfig', 'dashboard');
 ```
 
-### 步骤 6：演示数据（可选）
+### 步骤 6：反馈审核流迁移
+
+```bash
+mysql -u root -p shopxo_dev < /www/wwwroot/yunxi-api/docs/muying-feedback-review-migration.sql
+```
+
+**说明**：为 `sxo_muying_feedback` 表增加审核字段（review_status / review_remark / review_admin_id / review_time），将"提交即展示"改为"审核后展示"。已有数据会自动标记审核状态。
+
+**验证**：
+```sql
+DESCRIBE sxo_muying_feedback;
+-- 应包含 review_status, review_remark, review_admin_id, review_time
+SHOW INDEX FROM sxo_muying_feedback WHERE Key_name = 'idx_review_status';
+-- 应返回 1 行
+SELECT review_status, COUNT(*) FROM sxo_muying_feedback WHERE is_delete_time=0 GROUP BY review_status;
+-- 已有数据应标记为 approved 或 rejected
+```
+
+**回滚**：
+```sql
+ALTER TABLE sxo_muying_feedback DROP COLUMN review_status, DROP COLUMN review_remark, DROP COLUMN review_admin_id, DROP COLUMN review_time;
+ALTER TABLE sxo_muying_feedback DROP INDEX idx_review_status;
+```
+
+### 步骤 7：演示数据（可选）
 
 ```bash
 mysql -u root -p shopxo_dev < /www/wwwroot/yunxi-api/docs/muying-demo-data.sql
