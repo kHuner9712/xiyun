@@ -5,7 +5,8 @@
     import devConfig from './common/js/config/dev.js';
     import prodConfig from './common/js/config/prod.js';
     import { PHASE_ONE_DISABLED_PLUGIN_NAMES, PHASE_ONE_DISABLED_ROUTE_PREFIXES, is_phase_one_disabled_route as is_phase_one_disabled_route_match, init_feature_flags, is_feature_enabled } from './common/js/config/phase-one-scope.js';
-    import { FeatureFlagKey } from './common/js/config/muying-constants.js';
+    import { FeatureFlagKey, QualificationKey, TipMessage } from './common/js/config/muying-constants.js';
+    import { get_blocked_route_reason as _get_blocked_route_reason } from './common/js/config/compliance-scope.js';
     import { logger } from './common/js/logger.js';
     var isProd = process.env.NODE_ENV === 'production';
     var appConfig = isProd ? prodConfig : devConfig;
@@ -1646,6 +1647,15 @@
                             feature_flags[key] = parseInt(data[key]) || 0;
                         }
                     }
+                    var qualification_keys = [QualificationKey.ICP_COMMERCIAL, QualificationKey.EDI, QualificationKey.MEDICAL, QualificationKey.LIVE, QualificationKey.PAYMENT];
+                    var qualifications = {};
+                    for (var j = 0; j < qualification_keys.length; j++) {
+                        var qkey = qualification_keys[j];
+                        if (typeof data[qkey] !== 'undefined') {
+                            qualifications[qkey] = parseInt(data[qkey]) || 0;
+                        }
+                    }
+                    feature_flags._qualifications = qualifications;
                     if (Object.keys(feature_flags).length > 0) {
                         init_feature_flags(feature_flags);
                         self.data.feature_flags = feature_flags;
@@ -1875,11 +1885,12 @@
                 return is_feature_enabled(flag_key);
             },
 
-            // 一期路由守卫
+            // 一期路由守卫（资质门禁 + 功能开关 + 白名单三层拦截）
             phase_one_route_guard(url, is_toast = true) {
                 if (this.is_phase_one_disabled_route(url)) {
                     if (is_toast) {
-                        this.showToast('该功能即将上线，敬请期待');
+                        var reason = _get_blocked_route_reason(url) || TipMessage.FEATURE_DISABLED;
+                        this.showToast(reason);
                     }
                     return true;
                 }

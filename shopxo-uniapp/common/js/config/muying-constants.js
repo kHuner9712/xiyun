@@ -1,5 +1,4 @@
 export var FeatureFlagKey = {
-    // 平台能力
     SHOP: 'feature_shop_enabled',
     REALSTORE: 'feature_realstore_enabled',
     DISTRIBUTION: 'feature_distribution_enabled',
@@ -7,33 +6,36 @@ export var FeatureFlagKey = {
     COIN: 'feature_coin_enabled',
     UGC: 'feature_ugc_enabled',
     MEMBERSHIP: 'feature_membership_enabled',
-    // 营销能力
     SECKILL: 'feature_seckill_enabled',
     COUPON: 'feature_coupon_enabled',
     SIGNIN: 'feature_signin_enabled',
     POINTS: 'feature_points_enabled',
     GIFTCARD: 'feature_giftcard_enabled',
     GIVEGIFT: 'feature_givegift_enabled',
-    // 内容与工具
     VIDEO: 'feature_video_enabled',
     LIVE: 'feature_live_enabled',
     INTELLECTSTOOLS: 'feature_intellectstools_enabled',
-    // 资质相关
     HOSPITAL: 'feature_hospital_enabled',
     INVOICE: 'feature_invoice_enabled',
     CERTIFICATE: 'feature_certificate_enabled',
     SCANPAY: 'feature_scanpay_enabled',
     COMPLAINT: 'feature_complaint_enabled',
-    // 母婴一期能力
     ACTIVITY: 'feature_activity_enabled',
     INVITE: 'feature_invite_enabled',
     CONTENT: 'feature_content_enabled',
     FEEDBACK: 'feature_feedback_enabled',
-    // 二期扩展能力
     COUPON_V2: 'feature_coupon_v2_enabled',
     POINTS_V2: 'feature_points_v2_enabled',
     MEMBERSHIP_V2: 'feature_membership_v2_enabled',
     WALLET_V2: 'feature_wallet_v2_enabled',
+};
+
+export var QualificationKey = {
+    ICP_COMMERCIAL: 'qualification_icp_commercial',
+    EDI: 'qualification_edi',
+    MEDICAL: 'qualification_medical',
+    LIVE: 'qualification_live',
+    PAYMENT: 'qualification_payment',
 };
 
 export var ActivityStatus = {
@@ -52,7 +54,9 @@ export var ActivityStatus = {
     },
 
     getName(status) {
-        var item = this.getList().find(function(v) { return v.id === status; });
+        var item = this.getList().find(function (v) {
+            return v.id === status;
+        });
         return item ? item.name : '';
     },
 };
@@ -82,6 +86,7 @@ export var TipMessage = {
     SIGNUP_SUCCESS: '报名成功',
     SIGNUP_FAIL: '报名失败，请重试',
     FEATURE_DISABLED: '该功能暂未开放',
+    QUALIFICATION_BLOCKED: '当前资质暂不支持该功能',
     FORM_NICKNAME_REQUIRED: '请输入昵称',
     FORM_DUE_DATE_REQUIRED: '孕期请选择预产期',
     FORM_BABY_BIRTHDAY_REQUIRED: '产后请选择宝宝生日',

@@ -3,6 +3,35 @@
 > 本文档定义孕禧小程序一期上线允许的功能边界。
 > 合规前提：未取得 ICP 经营许可证阶段，只做自营母婴商城 + 官方活动报名 + 会员运营 + 一级邀请裂变。
 
+## 四层合规机制
+
+一期采用 **资质门禁 + 功能开关 + 前端白名单 + 后端 API 拦截** 四层机制：
+
+| 层级 | 机制 | 说明 | 关键文件 |
+|------|------|------|---------|
+| 第一层 | 资质门禁 | 即使功能开关误开，资质不满足也强制拦截 | `MuyingComplianceService.php` / `compliance-scope.js` |
+| 第二层 | 功能开关 | 后台配置 `feature_xxx_enabled`，表示业务想开 | `sxo_config` 表 |
+| 第三层 | 前端白名单 | 只允许一期允许的路由通过，非白名单路由拦截 | `compliance-scope.js` / `phase-one-scope.js` |
+| 第四层 | 后端 API 拦截 | 插件 API 调用必须通过合规总闸 | `api/Plugins.php` / `index/Plugins.php` |
+
+### 资质门禁配置
+
+| 资质键 | 说明 | 默认值 | 控制的功能 |
+|--------|------|--------|-----------|
+| `qualification_icp_commercial` | ICP经营许可证 | 0 (未取得) | 第三方入驻、UGC社区、分销、秒杀、会员VIP、投诉、发票、证书、智能工具 |
+| `qualification_edi` | EDI许可证 | 0 (未取得) | 多商户、多门店 |
+| `qualification_medical` | 医疗机构执业许可证 | 0 (未取得) | 互联网医院、医疗问诊 |
+| `qualification_live` | 网络文化经营许可证 | 0 (未取得) | 微信直播、视频 |
+| `qualification_payment` | 支付牌照 | 0 (未取得) | 钱包、余额、充值、提现、虚拟币、礼品卡、送礼、扫码支付 |
+
+### 判断逻辑
+
+```
+插件是否允许 = 
+  1. 不在永久禁止列表 AND
+  2. 不在一期禁止列表 OR (功能开关=1 AND 资质门禁全部满足)
+```
+
 ## 一期允许功能
 
 | 功能模块 | 说明 | 对应插件/模块 |
@@ -24,40 +53,55 @@
 
 ## 一期禁止功能
 
-| 功能模块 | 禁止原因 | 对应插件 |
-|---------|---------|---------|
-| 第三方商家入驻 | 需 ICP 经营许可证 | shop |
-| 门店/多门店 | 需 ICP 经营许可证 | realstore |
-| 复杂分销/多级返佣 | 涉嫌传销风险 | distribution |
-| 钱包/余额 | 需支付牌照 | wallet |
-| 充值/提现 | 需支付牌照 | wallet |
-| 虚拟币 | 需合规审批 | coin |
-| 重社区/用户自由发帖 | 需 ICP 经营许可证 + 内容审核能力 | ask / blog |
-| 医疗咨询/问诊 | 需医疗机构执业许可证 | hospital |
-| 直播 | 需网络文化经营许可证 | weixinliveplayer |
-| 秒杀 | 营销合规风险 | seckill |
-| 礼品卡 | 需预付卡备案 | giftcard |
-| 送礼 | 涉及资金流转 | givegift |
-| 投诉 | 需客服体系完备 | complaint |
-| 发票 | 需税务资质 | invoice |
-| 证书 | 非一期核心 | certificate |
-| 扫码支付 | 需支付牌照 | scanpay |
-| 会员等级VIP | 需合规审批 | membershiplevelvip |
-| 智能工具 | 非一期核心 | intellectstools |
-| 视频 | 需网络视听许可证 | video |
+| 功能模块 | 禁止原因 | 对应插件 | 所需资质 |
+|---------|---------|---------|---------|
+| 第三方商家入驻 | 需 ICP 经营许可证 + EDI | shop | ICP商业 + EDI |
+| 门店/多门店 | 需 ICP 经营许可证 + EDI | realstore | ICP商业 + EDI |
+| 复杂分销/多级返佣 | 涉嫌传销风险 | distribution | ICP商业 |
+| 钱包/余额 | 需支付牌照 | wallet | 支付牌照 |
+| 充值/提现 | 需支付牌照 | wallet | 支付牌照 |
+| 虚拟币 | 需合规审批 | coin | 支付牌照 |
+| 重社区/用户自由发帖 | 需 ICP 经营许可证 + 内容审核能力 | ask / blog | ICP商业 |
+| 医疗咨询/问诊 | 需医疗机构执业许可证 | hospital | 医疗资质 |
+| 直播 | 需网络文化经营许可证 | weixinliveplayer | 直播资质 |
+| 秒杀 | 营销合规风险 | seckill | ICP商业 |
+| 礼品卡 | 需预付卡备案 | giftcard | 支付牌照 |
+| 送礼 | 涉及资金流转 | givegift | 支付牌照 |
+| 投诉 | 需客服体系完备 | complaint | ICP商业 |
+| 发票 | 需税务资质 | invoice | ICP商业 |
+| 证书 | 非一期核心 | certificate | ICP商业 |
+| 扫码支付 | 需支付牌照 | scanpay | 支付牌照 |
+| 会员等级VIP | 需合规审批 | membershiplevelvip | ICP商业 |
+| 智能工具 | 非一期核心 | intellectstools | ICP商业 |
+| 视频 | 需网络视听许可证 | video | 直播资质 |
 
-## 功能开关机制
+## 前端路由白名单
 
-高风险插件通过 MyC 配置的功能开关控制，默认关闭：
+前端维护一个明确的一期允许路由白名单（`compliance-scope.js` 中的 `PHASE_ONE_ALLOWED_ROUTES`），非白名单路由在跳转层拦截，提示"该功能暂未开放"或"当前资质暂不支持该功能"。
 
-- 后端拦截：`Plugins::IsPluginBlocked()` 在 API 层强制拦截
-- 前端过滤：`phase-one-scope.js` 在导航/路由层隐藏入口
-- 配置开关：`feature_xxx_enabled` 在 `sxo_config` 表中管理
+## 功能开关与资质门禁联动
 
-开关启用流程：在后台「系统设置 → 配置管理」中设置对应 `feature_xxx_enabled = 1`，前后端同步生效。
+高风险插件通过两层判断控制：
+
+1. **功能开关**：`feature_xxx_enabled` 在 `sxo_config` 表中管理，表示业务想开
+2. **资质门禁**：`qualification_xxx` 在 `sxo_config` 表中管理，表示法律上是否允许开
+
+**关键规则**：即使功能开关=1，资质门禁不满足也强制拦截。
+
+后端拦截：`MuyingComplianceService::IsPluginBlocked()` 在 API 层强制拦截
+前端过滤：`compliance-scope.js` + `phase-one-scope.js` 在导航/路由层隐藏入口
+
+## 启用流程
+
+1. 在后台「系统设置 → 配置管理」中设置对应资质门禁为 1（已取得资质）
+2. 设置对应功能开关 `feature_xxx_enabled = 1`
+3. 后端拦截自动放行（`MuyingComplianceService` 读取 MyC 配置 + 资质门禁）
+4. 前端 `init_feature_flags()` 读取后端返回的开关状态和资质状态，动态调整禁用列表
+5. 需确认合规资质后再启用
 
 ## 变更记录
 
 | 日期 | 变更内容 |
 |------|---------|
 | 2026-04-24 | 初始版本，定义一期功能边界 |
+| 2026-04-25 | 新增资质门禁机制，从黑名单改为白名单+资质门禁四层机制 |

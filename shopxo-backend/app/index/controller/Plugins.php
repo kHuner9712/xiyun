@@ -14,6 +14,7 @@ use app\index\controller\Common;
 use app\service\ApiService;
 use app\service\PluginsService;
 use app\service\ResourcesService;
+use app\service\MuyingComplianceService;
 
 /**
  * 应用调用入口
@@ -39,7 +40,7 @@ class Plugins extends Common
     
     /**
      * 首页
-     * @author   Devil
+     * @author  Devil
      * @blog     http://gong.gg/
      * @version  0.0.1
      * @datetime 2017-02-22T16:50:32+0800
@@ -69,12 +70,24 @@ class Plugins extends Common
             }
         }
 
+        // [MUYING-二开] 合规总闸 — 资质门禁 + 功能开关双重拦截
+        $pluginsname = $params['data_request']['pluginsname'];
+        if (MuyingComplianceService::IsPluginBlocked($pluginsname)) {
+            $reason = MuyingComplianceService::GetBlockReason($pluginsname);
+            if(IS_AJAX)
+            {
+                return ApiService::ApiDataReturn(DataReturn($reason, -10000));
+            } else {
+                MyViewAssign('msg', $reason);
+                return MyView('public/tips_error');
+            }
+        }
+
         // 控制器/方法默认值
         $params['data_request']['pluginscontrol'] = empty($params['data_request']['pluginscontrol']) ? 'index' : $params['data_request']['pluginscontrol'];
         $params['data_request']['pluginsaction'] = empty($params['data_request']['pluginsaction']) ? 'index' : $params['data_request']['pluginsaction'];
 
         // 应用名称/控制器/方法
-        $pluginsname = $params['data_request']['pluginsname'];
         $pluginscontrol = strtolower($params['data_request']['pluginscontrol']);
         $pluginsaction = strtolower($params['data_request']['pluginsaction']);
 
