@@ -6,6 +6,7 @@
 > 输出物：配置完整的后端+前端+微信后台  
 > 前提：已有服务器+宝塔+Nginx+PHP 8.1+MySQL 5.7.44  
 > 注意：体验版详细步骤见 [experience-deploy-runbook.md](experience-deploy-runbook.md)，提审切换见 [submit-switch-runbook.md](submit-switch-runbook.md)
+> 最后更新：2026-04-25
 
 ---
 
@@ -40,6 +41,8 @@
 | A.11 | 测试号 AppID | `project.config.json` → `appid` | `""` 空 | 与 A.10 相同 |
 | A.12 | 后端地址 | `shopxo-uniapp/.env.production` | 模板占位符 | 填入 `http://服务器IP:端口/` |
 | A.13 | AppSecret | 后台 → 小程序配置 | 空 | 填入测试号 AppSecret |
+| A.14 | 后端 API 可达性 | 开发者工具 → 网络 | 未验证 | 确认小程序可正常请求后端接口 |
+| A.15 | 小程序版本号 | `manifest.json` → `versionName` | 默认 | 设置初始版本号（如 1.0.0） |
 
 ### ✅ 阶段 A 验证脚本
 ```bash
@@ -73,6 +76,8 @@ bash scripts/preflight/check-runtime-config.sh --env /path/to/.env
 | B.12 | 隐私政策内容 | 后台 → 协议管理 | 需确认 | 确认与微信后台隐私保护指引一致 |
 | B.13 | 用户协议内容 | 后台 → 协议管理 | 需确认 | 确认内容完整 |
 | B.14 | SSL 证书 | 服务器 Nginx | 未配置 | 配置 HTTPS 证书（宝塔可一键申请 Let's Encrypt） |
+| B.15 | 支付回调域名 | 后台 → 支付配置 | 未配置 | 确认支付回调地址使用备案域名 |
+| B.16 | 小程序体验版二维码 | 微信公众平台 | 未生成 | 生成体验版二维码供测试 |
 
 ### ✅ 阶段 B 验证脚本
 ```bash
@@ -98,6 +103,8 @@ bash scripts/preflight/check-wechat-submit-readiness.sh .
 | C.4 | 每日奖励上限 | 后台 → 邀请配置 | 默认 0 | 建议设合理上限（如 10） |
 | C.5 | 邀请口号 | 后台 → 邀请配置 | 空 | 填入邀请页标题文案 |
 | C.6 | 定时任务 | 宝塔 → 计划任务 | 未配置 | 订单关闭/自动确认/数据备份 |
+| C.7 | 支付回调通知 URL | 后台 → 支付配置 | 未配置 | 填入 `https://备案域名/支付回调路径` |
+| C.8 | 订单超时关闭时间 | 后台 → 订单配置 | 默认 | 建议设 30 分钟 |
 
 ### ✅ 阶段 C 验证脚本
 ```bash

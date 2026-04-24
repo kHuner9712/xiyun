@@ -270,6 +270,81 @@ if (!$found_risks) {
 }
 
 // ============================================================
+// 7. AppID 一致性检查
+// ============================================================
+section("7. AppID 一致性检查");
+
+$manifest_path = $repo_path . '/shopxo-uniapp/manifest.json';
+$proj_cfg_path = $repo_path . '/shopxo-uniapp/project.config.json';
+$prod_env_path = $repo_path . '/shopxo-uniapp/.env.production';
+
+$manifest_appid = '';
+$proj_appid = '';
+$env_appid = '';
+
+if (file_exists($manifest_path)) {
+    $m = json_decode(file_get_contents($manifest_path), true);
+    $manifest_appid = $m['mp-weixin']['appid'] ?? '';
+}
+
+if (file_exists($proj_cfg_path)) {
+    $p = json_decode(file_get_contents($proj_cfg_path), true);
+    $proj_appid = $p['appid'] ?? '';
+}
+
+if (file_exists($prod_env_path)) {
+    $pe = file_get_contents($prod_env_path);
+    if (preg_match('/UNI_APP_WX_APPID\s*=\s*(.+)/', $pe, $m)) {
+        $env_appid = trim($m[1]);
+    }
+}
+
+if (!empty($manifest_appid) && !empty($proj_appid) && $manifest_appid !== $proj_appid) {
+    block_item("manifest.json AppID ({$manifest_appid}) 与 project.config.json AppID ({$proj_appid}) 不一致");
+} else {
+    pass_item("manifest.json 与 project.config.json AppID 一致");
+}
+
+if (!empty($manifest_appid) && !empty($env_appid) && $manifest_appid !== $env_appid) {
+    block_item("manifest.json AppID ({$manifest_appid}) 与 .env.production AppID ({$env_appid}) 不一致");
+} else {
+    pass_item("manifest.json 与 .env.production AppID 一致");
+}
+
+// ============================================================
+// 8. 前端路由白名单检查
+// ============================================================
+section("8. 前端路由白名单检查");
+
+$enum_path = $repo_path . '/shopxo-uniapp/common/js/config/muying-enum.js';
+if (file_exists($enum_path)) {
+    $enum_content = file_get_contents($enum_path);
+    if (preg_match('/ROUTE_WHITELIST|route_whitelist|page_whitelist/i', $enum_content)) {
+        pass_item("前端路由白名单存在于 muying-enum.js");
+    } else {
+        warn_item("前端路由白名单未在 muying-enum.js 中找到，请确认是否已配置");
+    }
+} else {
+    warn_item("muying-enum.js 文件不存在，无法检查路由白名单");
+}
+
+// ============================================================
+// 9. 资质门禁检查
+// ============================================================
+section("9. 资质门禁检查");
+
+if (!empty($env_file) && file_exists($env_file)) {
+    $env_content = file_get_contents($env_file);
+    if (preg_match('/MUYING_QUALIFICATION_MODE\s*=\s*(phase_two|strict)/i', $env_content)) {
+        warn_item("资质门禁模式为严格模式，一期应使用宽松模式（phase_one/loose）");
+    } else {
+        pass_item("资质门禁处于一期模式");
+    }
+} else {
+    warn_item(".env 不可用，无法检查资质门禁模式");
+}
+
+// ============================================================
 // 汇总
 // ============================================================
 section("检查汇总");

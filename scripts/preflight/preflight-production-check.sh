@@ -251,6 +251,74 @@ if [[ $FOUND_RISKS -eq 0 ]]; then
 fi
 
 # ============================================================
+# 7. AppID 一致性检查
+# ============================================================
+section "7. AppID 一致性检查"
+
+MANIFEST_FILE="${REPO_PATH}/shopxo-uniapp/manifest.json"
+PROJ_CFG_FILE="${REPO_PATH}/shopxo-uniapp/project.config.json"
+PROD_ENV_FILE="${REPO_PATH}/shopxo-uniapp/.env.production"
+
+MANIFEST_APPID=""
+PROJ_APPID=""
+ENV_APPID=""
+
+if [[ -f "$MANIFEST_FILE" ]]; then
+    MANIFEST_APPID=$(python3 -c "import json; d=json.load(open('$MANIFEST_FILE','r',encoding='utf-8')); print(d.get('mp-weixin',{}).get('appid',''))" 2>/dev/null || echo "")
+fi
+
+if [[ -f "$PROJ_CFG_FILE" ]]; then
+    PROJ_APPID=$(python3 -c "import json; d=json.load(open('$PROJ_CFG_FILE','r',encoding='utf-8')); print(d.get('appid',''))" 2>/dev/null || echo "")
+fi
+
+if [[ -f "$PROD_ENV_FILE" ]]; then
+    ENV_APPID=$(grep -oP 'UNI_APP_WX_APPID\s*=\s*\K.*' "$PROD_ENV_FILE" 2>/dev/null | head -1 | xargs)
+fi
+
+if [[ -n "$MANIFEST_APPID" && -n "$PROJ_APPID" && "$MANIFEST_APPID" != "$PROJ_APPID" ]]; then
+    blocker "manifest.json AppID (${MANIFEST_APPID}) 与 project.config.json AppID (${PROJ_APPID}) 不一致"
+else
+    pass "manifest.json 与 project.config.json AppID 一致"
+fi
+
+if [[ -n "$MANIFEST_APPID" && -n "$ENV_APPID" && "$MANIFEST_APPID" != "$ENV_APPID" ]]; then
+    blocker "manifest.json AppID (${MANIFEST_APPID}) 与 .env.production AppID (${ENV_APPID}) 不一致"
+else
+    pass "manifest.json 与 .env.production AppID 一致"
+fi
+
+# ============================================================
+# 8. 前端路由白名单检查
+# ============================================================
+section "8. 前端路由白名单检查"
+
+ENUM_FILE="${REPO_PATH}/shopxo-uniapp/common/js/config/muying-enum.js"
+if [[ -f "$ENUM_FILE" ]]; then
+    if grep -q 'ROUTE_WHITELIST\|route_whitelist\|page_whitelist' "$ENUM_FILE" 2>/dev/null; then
+        pass "前端路由白名单存在于 muying-enum.js"
+    else
+        warn "前端路由白名单未在 muying-enum.js 中找到，请确认是否已配置"
+    fi
+else
+    warn "muying-enum.js 文件不存在，无法检查路由白名单"
+fi
+
+# ============================================================
+# 9. 资质门禁检查
+# ============================================================
+section "9. 资质门禁检查"
+
+if [[ -n "$ENV_FILE" ]] && [[ -f "$ENV_FILE" ]]; then
+    if grep -qi 'MUYING_QUALIFICATION_MODE\s*=\s*phase_two\|MUYING_QUALIFICATION_MODE\s*=\s*strict' "$ENV_FILE" 2>/dev/null; then
+        warn "资质门禁模式为严格模式，一期应使用宽松模式（phase_one/loose）"
+    else
+        pass "资质门禁处于一期模式"
+    fi
+else
+    warn ".env 不可用，无法检查资质门禁模式"
+fi
+
+# ============================================================
 # 汇总
 # ============================================================
 section "检查汇总"
