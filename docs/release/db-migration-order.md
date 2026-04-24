@@ -29,26 +29,44 @@ bash scripts/deploy/run-migrations.sh \
 
 ## 迁移执行顺序（不可调换）
 
-| 序号 | SQL 文件 | 位置 | 用途 | 可否重复执行 | 幂等检查方式 |
-|------|----------|------|------|-------------|-------------|
-| 1 | `shopxo.sql` | `shopxo-backend/config/shopxo.sql` | ShopXO 主库初始化 | ❌ 不可重复 | 检查 `sxo_user` 表是否存在 |
-| 2 | `muying-final-migration.sql` | `docs/muying-final-migration.sql` | 孕禧核心表（activity/activity_signup/invite_reward/muying_feedback） | ❌ 不可重复 | 检查 `sxo_activity` 表是否存在 |
-| 3 | `muying-feedback-review-migration.sql` | `docs/muying-feedback-review-migration.sql` | 反馈审核字段（review_status/is_enable） | ✅ 幂等 | 检查 `review_status` 列是否存在 |
-| 4 | `muying-invite-reward-unify-migration.sql` | `docs/muying-invite-reward-unify-migration.sql` | 邀请奖励统一（trigger_event/reward_value/status） | ✅ 幂等 | 检查 `trigger_event` 列是否存在 |
-| 5 | `muying-feature-flag-upgrade-migration.sql` | `docs/muying-feature-flag-upgrade-migration.sql` | 功能开关配置（feature_xxx_enabled） | ✅ 幂等 | 检查 `feature_feedback_enabled` 配置是否存在 |
-| 6 | `muying-admin-power-migration.sql` | `docs/muying-admin-power-migration.sql` | 后台菜单权限（孕禧运营分组） | ✅ 幂等 | 检查 `孕禧运营` 菜单是否存在 |
+| 序号 | SQL 文件 | 位置 | 用途 | 可否重复 |
+|------|----------|------|------|---------|
+| 1 | `shopxo.sql` | `shopxo-backend/config/shopxo.sql` | ShopXO 主库初始化（含 DROP TABLE，仅全新安装） | ❌ |
+| 2 | `muying-final-migration.sql` | `docs/muying-final-migration.sql` | 孕禧核心表+补丁+索引（唯一真相源） | ❌ |
+| 3 | `muying-feedback-review-migration.sql` | `docs/muying-feedback-review-migration.sql` | 反馈审核字段 | ✅ 幂等 |
+| 4 | `muying-invite-reward-unify-migration.sql` | `docs/muying-invite-reward-unify-migration.sql` | 邀请奖励统一 | ✅ 幂等 |
+| 5 | `muying-feature-flag-upgrade-migration.sql` | `docs/muying-feature-flag-upgrade-migration.sql` | 功能开关配置 | ✅ 幂等 |
+| 6 | `muying-admin-power-migration.sql` | `docs/muying-admin-power-migration.sql` | 后台菜单权限 | ✅ 幂等 |
+
+### 演示数据（可选，非必须）
+
+| 文件 | 位置 | 用途 |
+|------|------|------|
+| `yunxi-init-config.sql` | `docs/sql/yunxi-init-config.sql` | 配置项初始化 |
+| `yunxi-init-activity-demo.sql` | `docs/sql/yunxi-init-activity-demo.sql` | 活动演示数据 |
+| `yunxi-init-feedback-demo.sql` | `docs/sql/yunxi-init-feedback-demo.sql` | 妈妈说反馈演示数据 |
+
+### 已归档（不要执行，内容已合并到 muying-final-migration.sql 或已被替代）
+
+| 文件 | 归档位置 | 废弃原因 |
+|------|----------|---------|
+| `muying-migration.sql` | `docs/archive/sql/` | 合并到 final A 段 |
+| `muying-mvp-migration.sql` | `docs/archive/sql/` | 合并到 final C 段 |
+| `muying-invite-code-migration.sql` | `docs/archive/sql/` | 合并到 final B1+C1+C2 |
+| `muying-invite-idempotent-migration.sql` | `docs/archive/sql/` | 合并到 final C3 |
+| `muying-enum-normalize-migration.sql` | `docs/archive/sql/` | 合并到 final C4 |
+| `muying_feedback.sql` | `docs/archive/sql/` | 合并到 final A4 |
+| `muying-feature-switch-migration.sql` | `docs/archive/sql/` | 被 feature-flag-upgrade 替代（24开关→5开关精简版） |
+| `muying-enhancement-migration.sql` | `docs/archive/sql/` | D1-D5 增量功能，一期未启用 |
+| `muying-audit-log-migration.sql` | `docs/archive/sql/` | 审计日志表，一期未启用 |
+| `muying-demo-data.sql` | `docs/archive/sql/` | 旧版演示数据，已被 docs/sql/ 下新版本替代 |
 
 ---
 
 ## 手动执行命令
 
 ```bash
-# 设置变量
-DB_HOST="127.0.0.1"
-DB_PORT="3306"
-DB_NAME="yunxi"
-DB_USER="yunxi"
-DB_PASS="YOUR_PASSWORD"
+DB_HOST="127.0.0.1"; DB_PORT="3306"; DB_NAME="yunxi"; DB_USER="yunxi"; DB_PASS="YOUR_PASSWORD"
 SITE_DIR="/www/wwwroot/yunxi-api"
 MYSQL="mysql -h $DB_HOST -P $DB_PORT -u $DB_USER -p$DB_PASS $DB_NAME"
 
@@ -76,24 +94,7 @@ $MYSQL < $SITE_DIR/../docs/muying-admin-power-migration.sql
 ## 验证
 
 ```bash
-# 检查所有必需表
-$MYSQL -e "SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA='${DB_NAME}' AND TABLE_NAME LIKE 'sxo_%' ORDER BY TABLE_NAME;" | grep -E '(activity|activity_signup|invite_reward|muying_feedback|config|payment|user)'
-
-# 检查功能开关
+$MYSQL -e "SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA='${DB_NAME}' AND TABLE_NAME IN ('sxo_activity','sxo_activity_signup','sxo_invite_reward','sxo_muying_feedback','sxo_config','sxo_payment','sxo_user','sxo_power');"
 $MYSQL -e "SELECT only_tag, value FROM sxo_config WHERE only_tag LIKE 'feature_%enabled';"
-
-# 检查后台菜单
 $MYSQL -e "SELECT id, name FROM sxo_power WHERE name='孕禧运营';"
 ```
-
----
-
-## 常见问题
-
-| 问题 | 原因 | 解决 |
-|------|------|------|
-| 主库导入报"Table already exists" | 主库已导入过 | 跳过步骤 1，从步骤 2 继续 |
-| 核心表报"Table already exists" | 迁移已执行 | 跳过步骤 2，从步骤 3 继续 |
-| 幂等迁移报"Duplicate column name" | 迁移已执行 | 跳过该步骤 |
-| 幂等迁移报"Duplicate entry" | 配置已存在 | 跳过该步骤 |
-| 后台菜单不显示 | 步骤 6 未执行 | 执行 muying-admin-power-migration.sql |
