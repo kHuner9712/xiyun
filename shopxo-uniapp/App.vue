@@ -1301,6 +1301,8 @@
                     uni.makePhoneCall({
                         phoneNumber: value.toString(),
                     });
+                } else {
+                    this.showToast('客服电话暂未配置');
                 }
             },
 

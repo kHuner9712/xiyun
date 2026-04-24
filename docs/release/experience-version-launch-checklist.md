@@ -2,11 +2,27 @@
 
 > 按真实顺序执行，每步必须确认完成再进入下一步  
 > 前提：已有服务器+宝塔+Nginx+PHP 8.1+MySQL 5.7.44  
+> 限定条件：**在测试号 AppID + 服务器 IP/测试域名 + 未启用正式支付的前提下**  
 > 最后更新：2026-04-24
 
 ---
 
+> **自动化检查脚本对应关系**  
+> 本文档每个阶段完成后，应运行对应的脚本验证：  
+> - 阶段一~二 → `check-release-placeholders.sh --mode=experience`  
+> - 阶段二 → `check-runtime-config.sh --env /path/to/.env`  
+> - 阶段二 → `check-admin-bootstrap.sh .`  
+> - 阶段五 → `run-rc-gate.sh --mode=experience --env /path/to/.env .`  
+> - 阶段六 → `check-wechat-submit-readiness.sh .`
+
+---
+
 ## 阶段一：后端部署（约 2 小时）
+
+> **执行人**：开发/运维  
+> **输入物**：服务器 IP、宝塔面板账号、MySQL root 密码  
+> **输出物**：可访问的后端 API + 后台管理页面  
+> **失败回退**：删除站点目录 + 删除数据库，从 1.1 重新开始
 
 ### 1.1 创建网站和数据库
 - [ ] 宝塔面板 → 网站 → 添加站点，域名填写测试域名或 IP
@@ -49,9 +65,20 @@
 - [ ] 访问 `http://域名/你的后台入口.php`，确认后台可登录
 - [ ] 默认管理员账号登录，修改默认密码
 
+### ✅ 阶段一验证脚本
+```bash
+bash scripts/preflight/check-release-placeholders.sh --mode=experience .
+```
+> 应全部 PASS 或仅 WARN（AppID 为空在体验版允许）
+
 ---
 
 ## 阶段二：后台配置（约 1 小时）
+
+> **执行人**：运营/产品  
+> **输入物**：后台管理员账号密码、客服电话、隐私弹窗文案、首批内容素材  
+> **输出物**：配置完整的后台 + 可展示内容的首页  
+> **失败回退**：后台重新编辑配置项，无需重新部署
 
 ### 2.1 注册后台菜单
 - [ ] 上一步执行 muying-admin-power-migration.sql 后，刷新后台页面
@@ -71,9 +98,21 @@
 - [ ] 文章管理 → 新建至少 1 篇文章（填写标题/内容/发布）
 - [ ] 首页设计 → 配置首页布局（确保活动/商品/文章区块可见）
 
+### ✅ 阶段二验证脚本
+```bash
+bash scripts/preflight/check-runtime-config.sh --env /path/to/.env
+bash scripts/preflight/check-admin-bootstrap.sh .
+```
+> 关键配置项应全部 PASS
+
 ---
 
 ## 阶段三：前端构建（约 1 小时）
+
+> **执行人**：前端开发  
+> **输入物**：测试号 AppID、后端 API 地址  
+> **输出物**：可上传的微信小程序代码包  
+> **失败回退**：修改 .env.production 重新编译
 
 ### 3.1 配置小程序 AppID
 - [ ] 编辑 `shopxo-uniapp/manifest.json` → `mp-weixin.appid`，填入测试号 AppID（如 `wxda7779770f53e901`）
@@ -95,6 +134,11 @@
 
 ## 阶段四：微信后台配置（约 30 分钟）
 
+> **执行人**：产品/运营  
+> **输入物**：微信公众平台测试号账号  
+> **输出物**：可扫码体验的体验版  
+> **失败回退**：修改微信后台配置重新扫码
+
 ### 4.1 服务器域名
 - [ ] 登录 mp.weixin.qq.com
 - [ ] 开发管理 → 开发设置 → 服务器域名
@@ -113,36 +157,34 @@
 
 ## 阶段五：体验版验收（约 2 小时）
 
-### 5.1 基础功能验收
-- [ ] 打开体验版小程序
-- [ ] 注册/登录成功
-- [ ] 阶段设置保存成功
-- [ ] 首页推荐内容按阶段展示
-- [ ] 活动列表加载 → 活动详情 → 报名成功
-- [ ] 商品列表 → 商品详情 → 加入购物车
-- [ ] 邀请页展示邀请码
-- [ ] 意见反馈提交成功
+> **执行人**：测试/产品  
+> **输入物**：体验版小程序二维码  
+> **输出物**：验收通过确认  
+> **失败回退**：记录 bug → 开发修复 → 重新编译上传 → 重新验收
 
-### 5.2 权限验收
-- [ ] 首页加载时不弹出任何权限授权弹窗
-- [ ] 点击"选择位置"时弹出定位授权
-- [ ] 点击头像时弹出相册授权
-- [ ] 点击"一键获取手机号"时弹出手机号授权
+### 5.1 Smoke Test（必做，15~20 步）
+- [ ] 按 `docs/release/experience-smoke-test.md` 执行完整链路验收
 
-### 5.3 功能开关验收
+### 5.2 功能开关验收
 - [ ] 后台关闭 feature_activity_enabled → 前端首页活动区块消失
 - [ ] 后台关闭 feature_feedback_enabled → 前端首页妈妈说区块消失 + 用户中心反馈入口消失
 - [ ] 后台关闭 feature_invite_enabled → 前端首页邀请区块消失 + 用户中心邀请入口消失
 - [ ] 后台关闭 feature_content_enabled → 前端首页孕育知识区块消失
 
-### 5.4 运行自动检查脚本
-- [ ] `bash scripts/preflight/check-wechat-review.sh .`
-- [ ] `bash scripts/preflight/check-api-health.sh http://你的域名/api.php`
-- [ ] 确认全部 PASS
+### 5.3 运行自动检查脚本
+```bash
+bash scripts/preflight/run-rc-gate.sh --mode=experience --env /path/to/.env .
+```
+- [ ] 确认全部 PASS 或仅 WARN
 
 ---
 
 ## 阶段六：提审前准备（正式 AppID 和域名就绪后执行）
+
+> **执行人**：开发+运营  
+> **输入物**：正式 AppID、备案域名、SSL 证书  
+> **输出物**：可提交审核的正式版  
+> **失败回退**：回退到体验版配置，重新编译
 
 - [ ] 将 manifest.json 中 mp-weixin.appid 改为正式 AppID
 - [ ] 将 project.config.json 中 appid 改为正式 AppID
@@ -152,4 +194,5 @@
 - [ ] 重命名 public/admin.php
 - [ ] 重新编译上传正式版
 - [ ] 微信后台配置正式服务器域名
+- [ ] 运行 `bash scripts/preflight/check-wechat-submit-readiness.sh .` 确认无 BLOCKER
 - [ ] 提交审核

@@ -183,6 +183,11 @@ class OrderService
         }
         if(empty($payment))
         {
+            $available_payments = PaymentService::BuyPaymentList(['is_enable'=>1, 'is_open_user'=>1]);
+            if(empty($available_payments))
+            {
+                return DataReturn('支付功能暂未开通，请联系客服', -100);
+            }
             return DataReturn(MyLang('payment_method_error_tips'), -1);
         }
 

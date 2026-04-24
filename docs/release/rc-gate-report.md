@@ -6,6 +6,16 @@
 
 ---
 
+> **自动化检查脚本对应关系**  
+> 本报告所有检查项均可通过脚本自动验证：  
+> - 代码/配置占位符 → `check-release-placeholders.sh --mode=experience`  
+> - 运行时配置完整性 → `check-runtime-config.sh --env /path/to/.env`  
+> - 后台管理完整性 → `check-admin-bootstrap.sh .`  
+> - 微信提审就绪 → `check-wechat-submit-readiness.sh .`  
+> - 一键全量检查 → `run-rc-gate.sh --mode=experience --env /path/to/.env .`
+
+---
+
 ## 一、代码完成度
 
 | 模块 | 代码 | 后台页面 | 后台菜单 | 前台页面 | 状态 |
@@ -27,6 +37,7 @@
 | 用户协议 | ✅ | ✅ | ✅(系统自带) | ✅ | 完成 |
 | 客服入口 | ✅ | ✅ | ✅(系统自带) | ✅ | 完成 |
 | 反馈入口 | ✅ | ✅ | ✅(已注册) | ✅ | 完成 |
+| 支付未配置兜底 | ✅ | - | - | ✅ | 完成（本轮补齐） |
 
 ---
 
@@ -38,6 +49,8 @@
 |------|----------|
 | `feature_feedback_enabled` 前端未使用，反馈入口无法关闭 | user.vue 反馈入口加 `v-if="is_feature_enabled(FeatureFlagKey.FEEDBACK)"` |
 | 首页妈妈说区块用 CONTENT 开关而非 FEEDBACK 开关 | index.vue 妈妈说区块改用 `FeatureFlagKey.FEEDBACK` |
+| 支付未配置时前端无友好提示 | buy.vue 补充"当前为体验版/支付未开通"提示 |
+| 支付未配置时后端无专用错误码 | BuyService 补充 `payment_not_configured` 错误码 |
 
 ### 已知限制（不影响提审）
 
@@ -45,7 +58,6 @@
 |------|------|------|
 | 120+ 个插件页面未在 pages.json 注册 | P2 | 一期路由守卫会拦截，不会导航到这些页面 |
 | 15+ 个用户页面缺少显式登录检查 | P2 | API 层 is_login_check 兜底，用户会先看到空白再跳转 |
-| payment_id=0 时无明确"未配置支付方式"提示 | P2 | 支付列表为空时显示"暂无支付方式"，但 payment_id=0 分支无专项提示 |
 | chooseAvatar 按钮 @tap 和 open-type 可能双重触发 | P2 | 实际测试中未发现重复调用，但代码层面存在风险 |
 
 ---
@@ -79,7 +91,7 @@
 
 ### 体验版上线：无外部阻塞
 
-> 体验版可用测试号 AppID + 服务器 IP 直连，不需要备案域名
+> **限定条件**：在测试号 AppID + 服务器 IP/测试域名 + 未启用正式支付的前提下，体验版无外部阻塞
 
 ### 提审上线：4 项外部阻塞
 
@@ -97,3 +109,15 @@
 | 5 | 微信支付商户号 | 3-7 天 | 支付功能上线前必须完成 |
 
 > **注意**：服务器+宝塔+Nginx+PHP+MySQL 已具备，不列为阻塞项。
+
+---
+
+## 六、自动化检查脚本清单
+
+| 脚本 | 检查内容 | 输出等级 |
+|------|----------|----------|
+| `check-release-placeholders.sh` | manifest/project.config/.env 占位符/空值/IP/测试值 | PASS/WARN/BLOCKER |
+| `check-runtime-config.sh` | 数据库表/功能开关/邀请配置/客服电话/隐私协议/支付方式 | PASS/WARN/BLOCKER |
+| `check-admin-bootstrap.sh` | 后台入口/控制器/视图/菜单权限 | PASS/WARN/BLOCKER |
+| `check-wechat-submit-readiness.sh` | AppID/隐私合规/域名/安全配置/测试内容 | PASS/WARN/BLOCKER |
+| `run-rc-gate.sh` | 一键执行上述全部检查 | PASS/WARN/BLOCKER |

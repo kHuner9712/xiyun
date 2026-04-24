@@ -6,9 +6,21 @@
 
 ---
 
+> **自动化检查脚本对应关系**  
+> - 阶段 A → `check-release-placeholders.sh --mode=experience` + `check-runtime-config.sh --env`  
+> - 阶段 B → `check-release-placeholders.sh --mode=submit` + `check-wechat-submit-readiness.sh`  
+> - 阶段 C → `run-rc-gate.sh --mode=submit --env`  
+> 每个阶段完成后应运行对应脚本验证
+
+---
+
 ## 阶段 A：必须在体验版前完成
 
-> 体验版可用测试号 AppID + IP 直连后端，不需要备案域名和正式 AppID
+> **执行人**：开发+运营  
+> **输入物**：服务器信息、测试号 AppID、客服电话、首批内容  
+> **输出物**：可扫码体验的体验版  
+> **失败回退**：修改对应配置项重新编译  
+> **限定条件**：体验版可用测试号 AppID + 服务器 IP/测试域名 + 未启用正式支付，不需要备案域名和正式 AppID
 
 | 序号 | 配置项 | 所在文件 | 当前值 | 操作说明 |
 |------|--------|----------|--------|----------|
@@ -26,11 +38,21 @@
 | A.12 | 后端地址 | `shopxo-uniapp/.env.production` | 模板占位符 | 填入 `http://服务器IP:端口/` |
 | A.13 | AppSecret | 后台 → 小程序配置 | 空 | 填入测试号 AppSecret |
 
+### ✅ 阶段 A 验证脚本
+```bash
+bash scripts/preflight/check-release-placeholders.sh --mode=experience .
+bash scripts/preflight/check-runtime-config.sh --env /path/to/.env
+```
+
 ---
 
 ## 阶段 B：必须在提审前完成
 
-> 需要正式 AppID + 备案域名 + HTTPS
+> **执行人**：开发+运营  
+> **输入物**：正式 AppID、备案域名、SSL 证书  
+> **输出物**：可提交审核的正式版  
+> **失败回退**：回退到体验版配置  
+> **前提**：需要正式 AppID + 备案域名 + HTTPS
 
 | 序号 | 配置项 | 所在文件 | 当前值 | 操作说明 |
 |------|--------|----------|--------|----------|
@@ -49,11 +71,21 @@
 | B.13 | 用户协议内容 | 后台 → 协议管理 | 需确认 | 确认内容完整 |
 | B.14 | SSL 证书 | 服务器 Nginx | 未配置 | 配置 HTTPS 证书（宝塔可一键申请 Let's Encrypt） |
 
+### ✅ 阶段 B 验证脚本
+```bash
+bash scripts/preflight/check-release-placeholders.sh --mode=submit .
+bash scripts/preflight/check-wechat-submit-readiness.sh .
+```
+
 ---
 
 ## 阶段 C：必须在正式发布前完成
 
-> 支付功能上线前必须完成
+> **执行人**：开发+运营  
+> **输入物**：微信支付商户配置  
+> **输出物**：支付功能可用的正式版  
+> **失败回退**：关闭支付入口，其他功能正常使用  
+> **前提**：支付功能上线前必须完成
 
 | 序号 | 配置项 | 所在文件 | 当前值 | 操作说明 |
 |------|--------|----------|--------|----------|
@@ -63,6 +95,11 @@
 | C.4 | 每日奖励上限 | 后台 → 邀请配置 | 默认 0 | 建议设合理上限（如 10） |
 | C.5 | 邀请口号 | 后台 → 邀请配置 | 空 | 填入邀请页标题文案 |
 | C.6 | 定时任务 | 宝塔 → 计划任务 | 未配置 | 订单关闭/自动确认/数据备份 |
+
+### ✅ 阶段 C 验证脚本
+```bash
+bash scripts/preflight/run-rc-gate.sh --mode=submit --env /path/to/.env .
+```
 
 ---
 

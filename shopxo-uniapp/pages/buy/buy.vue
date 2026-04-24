@@ -249,6 +249,10 @@
                             </view>
                         </view>
                     </view>
+                    <!-- 支付未配置提示 -->
+                    <view v-if="total_price > 0 && common_order_is_booking != 1 && payment_list.length == 0 && !plugins_coin_is_valid" class="border-radius-main bg-white oh padding-main spacing-mb tc">
+                        <view class="cr-grey text-size-sm padding-vertical-main">当前为体验版，支付功能暂未开通</view>
+                    </view>
 
                     <!-- 底部说明 - 智能工具箱插件 -->
                     <view v-if="(plugins_intellectstools_data || null) != null && (plugins_intellectstools_data.bottom_desc || null) != null && plugins_intellectstools_data.bottom_desc.length > 0" class="border-radius-main padding-main bg-white oh cr-orange spacing-mb">
@@ -950,7 +954,11 @@
                 // 是否需要选择支付方式、并且未选择虚拟币支付方式
                 if (this.total_price > 0 && this.common_order_is_booking != 1 && (this.plugins_coin_payment_id || null) == null) {
                     if ((data.payment_id || null) == null) {
-                        app.globalData.showToast(this.$t('buy.buy.71kidy'));
+                        if (this.payment_list.length == 0) {
+                            app.globalData.showToast('当前为体验版，支付功能暂未开通');
+                        } else {
+                            app.globalData.showToast(this.$t('buy.buy.71kidy'));
+                        }
                         return false;
                     }
                 }
