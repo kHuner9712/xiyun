@@ -110,16 +110,23 @@ cd /www/wwwroot/你的域名
 # 设置所有者
 chown -R www:www .
 
-# 设置目录权限
-chmod -R 755 .
-chmod -R 777 runtime/
-chmod -R 777 public/upload/
-chmod -R 777 config/
+# 设置基础权限（目录 755 / 文件 644）
+find . -type d -exec chmod 755 {} \;
+find . -type f -exec chmod 644 {} \;
 
-# 安全：禁止写入的目录
+# 必须可写的目录（755，不使用 777）
+chmod 755 runtime/
+chmod 755 public/upload/
+chmod 755 public/download/
+chmod 755 config/
+chmod 755 public/rsakeys/
+
+# 安全：禁止写入的目录（555 = 只读+可进入）
 chmod -R 555 app/
 chmod -R 555 extend/
 chmod -R 555 thinkphp/
+
+# ⚠ 绝不使用 chmod -R 777
 ```
 
 ### 2.5 初始化数据库

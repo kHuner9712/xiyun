@@ -1,8 +1,11 @@
 # 正式上线前人工配置清单
 
-> 本清单按三阶段组织：体验版前 / 提审前 / 正式发布前  
-> 每项标注：所在文件 / 当前值 / 操作说明  
-> 前提：已有服务器+宝塔+Nginx+PHP 8.1+MySQL 5.7.44
+> 适用阶段：体验版前 / 提审前 / 正式发布前（三阶段统一参考）  
+> 执行人：开发+运营  
+> 输入物：各阶段所需配置值  
+> 输出物：配置完整的后端+前端+微信后台  
+> 前提：已有服务器+宝塔+Nginx+PHP 8.1+MySQL 5.7.44  
+> 注意：体验版详细步骤见 [experience-deploy-runbook.md](experience-deploy-runbook.md)，提审切换见 [submit-switch-runbook.md](submit-switch-runbook.md)
 
 ---
 

@@ -1,19 +1,16 @@
 # 体验版上线执行清单
 
-> 按真实顺序执行，每步必须确认完成再进入下一步  
-> 前提：已有服务器+宝塔+Nginx+PHP 8.1+MySQL 5.7.44  
+> 适用阶段：体验版上线  
+> 执行人：开发/运维  
+> 输入物：服务器 IP、宝塔面板账号、测试号 AppID  
+> 输出物：可扫码体验的微信小程序体验版  
 > 限定条件：**在测试号 AppID + 服务器 IP/测试域名 + 未启用正式支付的前提下**  
 > 最后更新：2026-04-24
 
 ---
 
-> **自动化检查脚本对应关系**  
-> 本文档每个阶段完成后，应运行对应的脚本验证：  
-> - 阶段一~二 → `check-release-placeholders.sh --mode=experience`  
-> - 阶段二 → `check-runtime-config.sh --env /path/to/.env`  
-> - 阶段二 → `check-admin-bootstrap.sh .`  
-> - 阶段五 → `run-rc-gate.sh --mode=experience --env /path/to/.env .`  
-> - 阶段六 → `check-wechat-submit-readiness.sh .`
+> **快速部署**：完整一键流程请直接使用 [experience-deploy-runbook.md](experience-deploy-runbook.md)  
+> 本文档为详细版清单，适合首次部署时逐项确认
 
 ---
 
@@ -52,9 +49,15 @@
 
 ### 1.5 安装依赖和设置权限
 - [ ] `composer install --no-dev --optimize-autoloader`
-- [ ] `chown -R www:www .`
-- [ ] `chmod -R 755 .`
-- [ ] `chmod -R 777 runtime/ public/upload/ config/`
+- [ ] 运行权限修复脚本：`bash scripts/deploy/fix-permissions.sh /www/wwwroot/你的站点目录`
+- [ ] 或手动执行：
+  ```bash
+  chown -R www:www .
+  find . -type d -exec chmod 755 {} \;
+  find . -type f -exec chmod 644 {} \;
+  chmod 755 runtime/ public/upload/ public/download/ config/ public/rsakeys/
+  ```
+- [ ] ⚠ 绝不使用 `chmod -R 777`
 
 ### 1.6 Nginx 配置
 - [ ] 宝塔面板 → 网站 → 设置 → 配置文件，参照 `docs/release/bt-deploy-rollback-guide.md` 中的 Nginx 配置
@@ -173,26 +176,14 @@ bash scripts/preflight/check-admin-bootstrap.sh .
 
 ### 5.3 运行自动检查脚本
 ```bash
-bash scripts/preflight/run-rc-gate.sh --mode=experience --env /path/to/.env .
+bash scripts/deploy/post-deploy-check.sh \
+  --site-dir /www/wwwroot/yunxi-api \
+  --api-url http://你的IP/ \
+  --db-name yunxi --db-user yunxi --db-pass YOUR_PASSWORD \
+  --env=experience
 ```
-- [ ] 确认全部 PASS 或仅 WARN
+- [ ] 确认 0 BLOCKER
 
 ---
 
-## 阶段六：提审前准备（正式 AppID 和域名就绪后执行）
-
-> **执行人**：开发+运营  
-> **输入物**：正式 AppID、备案域名、SSL 证书  
-> **输出物**：可提交审核的正式版  
-> **失败回退**：回退到体验版配置，重新编译
-
-- [ ] 将 manifest.json 中 mp-weixin.appid 改为正式 AppID
-- [ ] 将 project.config.json 中 appid 改为正式 AppID
-- [ ] .env.production 中域名改为正式 HTTPS 域名
-- [ ] 后端 .env 中 APP_DEBUG 改为 false
-- [ ] 删除 public/install.php
-- [ ] 重命名 public/admin.php
-- [ ] 重新编译上传正式版
-- [ ] 微信后台配置正式服务器域名
-- [ ] 运行 `bash scripts/preflight/check-wechat-submit-readiness.sh .` 确认无 BLOCKER
-- [ ] 提交审核
+> **提审前准备**：体验版验收通过后，如需切换到提审版，请使用 [submit-switch-runbook.md](submit-switch-runbook.md)
