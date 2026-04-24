@@ -31,7 +31,8 @@
 | 8 | 宝塔部署与回滚手册 | [docs/release/bt-deploy-rollback-guide.md](release/bt-deploy-rollback-guide.md) | 宝塔+Nginx+HTTPS+安全加固+回滚 | 参考 |
 | 9 | 数据库迁移执行顺序 | [docs/release/db-migration-order.md](release/db-migration-order.md) | SQL 执行顺序+一键脚本+验证 | 执行 |
 | 10 | 正式上线前人工配置清单 | [docs/release/pre-launch-config-checklist.md](release/pre-launch-config-checklist.md) | 三阶段配置项 | 执行 |
-| 11 | UAT 最终验收清单 | [docs/release/uat-final-checklist.md](release/uat-final-checklist.md) | 真机验收 15 大类 22 阻断项 | 执行 |
+| 11 | UAT 最终验收清单 | [docs/release/uat-final-checklist.md](release/uat-final-checklist.md) | 真机验收 16 大类 24 阻断项 | 执行 |
+| 12 | 数据看板指标口径 | [docs/release/dashboard-metrics-spec.md](release/dashboard-metrics-spec.md) | 6 大分区 25+ 指标口径定义 | 参考 |
 
 ## 二、合规文档
 

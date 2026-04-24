@@ -52,7 +52,11 @@ INSERT INTO `sxo_power` (`id`, `pid`, `name`, `control`, `action`, `url`, `sort`
 (750, 700, '功能开关', 'Featureswitch', 'Index', '', 6, 1, '', UNIX_TIMESTAMP(), 0),
 (751, 750, '功能开关保存', 'Featureswitch', 'Save', '', 0, 0, '', UNIX_TIMESTAMP(), 0);
 
--- 8. 将所有新权限分配给超级管理员角色（role_id=1）
+-- 8. 孕禧数据看板（二级菜单）
+INSERT INTO `sxo_power` (`id`, `pid`, `name`, `control`, `action`, `url`, `sort`, `is_show`, `icon`, `add_time`, `upd_time`) VALUES
+(760, 700, '孕禧数据看板', 'Muyingstat', 'Index', '', 7, 1, '', UNIX_TIMESTAMP(), 0);
+
+-- 9. 将所有新权限分配给超级管理员角色（role_id=1）
 INSERT INTO `sxo_role_power` (`role_id`, `power_id`, `add_time`) VALUES
 (1, 700, UNIX_TIMESTAMP()),
 (1, 701, UNIX_TIMESTAMP()), (1, 702, UNIX_TIMESTAMP()), (1, 703, UNIX_TIMESTAMP()),
@@ -64,7 +68,8 @@ INSERT INTO `sxo_role_power` (`role_id`, `power_id`, `add_time`) VALUES
 (1, 730, UNIX_TIMESTAMP()), (1, 731, UNIX_TIMESTAMP()),
 (1, 740, UNIX_TIMESTAMP()), (1, 741, UNIX_TIMESTAMP()), (1, 742, UNIX_TIMESTAMP()),
 (1, 743, UNIX_TIMESTAMP()), (1, 744, UNIX_TIMESTAMP()),
-(1, 750, UNIX_TIMESTAMP()), (1, 751, UNIX_TIMESTAMP());
+(1, 750, UNIX_TIMESTAMP()), (1, 751, UNIX_TIMESTAMP()),
+(1, 760, UNIX_TIMESTAMP());
 
--- 9. 更新隐私弹窗文案
+-- 10. 更新隐私弹窗文案
 UPDATE `sxo_config` SET `value` = '为了向您提供活动签到、收货地址选择等服务，我们需要获取您的位置信息；为了更换头像或上传反馈图片，我们需要访问您的相册或摄像头。您可以拒绝授权，不影响其他功能使用。' WHERE `only_tag` = 'common_app_mini_weixin_privacy_content';

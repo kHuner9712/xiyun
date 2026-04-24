@@ -2,47 +2,268 @@
 
 {{block name="form_content_top"}}
 <style>
-    .stat-dashboard{display:flex;flex-wrap:wrap;gap:20px;padding:10px 0 20px;}
-    .stat-card{background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.08);padding:24px;width:calc(33.333% - 14px);box-sizing:border-box;transition:box-shadow 0.3s;}
-    .stat-card:hover{box-shadow:0 4px 16px rgba(0,0,0,0.15);}
-    .stat-card-name{font-size:14px;color:#888;margin-bottom:8px;}
-    .stat-card-value{font-size:36px;font-weight:700;color:#333;margin-bottom:8px;}
-    .stat-card-value span{font-size:16px;font-weight:400;color:#999;}
-    .stat-card-desc{font-size:12px;color:#aaa;line-height:1.5;}
-    @media(max-width:768px){.stat-card{width:100%;}}
+    .muying-dashboard{padding:10px 0 20px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;}
+    .muying-time-filter{background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.06);padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;flex-wrap:wrap;gap:10px;}
+    .muying-time-filter label{font-size:14px;color:#666;font-weight:500;margin-right:4px;}
+    .muying-time-filter select,.muying-time-filter input[type="date"]{border:1px solid #ddd;border-radius:4px;padding:6px 10px;font-size:13px;color:#333;outline:none;}
+    .muying-time-filter select:focus,.muying-time-filter input[type="date"]:focus{border-color:#1890ff;}
+    .muying-time-filter button{background:#1890ff;color:#fff;border:none;border-radius:4px;padding:6px 16px;font-size:13px;cursor:pointer;}
+    .muying-time-filter button:hover{background:#40a9ff;}
+    .muying-section{background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.06);margin-bottom:20px;overflow:hidden;}
+    .muying-section-header{padding:16px 20px 12px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between;}
+    .muying-section-title{font-size:16px;font-weight:600;color:#333;margin:0;}
+    .muying-section-badge{font-size:12px;color:#999;background:#f5f5f5;border-radius:10px;padding:2px 10px;}
+    .muying-cards{display:flex;flex-wrap:wrap;gap:16px;padding:16px 20px;}
+    .muying-card{background:#fafafa;border-radius:6px;padding:16px 20px;width:calc(25% - 12px);box-sizing:border-box;transition:all 0.2s;}
+    .muying-card:hover{background:#f0f5ff;box-shadow:0 2px 8px rgba(24,144,255,0.1);}
+    .muying-card-name{font-size:13px;color:#888;margin-bottom:6px;}
+    .muying-card-value{font-size:28px;font-weight:700;color:#333;margin-bottom:4px;}
+    .muying-card-value span{font-size:14px;font-weight:400;color:#999;}
+    .muying-card-desc{font-size:11px;color:#bbb;line-height:1.4;}
+    .muying-card.highlight .muying-card-value{color:#1890ff;}
+    .muying-card.warning .muying-card-value{color:#fa8c16;}
+    .muying-card.danger .muying-card-value{color:#f5222d;}
+    .muying-stage-bar{display:flex;gap:12px;padding:0 20px 16px;align-items:center;}
+    .muying-stage-item{display:flex;align-items:center;gap:4px;font-size:13px;color:#666;}
+    .muying-stage-dot{width:10px;height:10px;border-radius:50%;display:inline-block;}
+    .muying-stage-dot.prepare{background:#52c41a;}
+    .muying-stage-dot.pregnancy{background:#1890ff;}
+    .muying-stage-dot.postpartum{background:#722ed1;}
+    .muying-empty{padding:40px 20px;text-align:center;color:#ccc;font-size:14px;}
+    @media(max-width:1200px){.muying-card{width:calc(33.333% - 11px);}}
+    @media(max-width:768px){.muying-card{width:100%;}.muying-time-filter{flex-direction:column;align-items:flex-start;}}
 </style>
-<div class="stat-dashboard">
-    <div class="stat-card">
-        <div class="stat-card-name">注册转化率</div>
-        <div class="stat-card-value">{{$registration_conversion_rate.value}}<span>%</span></div>
-        <div class="stat-card-desc">{{$registration_conversion_rate.desc}}</div>
+
+<div class="muying-dashboard">
+    <form method="get" action="" class="muying-time-filter">
+        <input type="hidden" name="s" value="muyingstat">
+        <label>时间范围</label>
+        <select name="time_range" id="muying_time_range" onchange="muying_toggle_custom()">
+            <option value="today" {{$time_range=='today'?'selected':''}}>今日</option>
+            <option value="yesterday" {{$time_range=='yesterday'?'selected':''}}>昨日</option>
+            <option value="last7" {{$time_range=='last7'?'selected':''}}>近7天</option>
+            <option value="last30" {{$time_range=='last30'?'selected':''}}>近30天</option>
+            <option value="custom" {{$time_range=='custom'?'selected':''}}>自定义</option>
+        </select>
+        <span id="muying_custom_range" style="display:{{$time_range=='custom'?'inline-flex':'none'}};gap:6px;align-items:center;">
+            <input type="date" name="start_date" value="{{$start_date}}" placeholder="开始日期">
+            <span>至</span>
+            <input type="date" name="end_date" value="{{$end_date}}" placeholder="结束日期">
+        </span>
+        <button type="submit">查询</button>
+    </form>
+
+    {{php}}
+    $d = $dashboard ?? [];
+    $tr = $d['time_range'] ?? ['range'=>'today','start'=>0,'end'=>0];
+    $tx = $d['transaction'] ?? [];
+    $ur = $d['user'] ?? [];
+    $ac = $d['activity'] ?? [];
+    $iv = $d['invite'] ?? [];
+    $fb = $d['feedback'] ?? [];
+    $pd = $d['product'] ?? [];
+    {{/php}}
+
+    <div class="muying-section">
+        <div class="muying-section-header">
+            <h3 class="muying-section-title">交易指标</h3>
+            <span class="muying-section-badge">{{$tr.range == 'today' ? '今日' : ($tr.range == 'yesterday' ? '昨日' : ($tr.range == 'last7' ? '近7天' : ($tr.range == 'last30' ? '近30天' : '自定义')))}}</span>
+        </div>
+        <div class="muying-cards">
+            <div class="muying-card highlight">
+                <div class="muying-card-name">GMV</div>
+                <div class="muying-card-value">{{$tx.gmv.value??0}}<span>元</span></div>
+                <div class="muying-card-desc">{{$tx.gmv.desc??''}}</div>
+            </div>
+            <div class="muying-card">
+                <div class="muying-card-name">支付订单数</div>
+                <div class="muying-card-value">{{$tx.paid_orders.value??0}}<span>单</span></div>
+                <div class="muying-card-desc">{{$tx.paid_orders.desc??''}}</div>
+            </div>
+            <div class="muying-card">
+                <div class="muying-card-name">待发货订单</div>
+                <div class="muying-card-value">{{$tx.pending_shipment.value??0}}<span>单</span></div>
+                <div class="muying-card-desc">{{$tx.pending_shipment.desc??''}}</div>
+            </div>
+            <div class="muying-card warning">
+                <div class="muying-card-name">售后订单</div>
+                <div class="muying-card-value">{{$tx.aftersale_orders.value??0}}<span>单</span></div>
+                <div class="muying-card-desc">{{$tx.aftersale_orders.desc??''}}</div>
+            </div>
+            <div class="muying-card">
+                <div class="muying-card-name">支付转化率</div>
+                <div class="muying-card-value">{{$tx.payment_rate.value??0}}<span>%</span></div>
+                <div class="muying-card-desc">{{$tx.payment_rate.desc??''}}</div>
+            </div>
+            <div class="muying-card">
+                <div class="muying-card-name">复购率</div>
+                <div class="muying-card-value">{{$tx.repurchase_rate.value??0}}<span>%</span></div>
+                <div class="muying-card-desc">{{$tx.repurchase_rate.desc??''}}</div>
+            </div>
+        </div>
     </div>
-    <div class="stat-card">
-        <div class="stat-card-name">阶段资料完善率</div>
-        <div class="stat-card-value">{{$stage_profile_completion_rate.value}}<span>%</span></div>
-        <div class="stat-card-desc">{{$stage_profile_completion_rate.desc}}</div>
+
+    <div class="muying-section">
+        <div class="muying-section-header">
+            <h3 class="muying-section-title">用户指标</h3>
+            <span class="muying-section-badge">{{$tr.range == 'today' ? '今日' : ($tr.range == 'yesterday' ? '昨日' : ($tr.range == 'last7' ? '近7天' : ($tr.range == 'last30' ? '近30天' : '自定义')))}}</span>
+        </div>
+        <div class="muying-cards">
+            <div class="muying-card highlight">
+                <div class="muying-card-name">新增用户</div>
+                <div class="muying-card-value">{{$ur.new_users.value??0}}<span>人</span></div>
+                <div class="muying-card-desc">{{$ur.new_users.desc??''}}</div>
+            </div>
+            <div class="muying-card">
+                <div class="muying-card-name">总用户</div>
+                <div class="muying-card-value">{{$ur.total_users.value??0}}<span>人</span></div>
+                <div class="muying-card-desc">{{$ur.total_users.desc??''}}</div>
+            </div>
+            <div class="muying-card">
+                <div class="muying-card-name">已填写阶段</div>
+                <div class="muying-card-value">{{$ur.users_with_stage.value??0}}<span>人</span></div>
+                <div class="muying-card-desc">{{$ur.users_with_stage.desc??''}}</div>
+            </div>
+            <div class="muying-card">
+                <div class="muying-card-name">画像完成率</div>
+                <div class="muying-card-value">{{$ur.profile_rate.value??0}}<span>%</span></div>
+                <div class="muying-card-desc">{{$ur.profile_rate.desc??''}}</div>
+            </div>
+        </div>
+        <div class="muying-stage-bar">
+            <span style="font-size:13px;color:#888;margin-right:4px;">阶段分布：</span>
+            <div class="muying-stage-item"><span class="muying-stage-dot prepare"></span>备孕 {{$ur.stage_prepare.value??0}}人</div>
+            <div class="muying-stage-item"><span class="muying-stage-dot pregnancy"></span>孕期 {{$ur.stage_pregnancy.value??0}}人</div>
+            <div class="muying-stage-item"><span class="muying-stage-dot postpartum"></span>产后 {{$ur.stage_postpartum.value??0}}人</div>
+        </div>
     </div>
-    <div class="stat-card">
-        <div class="stat-card-name">活动报名转化率</div>
-        <div class="stat-card-value">{{$activity_signup_conversion_rate.value}}<span>%</span></div>
-        <div class="stat-card-desc">{{$activity_signup_conversion_rate.desc}}</div>
+
+    <div class="muying-section">
+        <div class="muying-section-header">
+            <h3 class="muying-section-title">活动指标</h3>
+            <span class="muying-section-badge">{{$tr.range == 'today' ? '今日' : ($tr.range == 'yesterday' ? '昨日' : ($tr.range == 'last7' ? '近7天' : ($tr.range == 'last30' ? '近30天' : '自定义')))}}</span>
+        </div>
+        <div class="muying-cards">
+            <div class="muying-card">
+                <div class="muying-card-name">活动访问数</div>
+                <div class="muying-card-value">{{$ac.activity_views.value??0}}<span>次</span></div>
+                <div class="muying-card-desc">{{$ac.activity_views.desc??''}}</div>
+            </div>
+            <div class="muying-card highlight">
+                <div class="muying-card-name">报名数</div>
+                <div class="muying-card-value">{{$ac.signups.value??0}}<span>人</span></div>
+                <div class="muying-card-desc">{{$ac.signups.desc??''}}</div>
+            </div>
+            <div class="muying-card">
+                <div class="muying-card-name">候补/待确认</div>
+                <div class="muying-card-value">{{$ac.waitlist.value??0}}<span>人</span></div>
+                <div class="muying-card-desc">{{$ac.waitlist.desc??''}}</div>
+            </div>
+            <div class="muying-card">
+                <div class="muying-card-name">核销/签到数</div>
+                <div class="muying-card-value">{{$ac.checkins.value??0}}<span>人</span></div>
+                <div class="muying-card-desc">{{$ac.checkins.desc??''}}</div>
+            </div>
+            <div class="muying-card">
+                <div class="muying-card-name">到场率</div>
+                <div class="muying-card-value">{{$ac.attendance_rate.value??0}}<span>%</span></div>
+                <div class="muying-card-desc">{{$ac.attendance_rate.desc??''}}</div>
+            </div>
+            <div class="muying-card">
+                <div class="muying-card-name">报名转化率</div>
+                <div class="muying-card-value">{{$ac.signup_rate.value??0}}<span>%</span></div>
+                <div class="muying-card-desc">{{$ac.signup_rate.desc??''}}</div>
+            </div>
+        </div>
     </div>
-    <div class="stat-card">
-        <div class="stat-card-name">商品支付转化率</div>
-        <div class="stat-card-value">{{$product_payment_conversion_rate.value}}<span>%</span></div>
-        <div class="stat-card-desc">{{$product_payment_conversion_rate.desc}}</div>
+
+    <div class="muying-section">
+        <div class="muying-section-header">
+            <h3 class="muying-section-title">邀请指标</h3>
+            <span class="muying-section-badge">{{$tr.range == 'today' ? '今日' : ($tr.range == 'yesterday' ? '昨日' : ($tr.range == 'last7' ? '近7天' : ($tr.range == 'last30' ? '近30天' : '自定义')))}}</span>
+        </div>
+        <div class="muying-cards">
+            <div class="muying-card highlight">
+                <div class="muying-card-name">邀请注册数</div>
+                <div class="muying-card-value">{{$iv.invite_registrations.value??0}}<span>人</span></div>
+                <div class="muying-card-desc">{{$iv.invite_registrations.desc??''}}</div>
+            </div>
+            <div class="muying-card">
+                <div class="muying-card-name">一级邀请成功数</div>
+                <div class="muying-card-value">{{$iv.first_order_success.value??0}}<span>人</span></div>
+                <div class="muying-card-desc">{{$iv.first_order_success.desc??''}}</div>
+            </div>
+            <div class="muying-card">
+                <div class="muying-card-name">邀请转化率</div>
+                <div class="muying-card-value">{{$iv.invite_rate.value??0}}<span>%</span></div>
+                <div class="muying-card-desc">{{$iv.invite_rate.desc??''}}</div>
+            </div>
+        </div>
     </div>
-    <div class="stat-card">
-        <div class="stat-card-name">复购率</div>
-        <div class="stat-card-value">{{$repurchase_rate.value}}<span>%</span></div>
-        <div class="stat-card-desc">{{$repurchase_rate.desc}}</div>
+
+    <div class="muying-section">
+        <div class="muying-section-header">
+            <h3 class="muying-section-title">商品运营</h3>
+            <span class="muying-section-badge">实时</span>
+        </div>
+        <div class="muying-cards">
+            <div class="muying-card">
+                <div class="muying-card-name">上架商品数</div>
+                <div class="muying-card-value">{{$pd.listed_products.value??0}}<span>件</span></div>
+                <div class="muying-card-desc">{{$pd.listed_products.desc??''}}</div>
+            </div>
+            <div class="muying-card warning">
+                <div class="muying-card-name">低库存商品</div>
+                <div class="muying-card-value">{{$pd.low_inventory.value??0}}<span>件</span></div>
+                <div class="muying-card-desc">{{$pd.low_inventory.desc??''}}</div>
+            </div>
+            <div class="muying-card danger">
+                <div class="muying-card-name">高风险待资质</div>
+                <div class="muying-card-value">{{$pd.high_risk_pending.value??0}}</div>
+                <div class="muying-card-desc">{{$pd.high_risk_pending.desc??''}}</div>
+            </div>
+            <div class="muying-card">
+                <div class="muying-card-name">母婴推荐商品</div>
+                <div class="muying-card-value">{{$pd.maternal_products.value??0}}<span>件</span></div>
+                <div class="muying-card-desc">{{$pd.maternal_products.desc??''}}</div>
+            </div>
+        </div>
     </div>
-    <div class="stat-card">
-        <div class="stat-card-name">邀请带新率</div>
-        <div class="stat-card-value">{{$invite_referral_rate.value}}<span>%</span></div>
-        <div class="stat-card-desc">{{$invite_referral_rate.desc}}</div>
+
+    <div class="muying-section">
+        <div class="muying-section-header">
+            <h3 class="muying-section-title">内容/合规</h3>
+            <span class="muying-section-badge">{{$tr.range == 'today' ? '今日' : ($tr.range == 'yesterday' ? '昨日' : ($tr.range == 'last7' ? '近7天' : ($tr.range == 'last30' ? '近30天' : '自定义')))}}</span>
+        </div>
+        <div class="muying-cards">
+            <div class="muying-card warning">
+                <div class="muying-card-name">待审核反馈</div>
+                <div class="muying-card-value">{{$fb.pending_review.value??0}}<span>条</span></div>
+                <div class="muying-card-desc">{{$fb.pending_review.desc??''}}</div>
+            </div>
+            <div class="muying-card">
+                <div class="muying-card-name">已通过反馈</div>
+                <div class="muying-card-value">{{$fb.approved.value??0}}<span>条</span></div>
+                <div class="muying-card-desc">{{$fb.approved.desc??''}}</div>
+            </div>
+            <div class="muying-card">
+                <div class="muying-card-name">敏感词拦截</div>
+                <div class="muying-card-value">{{$fb.sensitive_intercepts.value??0}}<span>条</span></div>
+                <div class="muying-card-desc">{{$fb.sensitive_intercepts.desc??''}}</div>
+            </div>
+        </div>
     </div>
 </div>
+
+<script>
+function muying_toggle_custom(){
+    var sel = document.getElementById('muying_time_range');
+    var cr = document.getElementById('muying_custom_range');
+    if(sel && cr){
+        cr.style.display = (sel.value === 'custom') ? 'inline-flex' : 'none';
+    }
+}
+</script>
 {{/block}}
 
 {{block name="form_operate_top"}}{{/block}}

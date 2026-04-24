@@ -15,9 +15,15 @@ class Muyingstat
             ],
             'form' => [
                 [
-                    'label'     => 'ID',
+                    'label'     => '指标名称',
                     'view_type' => 'field',
-                    'view_key'  => 'id',
+                    'view_key'  => 'metric_name',
+                    'is_sort'   => 0,
+                ],
+                [
+                    'label'     => '指标值',
+                    'view_type' => 'field',
+                    'view_key'  => 'metric_value',
                     'is_sort'   => 0,
                 ],
             ],
