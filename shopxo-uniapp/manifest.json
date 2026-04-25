@@ -141,9 +141,9 @@
     "quickapp": {},
     "mp-weixin": {
         "requiredPrivateInfos": ["chooseLocation", "getLocation"],
-        "appid": "",
+        "appid": "wxda7779770f53e901",
         "setting": {
-            "urlCheck": false,
+            "urlCheck": true,
             "es6": true,
             "minified": true,
             "ignoreDevUnusedFiles": true,
