@@ -62,7 +62,6 @@ var PHASE_ONE_ALLOWED_ROUTES = [
     '/pages/my-invite/my-invite',
     '/pages/invite/invite',
     '/pages/feedback-submit/feedback-submit',
-    '/pages/extraction-address/extraction-address',
     '/pages/plugins/brand/',
     '/pages/plugins/express/',
     '/pages/plugins/coupon/',

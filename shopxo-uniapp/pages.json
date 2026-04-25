@@ -493,18 +493,6 @@
             ]
         },
         {
-            "root": "pages/extraction-address",
-            "pages": [
-                {
-                    "path": "extraction-address",
-                    "style": {
-                        "enablePullDownRefresh": true,
-                        "navigationBarTitleText": ""
-                    }
-                }
-            ]
-        },
-        {
             "root": "pages/common/open-setting-location",
             "pages": [
                 {
