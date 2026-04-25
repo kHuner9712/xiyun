@@ -145,6 +145,17 @@
     import componentQuickNav from '@/components/quick-nav/quick-nav';
     import componentLangSwitch from '@/components/lang-switch/lang-switch';
     import componentSharePopup from '@/components/share-popup/share-popup';
+    // [MUYING-二开] 一期禁止的 DIY 模块 key 列表
+    var BLOCKED_DIY_MODULE_KEYS = [
+        'ask', 'ask-tabs', 'blog-list', 'blog-tabs',
+        'shop', 'realstore', 'seckill',
+        'plugins-video-list', 'plugins-video-tabs',
+        'coupon', 'signin',
+    ];
+    function is_diy_module_blocked(item) {
+        if (!item || !item.key) return false;
+        return BLOCKED_DIY_MODULE_KEYS.indexOf(item.key) !== -1;
+    }
     var system = app.globalData.get_system_info(null, null, true);
     var sys_width = app.globalData.window_width_handle(system.windowWidth);
     var sys_height = app.globalData.window_height_handle(system);
@@ -432,6 +443,10 @@
             // 初始化
             init() {
                 const { header = {}, diy_data = [], tabs_data = [] } = this.propValue;
+                // [MUYING-二开] 过滤一期禁止的 DIY 模块
+                var filtered_diy_data = diy_data.filter(function(item) {
+                    return !is_diy_module_blocked(item);
+                });
                 // 头部的样式
                 let header_style = header.com_data.style;
                 let new_diy_index = 0;
@@ -440,16 +455,18 @@
                 // 数据逻辑处理，区别是否有选项卡头部区域
                 if (tabs_data.length > 0) {
                     tabs_data.forEach((item) => {
+                        // [MUYING-二开] 跳过一期禁止的 DIY 模块
+                        if (is_diy_module_blocked(item)) return;
                         // 修改item的内容
                         item = this.get_index_content(new_diy_index, header, header_style, item);
                         new_tabs_data.push(item);
                         new_diy_index++;
                     });
-                    new_diy_data = diy_data;
+                    new_diy_data = filtered_diy_data;
                 } else {
                     new_tabs_data = tabs_data;
                     // 过滤数据
-                    diy_data.forEach((item, index) => {
+                    filtered_diy_data.forEach((item, index) => {
                         // 判断是否是商品列表
                         if (item.com_name == 'float-window') {
                             item.index = -1;
