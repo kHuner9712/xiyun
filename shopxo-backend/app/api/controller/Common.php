@@ -16,6 +16,7 @@ use app\service\ApiService;
 use app\service\SystemService;
 use app\service\UserService;
 use app\service\ConfigService;
+use app\service\MuyingComplianceService;
 
 /**
  * 接口公共控制器
@@ -159,10 +160,29 @@ class Common extends BaseController
 
     protected static function CheckFeatureEnabled($feature_flag_key)
     {
-        // [MUYING-二开] 默认值改为 0（未配置=关闭），与前端 SystemBaseService 注入逻辑一致
+        // [MUYING-二开] 统一功能开关+资质门禁判断
+        // 一期允许功能：只判断 feature 开关
+        // 高风险功能：同时判断 feature 开关 + 资质门禁
         if (intval(MyC($feature_flag_key, 0)) === 0) {
-            exit(json_encode(DataReturn('该功能暂未开放', -403)));
+            self::ExitFeatureDisabled($feature_flag_key, '该功能暂未开放');
         }
+
+        if (MuyingComplianceService::IsHighRiskFeatureKey($feature_flag_key)) {
+            $plugin_name = MuyingComplianceService::GetPluginNameByFeatureKey($feature_flag_key);
+            if (!empty($plugin_name) && !MuyingComplianceService::IsQualificationMetForPlugin($plugin_name)) {
+                $missing = MuyingComplianceService::GetMissingQualifications($plugin_name);
+                $reason = '当前资质暂不支持该功能，缺少：' . implode('、', $missing);
+                self::ExitFeatureDisabled($feature_flag_key, $reason);
+            }
+        }
+    }
+
+    private static function ExitFeatureDisabled($feature_flag_key, $reason)
+    {
+        try {
+            \think\facade\Log::write('[MUYING] API feature blocked: key=' . $feature_flag_key . ' reason=' . $reason, 'warning');
+        } catch (\Exception $e) {}
+        exit(json_encode(DataReturn($reason, -403)));
     }
 
     /**

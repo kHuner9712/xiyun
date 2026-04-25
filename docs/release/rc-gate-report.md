@@ -119,10 +119,15 @@
 |------|----------|------|------|---------|
 | 1 | `shopxo.sql` | `shopxo-backend/config/shopxo.sql` | ShopXO 主库初始化（含 DROP TABLE） | ❌ |
 | 2 | `muying-final-migration.sql` | `docs/muying-final-migration.sql` | 孕禧核心表+补丁+索引 | ❌ |
-| 3 | `muying-feedback-review-migration.sql` | `docs/muying-feedback-review-migration.sql` | 反馈审核字段 | ✅ 幂等 |
-| 4 | `muying-invite-reward-unify-migration.sql` | `docs/muying-invite-reward-unify-migration.sql` | 邀请奖励统一 | ✅ 幂等 |
-| 5 | `muying-feature-flag-upgrade-migration.sql` | `docs/muying-feature-flag-upgrade-migration.sql` | 功能开关配置 | ✅ 幂等 |
-| 6 | `muying-admin-power-migration.sql` | `docs/muying-admin-power-migration.sql` | 后台菜单权限 | ✅ 幂等 |
+| 3 | `muying-feature-switch-migration.sql` | `docs/sql/muying-feature-switch-migration.sql` | 功能开关完整初始化+资质门禁 | ✅ 幂等 |
+| 4 | `muying-feedback-review-migration.sql` | `docs/muying-feedback-review-migration.sql` | 反馈审核字段 | ✅ 幂等 |
+| 5 | `muying-invite-reward-unify-migration.sql` | `docs/muying-invite-reward-unify-migration.sql` | 邀请奖励统一 | ✅ 幂等 |
+| 6 | `muying-privacy-security-migration.sql` | `docs/sql/muying-privacy-security-migration.sql` | 隐私安全字段+审计日志表 | ✅ 幂等 |
+| 7 | `muying-goods-compliance-migration.sql` | `docs/sql/muying-goods-compliance-migration.sql` | 商品合规字段 | ✅ 幂等 |
+| 8 | `muying-activity-upgrade-migration.sql` | `docs/muying-activity-upgrade-migration.sql` | 活动升级（候补/签到码） | ✅ 幂等 |
+| 9 | `muying-feature-flag-upgrade-migration.sql` | `docs/muying-feature-flag-upgrade-migration.sql` | 功能开关升级补丁（v2 开关） | ✅ 幂等 |
+| 10 | `muying-admin-power-migration.sql` | `docs/muying-admin-power-migration.sql` | 后台菜单权限（700-760） | ✅ 幂等 |
+| 11 | `muying-compliance-center-migration.sql` | `docs/sql/muying-compliance-center-migration.sql` | 合规中心菜单（770-775）+合规日志 | ✅ 幂等 |
 
 > 详细执行命令和验证方式见 [db-migration-order.md](db-migration-order.md)
 
@@ -182,7 +187,7 @@ bash scripts/preflight/check-wechat-submit-readiness.sh .
 | 1 | 宝塔创建网站+数据库 | 域名填测试域名或 IP，数据库字符集 utf8mb4 |
 | 2 | 上传后端代码 | git clone → 复制到站点目录 |
 | 3 | 配置 .env | 复制 .env.production.example → 填入数据库连接 |
-| 4 | 导入 SQL | 按 4.4 顺序执行 6 个 SQL 文件 |
+| 4 | 导入 SQL | 按 4.4 顺序执行 11 个 SQL 文件 |
 | 5 | 安装依赖+权限 | composer install + fix-permissions.sh |
 | 6 | Nginx 配置 | 参照 nginx.production.example.conf |
 | 7 | 验证后端 | 访问 API 返回 JSON + 后台可登录 |
@@ -270,7 +275,7 @@ bash scripts/preflight/check-wechat-submit-readiness.sh .
 
 1. 宝塔创建网站+数据库
 2. 上传代码+配置 .env
-3. 按顺序执行 6 个 SQL 迁移
+3. 按顺序执行 11 个 SQL 迁移
 4. composer install + 权限修复
 5. Nginx 配置（参照示例）
 6. 后台配置+录入内容

@@ -57,17 +57,21 @@
 
 ## 五、数据库迁移 SQL（执行顺序见 db-migration-order.md）
 
-### 主链路 SQL（必须按顺序执行）
+### 主链路 SQL（必须按顺序执行，共 11 步）
 
 | 序号 | 文件 | 路径 | 用途 | 可重复 |
 |:---:|------|------|------|:---:|
 | 1 | shopxo.sql | `shopxo-backend/config/shopxo.sql` | ShopXO 主库初始化 | ❌ |
 | 2 | muying-final-migration.sql | [docs/muying-final-migration.sql](muying-final-migration.sql) | 孕禧核心表+补丁+索引（唯一真相源） | ❌ |
-| 3 | muying-feature-switch-migration.sql | [docs/sql/muying-feature-switch-migration.sql](sql/muying-feature-switch-migration.sql) | 功能开关配置初始化（高风险默认关闭） | ✅ |
+| 3 | muying-feature-switch-migration.sql | [docs/sql/muying-feature-switch-migration.sql](sql/muying-feature-switch-migration.sql) | 功能开关完整初始化+资质门禁 | ✅ |
 | 4 | muying-feedback-review-migration.sql | [docs/muying-feedback-review-migration.sql](muying-feedback-review-migration.sql) | 反馈审核字段 | ✅ |
 | 5 | muying-invite-reward-unify-migration.sql | [docs/muying-invite-reward-unify-migration.sql](muying-invite-reward-unify-migration.sql) | 邀请奖励统一 | ✅ |
-| 6 | muying-feature-flag-upgrade-migration.sql | [docs/muying-feature-flag-upgrade-migration.sql](muying-feature-flag-upgrade-migration.sql) | 功能开关补充（二期扩展） | ✅ |
-| 7 | muying-admin-power-migration.sql | [docs/muying-admin-power-migration.sql](muying-admin-power-migration.sql) | 后台菜单权限 | ✅ |
+| 6 | muying-privacy-security-migration.sql | [docs/sql/muying-privacy-security-migration.sql](sql/muying-privacy-security-migration.sql) | 隐私安全字段+审计日志表 | ✅ |
+| 7 | muying-goods-compliance-migration.sql | [docs/sql/muying-goods-compliance-migration.sql](sql/muying-goods-compliance-migration.sql) | 商品合规字段 | ✅ |
+| 8 | muying-activity-upgrade-migration.sql | [docs/muying-activity-upgrade-migration.sql](muying-activity-upgrade-migration.sql) | 活动升级（候补/签到码） | ✅ |
+| 9 | muying-feature-flag-upgrade-migration.sql | [docs/muying-feature-flag-upgrade-migration.sql](muying-feature-flag-upgrade-migration.sql) | 功能开关升级补丁（v2 开关） | ✅ |
+| 10 | muying-admin-power-migration.sql | [docs/muying-admin-power-migration.sql](muying-admin-power-migration.sql) | 后台菜单权限（700-760） | ✅ |
+| 11 | muying-compliance-center-migration.sql | [docs/sql/muying-compliance-center-migration.sql](sql/muying-compliance-center-migration.sql) | 合规中心菜单（770-775）+合规日志 | ✅ |
 
 ### 演示数据 SQL（可选）
 
@@ -101,6 +105,7 @@
 | check-server.sh | `scripts/preflight/check-server.sh` | 服务器环境预检 |
 | check-runtime-config.sh | `scripts/preflight/check-runtime-config.sh` | 运行时配置检查 |
 | check-admin-bootstrap.sh | `scripts/preflight/check-admin-bootstrap.sh` | 后台初始化检查 |
+| **check-db-schema-readiness.sh** | `scripts/preflight/check-db-schema-readiness.sh` | **数据库 Schema 就绪检查（字段/表/配置/菜单/ID冲突）** |
 
 ### 预检脚本使用说明
 
