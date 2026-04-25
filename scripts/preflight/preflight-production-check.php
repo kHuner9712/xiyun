@@ -373,7 +373,14 @@ section("11. pages.json 合规检查");
 $pages_json_path = $repo_path . '/shopxo-uniapp/pages.json';
 if (file_exists($pages_json_path)) {
     $pages_content = file_get_contents($pages_json_path);
-    $blocked_plugin_patterns = ['/plugins\/wallet/', '/plugins\/coin/', '/plugins\/distribution/', '/plugins\/shop/', '/plugins\/realstore/', '/plugins\/ask/', '/plugins\/blog/', '/plugins\/seckill/', '/plugins\/video/', '/plugins\/hospital/', '/plugins\/giftcard/', '/plugins\/membershiplevelvip/', '/plugins\/weixinliveplayer/', '/plugins\/scanpay/', '/plugins\/complaint/', '/plugins\/invoice/', '/plugins\/certificate/', '/plugins\/intellectstools/', '/extraction-address/'];
+    $blocked_plugin_patterns = [
+        '/plugins/wallet/', '/plugins/coin/', '/plugins/distribution/', '/plugins/shop/',
+        '/plugins/realstore/', '/plugins/ask/', '/plugins/blog/', '/plugins/seckill/',
+        '/plugins/video/', '/plugins/hospital/', '/plugins/giftcard/', '/plugins/membershiplevelvip/',
+        '/plugins/weixinliveplayer/', '/plugins/scanpay/', '/plugins/complaint/',
+        '/plugins/invoice/', '/plugins/certificate/', '/plugins/intellectstools/',
+        '/extraction-address/'
+    ];
     $found_blocked = false;
     foreach ($blocked_plugin_patterns as $pattern) {
         if (strpos($pages_content, $pattern) !== false) {

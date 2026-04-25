@@ -38,7 +38,7 @@ class UserIntegral extends Common
         parent::__construct();
 
         // [MUYING-二开] 积分功能开关检查
-        self::CheckFeatureEnabled(self::$FEATURE_FLAG_KEY);
+        $this->CheckFeatureEnabled(self::$FEATURE_FLAG_KEY);
 
         // 是否登录
         $this->IsLogin();

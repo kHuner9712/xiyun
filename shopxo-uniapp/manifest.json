@@ -140,10 +140,10 @@
     },
     "quickapp": {},
     "mp-weixin": {
-        "requiredPrivateInfos": ["chooseLocation", "getLocation"],
+        "requiredPrivateInfos": [],
         "appid": "",
         "setting": {
-            "urlCheck": false,
+            "urlCheck": true,
             "es6": true,
             "minified": true,
             "ignoreDevUnusedFiles": true,
@@ -154,11 +154,6 @@
         },
         "lazyCodeLoading": "requiredComponents",
         "usingComponents": true,
-        "permission": {
-            "scope.userLocation": {
-                "desc": "用于活动签到、收货地址选择，为您提供附近的活动和服务"
-            }
-        },
         "__usePrivacyCheck__": true,
         "plugins": {}
     },

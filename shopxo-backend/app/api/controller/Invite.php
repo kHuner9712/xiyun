@@ -12,7 +12,7 @@ class Invite extends Common
     public function __construct()
     {
         parent::__construct();
-        self::CheckFeatureEnabled(self::$FEATURE_FLAG_KEY);
+        $this->CheckFeatureEnabled(self::$FEATURE_FLAG_KEY);
         $action = strtolower(request_action());
         $public_actions = ['rewardconfigpublic'];
         if (!in_array($action, $public_actions)) {

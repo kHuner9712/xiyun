@@ -169,13 +169,10 @@ class Common extends BaseController
 		}
     }
 
-    protected static function CheckFeatureEnabled($feature_flag_key)
+    protected function CheckFeatureEnabled($feature_flag_key)
     {
-        // [MUYING-二开] 统一功能开关+资质门禁判断
-        // 一期允许功能：只判断 feature 开关
-        // 高风险功能：同时判断 feature 开关 + 资质门禁
         if (intval(MyC($feature_flag_key, 0)) === 0) {
-            self::ExitFeatureDisabled($feature_flag_key, '该功能暂未开放');
+            $this->ExitFeatureDisabled($feature_flag_key, '该功能暂未开放');
         }
 
         if (MuyingComplianceService::IsHighRiskFeatureKey($feature_flag_key)) {
@@ -183,12 +180,12 @@ class Common extends BaseController
             if (!empty($plugin_name) && !MuyingComplianceService::IsQualificationMetForPlugin($plugin_name)) {
                 $missing = MuyingComplianceService::GetMissingQualifications($plugin_name);
                 $reason = '当前资质暂不支持该功能，缺少：' . implode('、', $missing);
-                self::ExitFeatureDisabled($feature_flag_key, $reason);
+                $this->ExitFeatureDisabled($feature_flag_key, $reason);
             }
         }
     }
 
-    private static function ExitFeatureDisabled($feature_flag_key, $reason)
+    private function ExitFeatureDisabled($feature_flag_key, $reason)
     {
         $controller = '';
         $action = '';
@@ -199,8 +196,8 @@ class Common extends BaseController
             $action = request()->action();
             $ip = !empty($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '';
         } catch (\Exception $e) {}
-        if (!empty(self::$user) && !empty(self::$user['id'])) {
-            $user_id = intval(self::$user['id']);
+        if (!empty($this->user) && !empty($this->user['id'])) {
+            $user_id = intval($this->user['id']);
         }
 
         try {
@@ -304,7 +301,7 @@ class Common extends BaseController
         // [MUYING-二开] 集中式合规安全网：自动检查当前控制器是否需要功能开关
         $ctrl = strtolower($this->controller_name);
         if (isset(self::$CONTROLLER_FEATURE_MAP[$ctrl])) {
-            self::CheckFeatureEnabled(self::$CONTROLLER_FEATURE_MAP[$ctrl]);
+            $this->CheckFeatureEnabled(self::$CONTROLLER_FEATURE_MAP[$ctrl]);
         }
 	}
 

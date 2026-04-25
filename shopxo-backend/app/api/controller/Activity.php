@@ -13,7 +13,7 @@ class Activity extends Common
     public function __construct()
     {
         parent::__construct();
-        self::CheckFeatureEnabled(self::$FEATURE_FLAG_KEY);
+        $this->CheckFeatureEnabled(self::$FEATURE_FLAG_KEY);
     }
 
     public function Index()
