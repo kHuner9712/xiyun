@@ -14,6 +14,7 @@ use think\facade\Db;
 use app\service\SystemService;
 use app\service\ResourcesService;
 use app\service\StoreService;
+use app\service\MuyingComplianceService;
 
 /**
  * 支付方式服务层
@@ -350,10 +351,11 @@ class PaymentService
 
     public static function GetComplianceBlockedPayments()
     {
-        $blocked = ['WalletPay', 'ChargePayment'];
+        $blocked = [];
         if(intval(MyC('feature_wallet_enabled', 0)) !== 1)
         {
             $blocked[] = 'WalletPay';
+            $blocked[] = 'ChargePayment';
         }
         if(intval(MyC('feature_coin_enabled', 0)) !== 1)
         {
@@ -374,6 +376,38 @@ class PaymentService
     public static function IsComplianceBlockedPayment($payment_name)
     {
         return in_array($payment_name, self::GetComplianceBlockedPayments());
+    }
+
+    private static function GetPaymentFeatureMapping()
+    {
+        return [
+            'WalletPay'      => 'feature_wallet_enabled',
+            'ChargePayment'  => 'feature_wallet_enabled',
+            'CoinPay'        => 'feature_coin_enabled',
+            'UniPayment'     => 'feature_coin_enabled',
+            'GiftCardPay'    => 'feature_giftcard_enabled',
+            'ScanPay'        => 'feature_scanpay_enabled',
+        ];
+    }
+
+    public static function CheckPaymentEnableCompliance($payment_name)
+    {
+        if(!self::IsComplianceBlockedPayment($payment_name))
+        {
+            return DataReturn('success', 0);
+        }
+
+        $mapping = self::GetPaymentFeatureMapping();
+        $feature_key = $mapping[$payment_name] ?? 'unknown';
+
+        $admin = \app\service\AdminService::LoginInfo();
+        MuyingComplianceService::LogComplianceBlock(
+            $admin,
+            $feature_key,
+            '尝试启用支付方式[' . $payment_name . ']，当前资质暂不支持'
+        );
+
+        return DataReturn('当前资质暂不支持启用该支付方式', -403);
     }
 
     /**
@@ -475,6 +509,16 @@ class PaymentService
         if($ret['code'] != 0)
         {
             return $ret;
+        }
+
+        // [MUYING-二开] 合规拦截：未获资质的支付方式不允许启用
+        if(isset($params['is_enable']) && intval($params['is_enable']) === 1)
+        {
+            $ret = self::CheckPaymentEnableCompliance($info['payment']);
+            if($ret['code'] != 0)
+            {
+                return $ret;
+            }
         }
 
         // 附件
@@ -595,6 +639,16 @@ class PaymentService
         if($ret !== true)
         {
             return DataReturn($ret, -1);
+        }
+
+        // [MUYING-二开] 合规拦截：启用被屏蔽的支付方式时拒绝
+        if($params['field'] === 'is_enable' && intval($params['state']) === 1)
+        {
+            $ret = self::CheckPaymentEnableCompliance($params['id']);
+            if($ret['code'] != 0)
+            {
+                return $ret;
+            }
         }
 
         // 数据更新

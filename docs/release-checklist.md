@@ -100,6 +100,10 @@
 | 5.15 | 邀请有礼正常 | ☐ | 海报/邀请记录 |
 | 5.16 | 意见反馈正常 | ☐ | 提交/查看 |
 | 5.17 | 文章/孕育知识正常 | ☐ | 列表/详情 |
+| 5.18 | 后台启用 WalletPay 被拒 | ☐ | PaymentSave/PaymentStatusUpdate 返回 -403 |
+| 5.19 | 后台启用 CoinPay 被拒 | ☐ | PaymentStatusUpdate 返回 -403 |
+| 5.20 | 后台启用 GiftCardPay 被拒 | ☐ | PaymentStatusUpdate 返回 -403 |
+| 5.21 | 后台启用 ScanPay 被拒 | ☐ | PaymentStatusUpdate 返回 -403 |
 
 ## 6. 后台功能验证
 

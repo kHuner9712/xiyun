@@ -179,3 +179,10 @@
 | D-18 | 后台创建活动 | 后台→活动管理→新增 | 保存成功+小程序可见 | |
 | D-19 | 快照幂等 | 连续执行2次GenerateDailySnapshot | 同一天不重复插入 | |
 | D-20 | 重复迁移 | 执行2次migrate-encrypt-sensitive.php --force | 已加密数据不重复加密 | |
+| D-21 | 后台启用WalletPay被拒 | 后台→支付管理→启用WalletPay | 返回-403+合规日志记录 | |
+| D-22 | 后台启用CoinPay被拒 | 后台→支付管理→启用CoinPay | 返回-403+合规日志记录 | |
+| D-23 | 后台启用GiftCardPay被拒 | 后台→支付管理→启用GiftCardPay | 返回-403+合规日志记录 | |
+| D-24 | 后台启用ScanPay被拒 | 后台→支付管理→启用ScanPay | 返回-403+合规日志记录 | |
+| D-25 | 后台保存WalletPay启用被拒 | 后台→支付编辑→is_enable=1→保存 | 返回-403 | |
+| D-26 | 后台禁用WalletPay正常 | 后台→支付管理→禁用WalletPay | 操作成功（不拦截关闭） | |
+| D-27 | 后台启用微信支付正常 | 后台→支付管理→启用WeixinAppMini | 操作成功（不在屏蔽列表） | |
