@@ -16,6 +16,8 @@
 | 1.6 | .env 已创建且 APP_DEBUG=false | ☐ | 从 .env.production.example 复制并替换占位符 |
 | 1.7 | 数据库迁移已执行 | ☐ | 执行 muying-final-migration.sql |
 | 1.8 | MUYING_PRIVACY_KEY 已配置 | ☐ | AES-256-CBC 密钥，≥16字符 |
+| 1.8a | 敏感数据迁移 dry-run 已执行 | ☐ | php scripts/migrate-encrypt-sensitive.php --dry-run，确认扫描/加密数量 |
+| 1.8b | 敏感数据迁移正式执行已完成 | ☐ | php scripts/migrate-encrypt-sensitive.php --force，确认无失败记录 |
 | 1.9 | 后台入口文件名已混淆 | ☐ | adminwlmqhs.php，不要改回 admin.php |
 | 1.10 | install.php 已删除或禁用 | ☐ | 部署后删除 public/install.php |
 | 1.11 | runtime 目录不可公网访问 | ☐ | Nginx 规则禁止访问 runtime/ |

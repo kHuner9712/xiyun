@@ -857,5 +857,70 @@
 
 ### Commit 信息
 
-- **commit**: （待提交）
+- **commit**: `af9ed10`
 - **message**: `fix(payment): block wallet and stored-value payment methods server-side`
+
+---
+
+## 2026-04-26 — 第十三轮补齐旧敏感数据加密迁移脚本
+
+### 整改目标
+
+补齐 `scripts/migrate-encrypt-sensitive.php` 脚本，确保已有明文敏感数据可以安全迁移为加密存储，并补齐 hash 字段。该脚本在文档中被引用但实际不存在，属于生产前必须完成的安全能力。
+
+### 核心变更
+
+1. **新建 `scripts/migrate-encrypt-sensitive.php`** — 可重复、安全、可 dry-run 的旧数据加密迁移脚本
+2. **支持 4 个 CLI 参数** — `--dry-run`/`--batch=N`/`--table=all|activity_signup|feedback|user`/`--force`
+3. **5 项运行前检查** — MUYING_PRIVACY_KEY、APP_DEBUG、数据库连接、表/字段存在性、--force 必须参数
+4. **字段宽度自动扩展** — 检测 char(30)/varchar(60) 等不足以存储加密数据的字段，自动 ALTER TABLE 扩展为 VARCHAR(255)
+5. **用户表安全检查** — 明确 sxo_users.mobile 不加密（避免破坏登录逻辑），muying 字段非 PII 无需加密
+6. **加密规则完整** — 已加密不重复加密、明文生成 hash、空值跳过、单条异常不中断、日志不记录明文
+7. **审计日志** — 写入 `runtime/log/muying_encrypt_migration_日期.log`，不记录完整手机号/姓名
+8. **5 项统计输出** — scanned/encrypted/hash_filled/skipped/failed
+9. **新建 `docs/sensitive-data-migration.md`** — 迁移指南（备份/dry-run/正式执行/回滚/验证清单/FAQ）
+10. **更新 `docs/known-risks.md`** — 新增 R-05"旧数据未加密"，状态为"有脚本，部署时必须执行"
+11. **更新 `docs/release-checklist.md`** — 新增 1.8a dry-run 检查项和 1.8b 正式迁移检查项
+
+### 迁移范围
+
+| 表 | 加密字段 | Hash 字段 | 版本字段 |
+|---|---------|----------|---------|
+| sxo_activity_signup | name, phone | phone_hash | privacy_version |
+| sxo_muying_feedback | contact | contact_hash | — |
+| sxo_users | 不加密 | — | — |
+
+### 修改文件清单
+
+| 文件 | 修改内容 |
+|------|----------|
+| `scripts/migrate-encrypt-sensitive.php` | 新建：敏感数据加密迁移脚本 |
+| `docs/sensitive-data-migration.md` | 新建：迁移指南文档 |
+| `docs/known-risks.md` | 新增 R-05 风险项 |
+| `docs/release-checklist.md` | 新增 1.8a/1.8b 检查项 |
+| `docs/trae-remediation-log.md` | 追加本轮整改记录 |
+
+### 自测结果
+
+| 验证项 | 结果 | 说明 |
+|--------|------|------|
+| dry-run 不写数据库 | ✅ | $isDryRun 为 true 时跳过所有 Db::update |
+| 已加密字段不重复加密 | ✅ | IsEncrypted() 检测后跳过 |
+| 明文手机号生成 hash | ✅ | HashPhone() 生成 SHA-256 |
+| 无 MUYING_PRIVACY_KEY 时拒绝执行 | ✅ | 预检查 BLOCKER 退出 |
+| 单条异常不影响其他记录 | ✅ | try/catch 包裹每条记录处理 |
+| 日志不出现完整手机号/姓名 | ✅ | maskValue() 脱敏为 `1***4` 格式 |
+| 脚本兼容 PHP 8.1 | ✅ | 无 PHP 8.2+ 特性 |
+| 脚本兼容 MySQL 5.7 | ✅ | 无 JSON/窗口函数/CTE |
+| 字段宽度自动扩展 | ✅ | ALTER TABLE MODIFY VARCHAR(255) |
+| 用户表 mobile 不加密 | ✅ | 明确跳过并说明原因 |
+| --force 必须参数 | ✅ | 无 --force 无 --dry-run 时拒绝执行 |
+| 迁移可重复执行 | ✅ | 已加密数据跳过 |
+
+### 遗留风险
+
+| # | 风险 | 严重性 | 说明 |
+|---|------|--------|------|
+| 1 | 迁移期间新写入数据 | 低 | 新数据自动加密，建议低峰期执行 |
+| 2 | 字段扩展锁表 | 低 | ALTER TABLE 在大表上可能锁表，建议低峰期执行 |
+| 3 | 回滚依赖数据库备份 | 中 | 无"解密回明文"SQL 函数，必须依赖备份恢复 |
