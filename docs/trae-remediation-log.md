@@ -576,3 +576,70 @@
 | 2 | 复购率计算依赖 Order 表 | 低 | 如果 Order 表数据量大，查询可能较慢 |
 | 3 | Muyinguser 控制器直接操作 User 表 | 低 | 未通过 ShopXO 原生 UserService，但不破坏核心功能 |
 | 4 | 用户详情页审计日志 | 低 | 查看 Muyinguser 详情时记录审计日志，但 User 控制器原有查看未记录 |
+
+---
+
+## 2026-04-26 — 第九轮自营商品与母婴标签体系整改
+
+### 整改目标
+
+在不做多商户、不做平台、不做分销的前提下，把商品系统整理成适合母婴行业的自营商品体系。
+
+### 核心变更
+
+1. **后台商品编辑优化** — `saveinfo.html` 中 stage 和 selling_point 从文本输入改为复选框/标签选择，新增 JS 同步逻辑将复选框值写入隐藏字段
+2. **后端接口增加阶段筛选** — `GoodsService::AutoGoodsList` 和 `GoodsSearchList` 新增 `muying_stage` 和 `is_muying_recommend` 筛选参数
+3. **新增母婴推荐 API** — `Goods::MuyingRecommend` 接口，返回 `is_muying_recommend=1` 的商品列表及阶段选项
+4. **前端商品分类页增加阶段筛选** — `goods-category.vue` 新增横向滚动阶段筛选栏（全部/备孕/孕期/产后/通用）
+5. **前端商品搜索页增加阶段筛选** — `goods-search.vue` 新增横向滚动阶段筛选栏，筛选参数传递到后端
+6. **商品详情页展示母婴标签** — 已有阶段标签、卖点标签、月龄、关注领域展示（前序已完成）
+7. **首页推荐商品** — 已有母婴推荐商品区域（前序已完成）
+8. **buy.vue 虚拟币支付合规清理** — 移除虚拟币支付选项，无支付方式时允许生成待支付订单并显示友好提示
+9. **购物车合规清理** — 隐藏门店(realstore)购物车模式，注释门店购物车组件
+10. **订单合规清理** — 隐藏门店分账/批量订单/次卡按钮
+11. **支付组件合规清理** — 过滤 WalletPay 支付方式，拦截钱包支付调用
+12. **母婴通用样式补充** — `muying.css` 新增阶段筛选滚动样式
+
+### 修改文件清单
+
+| 文件 | 修改内容 |
+|------|----------|
+| `shopxo-backend/app/admin/view/default/goods/saveinfo.html` | stage/selling_point 改为复选框+标签选择，新增 JS 同步逻辑 |
+| `shopxo-backend/app/api/controller/Goods.php` | 新增 MuyingRecommend API 端点 |
+| `shopxo-backend/app/service/GoodsService.php` | AutoGoodsList/GoodsSearchList 增加 muying_stage/is_muying_recommend 筛选 |
+| `shopxo-uniapp/pages/goods-category/goods-category.vue` | 新增阶段筛选栏+筛选事件+数据传递 |
+| `shopxo-uniapp/pages/goods-search/goods-search.vue` | 新增阶段筛选栏+筛选事件+数据传递 |
+| `shopxo-uniapp/pages/buy/buy.vue` | 移除虚拟币支付、门店次卡，优化无支付提示 |
+| `shopxo-uniapp/components/cart/cart.vue` | 隐藏门店购物车，引入合规拦截 |
+| `shopxo-uniapp/components/payment/payment.vue` | 过滤 WalletPay，拦截钱包支付 |
+| `shopxo-uniapp/pages/user-order/user-order.vue` | 隐藏门店分账/批量/次卡按钮 |
+| `shopxo-uniapp/common/css/muying.css` | 新增阶段筛选滚动样式 |
+| `docs/muying-final-migration.sql` | 已有 stage/selling_point/baby_month_age 等字段（前序已完成） |
+
+### 自测结果
+
+| 验证项 | 结果 | 说明 |
+|--------|------|------|
+| 后台能编辑商品母婴标签 | ✅ 复选框选择+自定义标签输入 |
+| 前端商品列表正常 | ✅ 分类页/搜索页阶段筛选不破坏原有列表 |
+| 商品详情展示母婴标签 | ✅ 阶段标签+卖点标签+月龄+关注领域（前序已完成） |
+| 首页能读取推荐商品 | ✅ MuyingRecommend API 返回 is_muying_recommend=1 的商品 |
+| 购物车基础功能不被破坏 | ✅ 仅隐藏门店模式，自营购物车正常 |
+| 订单基础功能不被破坏 | ✅ 仅隐藏门店分账按钮，核心订单流程正常 |
+| 高风险店铺/分销/钱包入口不出现 | ✅ 门店购物车隐藏+分账按钮隐藏+WalletPay 过滤+虚拟币移除 |
+| 无支付方式时友好提示 | ✅ 显示"当前为体验版"提示，允许生成待支付订单 |
+| 数据库字段完整 | ✅ stage/selling_point/min_baby_month_age/max_baby_month_age/focus_areas 等已存在 |
+| MySQL 5.7 兼容 | ✅ 无 JSON 列、无窗口函数、无 CTE |
+
+### 遗留风险
+
+| # | 风险 | 严重性 | 说明 |
+|---|------|--------|------|
+| 1 | 门店购物车组件仅注释未删除 | 低 | 后续如需恢复门店模式，取消注释即可 |
+| 2 | WalletPay 仅前端过滤 | 中 | 后端仍可能返回 WalletPay 支付方式，建议后端也过滤 |
+| 3 | 阶段筛选使用 LIKE 查询 | 低 | stage 字段使用逗号分隔存储，LIKE 查询可能匹配子串，但当前阶段值（prepare/pregnancy/postpartum/all）不存在子串冲突 |
+
+### Commit 信息
+
+- **commit**: `9742871`
+- **message**: `feat(goods): add self-operated muying product tags`
