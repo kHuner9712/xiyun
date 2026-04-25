@@ -764,3 +764,55 @@
 
 - **commit**: `5a0313d`
 - **message**: `chore(release): add phase-one launch checks and integration fixes`
+
+---
+
+## 2026-04-26 — 第十一轮合规拦截运行错误修复与 manifest 配置对齐
+
+### 整改目标
+
+修复合规拦截运行错误风险（`self::$user` 在 static 方法中访问实例属性）与小程序 manifest.json 配置与文档不一致问题。
+
+### 核心变更
+
+1. **修复 Common.php 合规拦截 fatal error** — `CheckFeatureEnabled` 和 `ExitFeatureDisabled` 从 `static` 方法改为实例方法，使用 `$this->user` 替代 `self::$user`，确保触发合规拦截时稳定返回 -403
+2. **子控制器调用方式统一** — Activity/Article/Feedback/Invite/Muyinguser/Userintegral 6 个控制器从 `self::CheckFeatureEnabled()` 改为 `$this->CheckFeatureEnabled()`
+3. **新增合规拦截静态检查脚本** — `scripts/preflight/check-compliance-gate.php`，检测 `self::$user` 错误访问、CheckFeatureEnabled 调用方式、CONTROLLER_FEATURE_MAP 一致性、pages.json 高风险路径、manifest.json 定位权限
+4. **修复 manifest.json 与文档不一致** — 清空 `requiredPrivateInfos`、移除 `permission.scope.userLocation`、`urlCheck` 改为 `true`
+5. **修复 preflight pages.json 检查逻辑** — 去掉 pattern 中的正则转义符 `\/`，确保 `strpos` 能正确匹配高风险插件路径
+6. **更新文档** — release-checklist.md、wechat-miniapp-submit-checklist.md 定位权限说明与代码一致
+
+### 修改文件清单
+
+| 文件 | 修改内容 |
+|------|----------|
+| `shopxo-backend/app/api/controller/Common.php` | CheckFeatureEnabled/ExitFeatureDisabled 改为实例方法 |
+| `shopxo-backend/app/api/controller/Activity.php` | `self::` → `$this->` |
+| `shopxo-backend/app/api/controller/Article.php` | `self::` → `$this->` |
+| `shopxo-backend/app/api/controller/Feedback.php` | `self::` → `$this->` |
+| `shopxo-backend/app/api/controller/Invite.php` | `self::` → `$this->` |
+| `shopxo-backend/app/api/controller/Muyinguser.php` | `self::` → `$this->` |
+| `shopxo-backend/app/api/controller/Userintegral.php` | `self::` → `$this->` |
+| `shopxo-uniapp/manifest.json` | 清空 requiredPrivateInfos、移除 permission.scope.userLocation、urlCheck=true |
+| `scripts/preflight/check-compliance-gate.php` | 新建：合规拦截静态检查脚本 |
+| `scripts/preflight/preflight-production-check.php` | 修复 pages.json 检查 pattern |
+| `docs/release-checklist.md` | 定位权限说明更新 |
+| `docs/wechat-miniapp-submit-checklist.md` | 定位权限说明更新 |
+
+### 自测结果
+
+| 验证项 | 结果 | 说明 |
+|--------|------|------|
+| 全仓库无 `self::$user` | ✅ | grep 确认零匹配 |
+| 合规拦截不 fatal | ✅ | static→实例方法，`$this->user` 安全访问 |
+| preflight 能识别高风险插件路径 | ✅ | 去掉正则转义符，strpos 正确匹配 |
+| manifest.json requiredPrivateInfos 为空 | ✅ | 一期不强制定位 |
+| manifest.json urlCheck=true | ✅ | 提审必须开启 |
+| manifest.json 无 permission.scope.userLocation | ✅ | 一期不申请定位 |
+| manifest/整改日志/提审文档三者一致 | ✅ | 全部标注"一期不申请定位，后续按需开启" |
+| git diff 无真实 AppID/域名/密钥 | ✅ | grep 确认无敏感数据 |
+
+### Commit 信息
+
+- **commit**: `bf5fd2b`
+- **message**: `fix(compliance): stabilize feature gate errors and align miniapp manifest`
