@@ -4,6 +4,7 @@ namespace app\admin\controller;
 use app\admin\controller\Base;
 use app\service\ApiService;
 use app\service\ActivityService;
+use app\service\MuyingPrivacyService;
 use app\service\ResourcesService;
 use think\facade\Db;
 
@@ -42,12 +43,14 @@ class Activity extends Base
             $checkin_count = Db::name('ActivitySignup')
                 ->where(['activity_id' => $data['id'], 'is_delete_time' => 0, 'checkin_status' => 1])
                 ->count();
+            $can_view_sensitive = !empty($this->admin) && MuyingPrivacyService::CanViewSensitive($this->admin);
             foreach ($signup_list as $k => &$v) {
                 $v['status_text'] = ActivityService::SignupStatusText($v['status']);
                 $v['checkin_status_text'] = ActivityService::CheckinStatusText($v['checkin_status']);
                 $v['is_waitlist_text'] = empty($v['is_waitlist']) ? '' : '候补';
                 $v['stage_text'] = \app\extend\muying\MuyingStage::getName(\app\extend\muying\MuyingStage::Normalize($v['stage']));
                 $v['add_time_text'] = empty($v['add_time']) ? '' : date('Y-m-d H:i:s', $v['add_time']);
+                $v = MuyingPrivacyService::MaskSignupRow($v, $can_view_sensitive);
             }
         }
         MyViewAssign([
@@ -57,6 +60,8 @@ class Activity extends Base
             'signup_confirmed_count' => $signup_confirmed_count,
             'waitlist_count'         => $waitlist_count,
             'checkin_count'          => $checkin_count,
+            'can_view_sensitive'     => !empty($this->admin) && MuyingPrivacyService::CanViewSensitive($this->admin),
+            'can_export_sensitive'   => !empty($this->admin) && MuyingPrivacyService::CanExportSensitive($this->admin),
         ]);
         return MyView();
     }

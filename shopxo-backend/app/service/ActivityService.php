@@ -1608,6 +1608,9 @@ class ActivityService
     {
         $where = empty($params['where']) ? [] : $params['where'];
 
+        $can_export_sensitive = !empty($params['admin']) && MuyingPrivacyService::CanExportSensitive($params['admin']);
+        $show_full = $can_export_sensitive;
+
         $data = Db::name('ActivitySignup')->where($where)->order('id desc')->select()->toArray();
         if (empty($data)) {
             return DataReturn('没有可导出的数据', -1);
@@ -1624,7 +1627,7 @@ class ActivityService
         foreach ($data as $v) {
             $activity_title = isset($activities[$v['activity_id']]) ? $activities[$v['activity_id']]['title'] : '';
             $activity_stage = isset($activities[$v['activity_id']]) ? $stage_map[$activities[$v['activity_id']]['stage']] ?? $activities[$v['activity_id']]['stage'] : '';
-            $v = MuyingPrivacyService::MaskSignupRow($v, true);
+            $v = MuyingPrivacyService::MaskSignupRow($v, $show_full);
             $result[] = [
                 'id'                    => $v['id'],
                 'activity_title'        => $activity_title,
@@ -1645,7 +1648,8 @@ class ActivityService
         }
 
         if (!empty($params['admin'])) {
-            MuyingAuditLogService::LogExport($params['admin'], MuyingAuditLogService::SCENE_SIGNUP_EXPORT, $where, count($result));
+            $export_type = $show_full ? '明文导出' : '脱敏导出';
+            MuyingAuditLogService::LogExport($params['admin'], MuyingAuditLogService::SCENE_SIGNUP_EXPORT, array_merge($where, ['export_type' => $export_type]), count($result));
         }
 
         return DataReturn(MyLang('handle_success'), 0, $result);

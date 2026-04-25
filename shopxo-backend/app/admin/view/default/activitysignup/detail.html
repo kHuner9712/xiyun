@@ -12,10 +12,10 @@
             <dd>{{if !empty($data['activity_info'])}}{{$data.activity_info.title}}{{/if}}</dd>
 
             <dt><strong>姓名</strong></dt>
-            <dd>{{$data.name}}</dd>
+            <dd>{{$data.name}} {{if !empty($can_view_sensitive)}}<span class="am-badge am-badge-warning am-radius am-text-xs">明文</span>{{else /}}<span class="am-badge am-badge-default am-radius am-text-xs">已脱敏</span>{{/if}}</dd>
 
             <dt><strong>手机</strong></dt>
-            <dd>{{$data.phone}}</dd>
+            <dd>{{$data.phone}} {{if !empty($can_view_sensitive)}}<span class="am-badge am-badge-warning am-radius am-text-xs">明文</span>{{else /}}<span class="am-badge am-badge-default am-radius am-text-xs">已脱敏</span>{{/if}}</dd>
 
             <dt><strong>阶段</strong></dt>
             <dd>{{$data.stage_text}}</dd>

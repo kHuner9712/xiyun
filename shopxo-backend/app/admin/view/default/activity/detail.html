@@ -43,6 +43,15 @@
         <!-- 报名列表 -->
         <div class="am-padding-sm item" data-key="signup-list">
             {{if !empty($signup_list) && is_array($signup_list)}}
+                {{if !empty($can_view_sensitive)}}
+                    <div class="am-alert am-alert-warning am-radius am-margin-bottom-sm">
+                        <i class="am-icon-shield"></i> 您有敏感数据查看权限，当前显示明文姓名和手机号，查看行为已记录审计日志。
+                    </div>
+                {{else /}}
+                    <div class="am-alert am-alert-secondary am-radius am-margin-bottom-sm">
+                        <i class="am-icon-lock"></i> 姓名和手机号已脱敏，如需查看明文请联系管理员开通「敏感数据查看」权限。
+                    </div>
+                {{/if}}
                 <table class="am-table am-table-bordered am-table-striped am-text-sm">
                     <thead>
                         <tr>
@@ -80,6 +89,20 @@
                 <div class="am-text-sm am-text-gray">
                     共 {{$signup_total}} 条报名记录，已确认 {{$signup_confirmed_count}} 条，候补 {{$waitlist_count}} 条，已签到 {{$checkin_count}} 条
                 </div>
+                {{if !empty($can_export_sensitive)}}
+                    <div class="am-margin-top-sm">
+                        <a href="{{:MyUrl('admin/activitysignup/export', ['activity_id'=>$data['id']])}}" class="am-btn am-btn-warning am-btn-xs am-radius">
+                            <i class="am-icon-download"></i> 明文导出报名数据
+                        </a>
+                    </div>
+                {{else /}}
+                    <div class="am-margin-top-sm">
+                        <a href="{{:MyUrl('admin/activitysignup/export', ['activity_id'=>$data['id']])}}" class="am-btn am-btn-default am-btn-xs am-radius">
+                            <i class="am-icon-download"></i> 脱敏导出报名数据
+                        </a>
+                        <span class="am-text-xs am-text-gray">明文导出需「敏感数据导出」权限</span>
+                    </div>
+                {{/if}}
             {{else /}}
                 {{:ModuleInclude('public/not_data')}}
             {{/if}}

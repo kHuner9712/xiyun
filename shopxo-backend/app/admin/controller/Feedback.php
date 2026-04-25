@@ -5,6 +5,8 @@ use app\admin\controller\Base;
 use app\service\ApiService;
 use app\service\SystemBaseService;
 use app\service\FeedbackService;
+use app\service\MuyingPrivacyService;
+use app\service\MuyingAuditLogService;
 use app\extend\muying\MuyingStage;
 
 class Feedback extends Base
@@ -73,11 +75,23 @@ class Feedback extends Base
                 $data['review_admin_name'] = '';
             }
 
+            $show_full = !empty($this->admin) && MuyingPrivacyService::CanViewSensitive($this->admin);
+            $data = MuyingPrivacyService::MaskFeedbackRow($data, $show_full);
+
             $user = \think\facade\Db::name('User')->where(['id' => $data['user_id']])->field('id,nickname,mobile')->find();
+            if (!empty($user)) {
+                if (!$show_full && !empty($user['mobile'])) {
+                    $user['mobile'] = MuyingPrivacyService::MaskPhone($user['mobile']);
+                }
+            }
             $data['user_info'] = $user;
+
+            if ($show_full && !empty($this->admin)) {
+                MuyingAuditLogService::LogSensitiveView($this->admin, MuyingAuditLogService::SCENE_SENSITIVE_VIEW, $id, '查看反馈详情含敏感信息');
+            }
         }
 
-        $assign = ['data' => $data];
+        $assign = ['data' => $data, 'can_view_sensitive' => !empty($this->admin) && MuyingPrivacyService::CanViewSensitive($this->admin)];
         MyViewAssign($assign);
         return MyView();
     }

@@ -14,7 +14,9 @@ class MuyingAuditLogService
     public static function Log($params = [])
     {
         $admin_id = isset($params['admin_id']) ? intval($params['admin_id']) : 0;
+        $admin_username = isset($params['admin_username']) ? trim($params['admin_username']) : '';
         $scene = isset($params['scene']) ? trim($params['scene']) : '';
+        $target_id = isset($params['target_id']) ? intval($params['target_id']) : 0;
         $conditions = isset($params['conditions']) ? json_encode($params['conditions'], JSON_UNESCAPED_UNICODE) : '';
         $export_count = isset($params['export_count']) ? intval($params['export_count']) : 0;
         $ip = isset($params['ip']) ? trim($params['ip']) : '';
@@ -25,14 +27,26 @@ class MuyingAuditLogService
             return false;
         }
 
+        if (empty($admin_username)) {
+            try {
+                $admin_row = Db::name('Admin')->where(['id' => $admin_id])->field('username')->find();
+                if (!empty($admin_row)) {
+                    $admin_username = $admin_row['username'];
+                }
+            } catch (\Exception $e) {
+            }
+        }
+
         $data = [
-            'admin_id'     => $admin_id,
-            'scene'        => $scene,
-            'conditions'   => $conditions,
-            'export_count' => $export_count,
-            'ip'           => $ip,
-            'remark'       => $remark,
-            'add_time'     => time(),
+            'admin_id'       => $admin_id,
+            'admin_username' => $admin_username,
+            'scene'          => $scene,
+            'target_id'      => $target_id,
+            'conditions'     => $conditions,
+            'export_count'   => $export_count,
+            'ip'             => $ip,
+            'remark'         => $remark,
+            'add_time'       => time(),
         ];
 
         try {
@@ -46,35 +60,42 @@ class MuyingAuditLogService
     public static function LogExport($admin, $scene, $conditions = [], $export_count = 0, $ip = '')
     {
         $admin_id = 0;
+        $admin_username = '';
         if (!empty($admin) && !empty($admin['id'])) {
             $admin_id = intval($admin['id']);
+            $admin_username = isset($admin['username']) ? $admin['username'] : '';
         }
         if (empty($ip) && !empty($_SERVER['REMOTE_ADDR'])) {
             $ip = $_SERVER['REMOTE_ADDR'];
         }
         return self::Log([
-            'admin_id'     => $admin_id,
-            'scene'        => $scene,
-            'conditions'   => $conditions,
-            'export_count' => $export_count,
-            'ip'           => $ip,
+            'admin_id'       => $admin_id,
+            'admin_username' => $admin_username,
+            'scene'          => $scene,
+            'conditions'     => $conditions,
+            'export_count'   => $export_count,
+            'ip'             => $ip,
         ]);
     }
 
     public static function LogSensitiveView($admin, $scene, $target_id = 0, $remark = '')
     {
         $admin_id = 0;
+        $admin_username = '';
         if (!empty($admin) && !empty($admin['id'])) {
             $admin_id = intval($admin['id']);
+            $admin_username = isset($admin['username']) ? $admin['username'] : '';
         }
         $ip = !empty($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '';
         return self::Log([
-            'admin_id'     => $admin_id,
-            'scene'        => $scene,
-            'conditions'   => ['target_id' => $target_id],
-            'export_count' => 1,
-            'ip'           => $ip,
-            'remark'       => $remark,
+            'admin_id'       => $admin_id,
+            'admin_username' => $admin_username,
+            'scene'          => $scene,
+            'target_id'      => $target_id,
+            'conditions'     => ['target_id' => $target_id],
+            'export_count'   => 1,
+            'ip'             => $ip,
+            'remark'         => $remark,
         ]);
     }
 

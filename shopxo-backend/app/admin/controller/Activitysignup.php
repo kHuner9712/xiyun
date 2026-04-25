@@ -16,6 +16,17 @@ class Activitysignup extends Base
 
     public function Detail()
     {
+        $params = $this->data_request;
+        $params['admin'] = $this->admin;
+        $ret = ActivityService::AdminSignupDetail($params);
+        $data = ($ret['code'] == 0) ? $ret['data'] : [];
+        $can_view_sensitive = !empty($this->admin) && MuyingPrivacyService::CanViewSensitive($this->admin);
+        $can_export_sensitive = !empty($this->admin) && MuyingPrivacyService::CanExportSensitive($this->admin);
+        MyViewAssign([
+            'data'                => $data,
+            'can_view_sensitive'  => $can_view_sensitive,
+            'can_export_sensitive' => $can_export_sensitive,
+        ]);
         return MyView();
     }
 
@@ -76,6 +87,8 @@ class Activitysignup extends Base
         if (empty($this->admin) || empty($this->admin['id'])) {
             return ApiService::ApiDataReturn(DataReturn('无导出权限', -1));
         }
+
+        $can_export_sensitive = MuyingPrivacyService::CanExportSensitive($this->admin);
 
         $where = [];
         if (!empty($params['activity_id'])) {

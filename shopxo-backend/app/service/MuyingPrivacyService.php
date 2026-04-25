@@ -132,7 +132,55 @@ class MuyingPrivacyService
         if (empty($admin) || empty($admin['id'])) {
             return false;
         }
-        return true;
+
+        if (function_exists('AdminIsPower')) {
+            return AdminIsPower('muyingsensitive', 'view') === true;
+        }
+
+        $admin_id = intval($admin['id']);
+        $role_id = 0;
+        try {
+            $admin_row = \think\facade\Db::name('Admin')->where(['id' => $admin_id])->field('id,role_id')->find();
+            if (empty($admin_row)) {
+                return false;
+            }
+            $role_id = intval($admin_row['role_id']);
+        } catch (\Exception $e) {
+            return false;
+        }
+
+        if ($role_id <= 0) {
+            return false;
+        }
+
+        try {
+            $power = \think\facade\Db::name('Power')
+                ->where(['control' => 'Muyingsensitive', 'action' => 'View'])
+                ->field('id')
+                ->find();
+            if (empty($power)) {
+                return false;
+            }
+            $exists = \think\facade\Db::name('RolePower')
+                ->where(['role_id' => $role_id, 'power_id' => intval($power['id'])])
+                ->count();
+            return $exists > 0;
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    public static function CanExportSensitive($admin)
+    {
+        if (empty($admin) || empty($admin['id'])) {
+            return false;
+        }
+
+        if (function_exists('AdminIsPower')) {
+            return AdminIsPower('muyingsensitive', 'export') === true;
+        }
+
+        return self::CanViewSensitive($admin);
     }
 
     public static function MaskSignupRow($row, $show_full = false)

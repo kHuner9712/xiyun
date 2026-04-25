@@ -28,6 +28,7 @@
                             {{/if}}
                             {{if !empty($module_data['mobile'])}}
                                 <a href="javascript:;" class="iconfont icon-phone-answer am-color-333 text-copy-submit" data-value="{{$module_data.mobile}}" data-am-popover="{content: '{{$module_data.mobile}}', trigger: 'hover focus', theme: 'sm'}"></a>
+                                {{if !empty($module_data['mobile_masked'])}}<i class="am-icon-lock am-text-xs am-text-gray" title="手机号已脱敏"></i>{{/if}}
                             {{/if}}
                             {{if !empty($module_data['email'])}}
                                 <a href="javascript:;" class="iconfont icon-email am-color-333 text-copy-submit" data-value="{{$module_data.email}}" data-am-popover="{content: '{{$module_data.email}}', trigger: 'hover focus', theme: 'sm'}"></a>
@@ -52,6 +53,7 @@
                             {{/if}}
                             {{if !empty($module_data['user']['mobile'])}}
                                 <a href="javascript:;" class="iconfont icon-phone-answer am-color-333 text-copy-submit" data-value="{{$module_data.user.mobile}}" data-am-popover="{content: '{{$module_data.user.mobile}}', trigger: 'hover focus', theme: 'sm'}"></a>
+                                {{if !empty($module_data['user']['mobile_masked'])}}<i class="am-icon-lock am-text-xs am-text-gray" title="手机号已脱敏"></i>{{/if}}
                             {{/if}}
                             {{if !empty($module_data['user']['email'])}}
                                 <a href="javascript:;" class="iconfont icon-email am-color-333 text-copy-submit" data-value="{{$module_data.user.email}}" data-am-popover="{content: '{{$module_data.user.email}}', trigger: 'hover focus', theme: 'sm'}"></a>

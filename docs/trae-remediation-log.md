@@ -266,3 +266,131 @@
 | 2 | 域名备案未完成 | 中 | 体验版可用 IP，提审需备案域名 |
 | 3 | 定位权限运行时注入 | 中 | manifest.json 不含定位权限，需在代码中按需动态申请 |
 | 4 | urlCheck 提审时需开启 | 低 | 当前 urlCheck=false（开发用），提审时微信后台会自动校验合法域名 |
+
+---
+
+## 2026-04-25 — 第四轮母婴敏感数据隐私与后台权限整改
+
+### 整改目标
+
+确保后台敏感数据默认脱敏、查看明文需权限、导出需权限、操作有审计。
+
+### 核心变更
+
+1. **CanViewSensitive 从空实现改为权限校验** — 基于 `muyingsensitive/view` 权限 key
+2. **新增 CanExportSensitive** — 基于 `muyingsensitive/export` 权限 key
+3. **报名导出从始终明文改为权限控制** — 无权限导出脱敏数据
+4. **反馈详情页修复** — 增加 MaskFeedbackRow + 关联用户手机号脱敏 + 审计日志
+5. **数据库迁移补齐** — phone_hash/is_waitlist/signup_code 字段
+6. **敏感数据权限 SQL** — 新建 muying-sensitive-permission-migration.sql
+
+### 修改清单
+
+#### 后端（4个文件）
+
+| 文件 | 修改内容 |
+|------|---------|
+| `shopxo-backend/app/service/MuyingPrivacyService.php` | CanViewSensitive 改为权限校验（AdminIsPower + 数据库查询）；新增 CanExportSensitive |
+| `shopxo-backend/app/service/ActivityService.php` | SignupExport 增加权限控制，无权限导出脱敏数据；审计日志区分明文/脱敏导出 |
+| `shopxo-backend/app/admin/controller/Feedback.php` | Detail 增加 MaskFeedbackRow + 关联用户手机号脱敏 + 审计日志 + can_view_sensitive 传递 |
+| `shopxo-backend/app/admin/controller/Activitysignup.php` | Export 增加 CanExportSensitive 权限检查 |
+
+#### SQL（2个文件）
+
+| 文件 | 修改内容 |
+|------|---------|
+| `docs/sql/muying-sensitive-permission-migration.sql` | 新建：注册 muyingsensitive 权限（View/Export）到 sxo_power 表 |
+| `docs/muying-final-migration.sql` | 补齐 B5b: phone_hash 字段、B5c: is_waitlist/signup_code 字段 |
+
+### 自测结果
+
+| 测试项 | 结果 |
+|--------|------|
+| CanViewSensitive 不再始终返回 true | 通过（改为权限校验） |
+| CanExportSensitive 独立于 CanViewSensitive | 通过 |
+| 报名导出无权限时输出脱敏数据 | 通过 |
+| 反馈详情页联系方式已脱敏 | 通过 |
+| 反馈详情页关联用户手机号已脱敏 | 通过 |
+| 反馈详情页查看明文记录审计日志 | 通过 |
+| phone_hash 字段已补齐迁移 SQL | 通过 |
+| 小程序报名页隐私协议勾选 | 通过（已有） |
+| 小程序个人资料页选填标注 | 通过（已有） |
+
+### 遗留风险
+
+| # | 风险 | 严重性 | 说明 |
+|---|------|--------|------|
+| 1 | 超级管理员默认有敏感权限 | 低 | id=780-782 已授权给 role_id=1，其他角色需手动授权 |
+| 2 | 反馈模块无导出功能 | 低 | FeedbackExport 方法不存在，如需导出需后续开发 |
+| 3 | 报名列表搜索手机号 | 中 | 数据已加密，like 查询无法命中，需用 phone_hash 精确匹配（已实现） |
+
+---
+
+## 2026-04-26 — 第五轮母婴敏感数据隐私与后台权限整改（续）
+
+### 整改目标
+
+补齐第四轮遗留的后台模板脱敏、控制器脱敏、审计日志表迁移、权限按钮等关键缺口。
+
+### 核心变更
+
+1. **Activity 控制器 Detail() 报名列表脱敏** — 之前直接传原始数据给模板，现通过 MaskSignupRow 脱敏
+2. **Activitysignup 控制器 Detail() 改造** — 从空实现改为调用 AdminSignupDetail 服务方法，确保脱敏和审计
+3. **后台模板统一添加脱敏标识** — 姓名/手机/联系方式旁标注"明文"或"已脱敏"徽章
+4. **活动详情页报名列表添加权限提示** — 有权限显示警告提示，无权限显示脱敏提示
+5. **导出按钮权限控制** — 有导出权限显示"明文导出"，无权限显示"脱敏导出"+ 提示
+6. **MuyingAuditLogService 增强** — 增加 admin_username、target_id 字段写入，与迁移 SQL 对齐
+7. **muying-final-migration.sql 补齐 D 段** — 审计日志表建表 + 敏感数据权限注册 + 角色授权 + 密钥配置项
+8. **lib/module/user.html 公共模块脱敏标识** — 手机号旁添加脱敏锁图标
+
+### 修改清单
+
+#### 后端（5个文件）
+
+| 文件 | 修改内容 |
+|------|---------|
+| `shopxo-backend/app/admin/controller/Activity.php` | 引入 MuyingPrivacyService；Detail() 报名列表通过 MaskSignupRow 脱敏；传递 can_view_sensitive/can_export_sensitive |
+| `shopxo-backend/app/admin/controller/Activitysignup.php` | Detail() 从空实现改为调用 AdminSignupDetail；传递 can_view_sensitive/can_export_sensitive |
+| `shopxo-backend/app/service/MuyingAuditLogService.php` | Log() 增加 admin_username/target_id 字段；LogExport/LogSensitiveView 增加 admin_username 传递；自动回填 admin_username |
+| `shopxo-backend/app/service/MuyingPrivacyService.php` | CanViewSensitive 改为权限校验；新增 CanExportSensitive（第四轮已完成） |
+| `shopxo-backend/app/service/ActivityService.php` | SignupExport 增加权限控制（第四轮已完成） |
+
+#### 模板（4个文件）
+
+| 文件 | 修改内容 |
+|------|---------|
+| `shopxo-backend/app/admin/view/default/activitysignup/detail.html` | 姓名/手机旁添加"明文"/"已脱敏"徽章 |
+| `shopxo-backend/app/admin/view/default/activity/detail.html` | 报名列表添加权限提示框 + 导出按钮权限控制（明文/脱敏） |
+| `shopxo-backend/app/admin/view/default/feedback/detail.html` | 联系方式/关联用户手机号旁添加"明文"/"已脱敏"徽章 |
+| `shopxo-backend/app/admin/view/default/lib/module/user.html` | 手机号旁添加脱敏锁图标（mobile_masked 标记） |
+
+#### SQL（1个文件）
+
+| 文件 | 修改内容 |
+|------|---------|
+| `docs/muying-final-migration.sql` | 新增 D 段：D1 审计日志表、D2 敏感数据权限注册、D3 超管授权、D4 密钥配置项 |
+
+### 自测结果
+
+| 测试项 | 结果 |
+|--------|------|
+| Activity Detail() 报名列表姓名/手机已脱敏 | 通过（MaskSignupRow） |
+| Activitysignup Detail() 调用 AdminSignupDetail | 通过（含脱敏+审计） |
+| 报名详情页姓名/手机有脱敏标识 | 通过 |
+| 活动详情页报名列表有权限提示 | 通过 |
+| 导出按钮根据权限显示 | 通过 |
+| 反馈详情页联系方式/用户手机有脱敏标识 | 通过 |
+| MuyingAuditLogService 写入 admin_username/target_id | 通过 |
+| muying-final-migration.sql D 段完整 | 通过 |
+| 审计日志不记录明文手机号 | 通过（conditions 仅含 target_id） |
+| 手机号重复校验仍用 phone_hash | 通过 |
+
+### 遗留风险
+
+| # | 风险 | 严重性 | 说明 |
+|---|------|--------|------|
+| 1 | user/saveinfo.html 编辑表单手机号 | 中 | 管理员编辑用户时需看到手机号，属于必要操作；建议后续增加编辑审计日志 |
+| 2 | lib/module/user.html 脱敏依赖上游传 mobile_masked | 中 | 需上游控制器在 module_data 中设置 mobile_masked 标记，当前仅添加了模板条件渲染 |
+| 3 | 反馈模块无导出功能 | 低 | FeedbackExport 方法不存在，如需导出需后续开发 |
+| 4 | 报名列表搜索手机号 | 中 | 数据已加密，需用 phone_hash 精确匹配（已实现） |
+| 5 | 旧数据未加密 | 高 | 需运行 scripts/migrate-encrypt-sensitive.php 将明文数据加密 |

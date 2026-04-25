@@ -218,6 +218,23 @@ SELECT COUNT(*) INTO @col_exists FROM information_schema.COLUMNS WHERE TABLE_SCH
 SET @sql = IF(@col_exists=0, 'ALTER TABLE `sxo_activity_signup` ADD COLUMN `baby_birthday` int unsigned NOT NULL DEFAULT 0 COMMENT ''宝宝生日(时间戳)'' AFTER `baby_month_age`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
+-- B5b. sxo_activity_signup 补 phone_hash 字段（用于手机号重复报名校验，不存储明文）
+SET @colname = 'phone_hash';
+SELECT COUNT(*) INTO @col_exists FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@dbname AND TABLE_NAME=@tablename AND COLUMN_NAME=@colname;
+SET @sql = IF(@col_exists=0, 'ALTER TABLE `sxo_activity_signup` ADD COLUMN `phone_hash` char(64) NOT NULL DEFAULT '''' COMMENT ''手机号哈希(用于重复校验)'' AFTER `phone`, ADD INDEX `idx_phone_hash` (`phone_hash`)', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- B5c. sxo_activity_signup 补 is_waitlist / signup_code 字段
+SET @colname = 'is_waitlist';
+SELECT COUNT(*) INTO @col_exists FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@dbname AND TABLE_NAME=@tablename AND COLUMN_NAME=@colname;
+SET @sql = IF(@col_exists=0, 'ALTER TABLE `sxo_activity_signup` ADD COLUMN `is_waitlist` tinyint unsigned NOT NULL DEFAULT 0 COMMENT ''是否候补(0正式/1候补)'' AFTER `status`', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @colname = 'signup_code';
+SELECT COUNT(*) INTO @col_exists FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@dbname AND TABLE_NAME=@tablename AND COLUMN_NAME=@colname;
+SET @sql = IF(@col_exists=0, 'ALTER TABLE `sxo_activity_signup` ADD COLUMN `signup_code` char(8) NOT NULL DEFAULT '''' COMMENT ''签到码'' AFTER `is_waitlist`', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
 -- B6. sxo_goods 补 stage / selling_point 字段（母婴阶段标签与卖点标签数据来源）
 SET @tablename = 'sxo_goods';
 
@@ -408,3 +425,48 @@ UPDATE `sxo_config` SET `value`='0' WHERE `only_tag` IN ('feature_shop_enabled',
 -- ALTER TABLE sxo_invite_reward DROP INDEX uk_inviter_invitee_event;
 -- DELETE FROM sxo_config WHERE only_tag IN ('muying_invite_register_reward', 'muying_invite_first_order_reward');
 -- DELETE FROM sxo_power WHERE name='运营' OR control IN ('activity','activitysignup','invite','inviteconfig','dashboard','muyingstat','feedback','usertag');
+
+-- ============================================================
+-- D段：隐私安全与审计
+-- ============================================================
+
+-- D1. 审计日志表
+CREATE TABLE IF NOT EXISTS `sxo_muying_audit_log` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `admin_id` int unsigned NOT NULL DEFAULT 0 COMMENT '管理员ID',
+  `admin_username` char(60) NOT NULL DEFAULT '' COMMENT '管理员用户名(冗余)',
+  `scene` char(30) NOT NULL DEFAULT '' COMMENT '操作场景(signup_export/feedback_export/user_export/sensitive_view)',
+  `target_id` int unsigned NOT NULL DEFAULT 0 COMMENT '目标记录ID',
+  `conditions` text COMMENT '查询条件JSON(不含明文敏感数据)',
+  `export_count` int unsigned NOT NULL DEFAULT 0 COMMENT '导出/查看数量',
+  `ip` char(45) NOT NULL DEFAULT '' COMMENT '操作IP',
+  `remark` varchar(500) NOT NULL DEFAULT '' COMMENT '备注',
+  `add_time` int unsigned NOT NULL DEFAULT 0 COMMENT '操作时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_admin` (`admin_id`),
+  KEY `idx_scene` (`scene`),
+  KEY `idx_time` (`add_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='隐私审计日志';
+
+-- D2. 敏感数据查看/导出权限注册
+INSERT IGNORE INTO `sxo_power` (`id`, `pid`, `name`, `control`, `action`, `url`, `sort`, `is_show`, `icon`, `add_time`, `upd_time`) VALUES
+(780, 700, '敏感数据管理', 'Muyingsensitive', 'Index', '', 9, 0, '', UNIX_TIMESTAMP(), 0),
+(781, 780, '查看敏感数据', 'Muyingsensitive', 'View', '', 0, 0, '', UNIX_TIMESTAMP(), 0),
+(782, 780, '导出敏感数据', 'Muyingsensitive', 'Export', '', 1, 0, '', UNIX_TIMESTAMP(), 0);
+
+-- D3. 超级管理员默认授予敏感数据权限
+INSERT IGNORE INTO `sxo_role_power` (`role_id`, `power_id`, `add_time`) VALUES
+(1, 780, UNIX_TIMESTAMP()),
+(1, 781, UNIX_TIMESTAMP()),
+(1, 782, UNIX_TIMESTAMP());
+
+-- D4. 隐私加密密钥配置项占位（实际密钥通过 .env MUYING_PRIVACY_KEY 配置）
+INSERT INTO `sxo_config` (`value`, `name`, `describe`, `error_tips`, `type`, `only_tag`, `upd_time`) VALUES
+('', '隐私加密密钥配置状态', '密钥通过.env的MUYING_PRIVACY_KEY配置，此处仅标记是否已配置(1已配置/0未配置)', '请确认密钥已配置', 'admin', 'muying_privacy_key_configured', UNIX_TIMESTAMP())
+ON DUPLICATE KEY UPDATE `name`=VALUES(`name`), `describe`=VALUES(`describe`), `upd_time`=UNIX_TIMESTAMP();
+
+-- D段回滚：
+-- DROP TABLE IF EXISTS sxo_muying_audit_log;
+-- DELETE FROM sxo_role_power WHERE power_id IN (780, 781, 782);
+-- DELETE FROM sxo_power WHERE id IN (780, 781, 782);
+-- DELETE FROM sxo_config WHERE only_tag = 'muying_privacy_key_configured';
