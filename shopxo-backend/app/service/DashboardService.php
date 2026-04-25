@@ -25,13 +25,13 @@ class DashboardService
                 ->where('status', 'in', [0, 1])
         );
 
-        $invite_reward_today = self::SafeSum(
+        $invite_first_order_today = self::SafeCount(
             Db::name('InviteReward')
                 ->where('add_time', '>=', $today_start)
                 ->where('add_time', '<', $today_start + 86400)
+                ->where('trigger_event', 'first_order')
                 ->where('status', 1)
-                ->where('trigger_event', 'first_order'),
-            'reward_value'
+                ->group('invitee_id')
         );
 
         $feedback_today = self::SafeCount(
@@ -65,7 +65,7 @@ class DashboardService
             Db::name('Order')
                 ->where('add_time', '>=', $today_start)
                 ->where('add_time', '<', $today_start + 86400)
-                ->where('status', '>=', 4),
+                ->where('status', 4),
             'total_price'
         );
         $total_orders = self::SafeCount(Db::name('Order')->where('status', 4));
@@ -90,15 +90,15 @@ class DashboardService
 
         $baby_age_buckets = self::GetBabyAgeBuckets();
 
-        $signup_conversion = self::CalcSignupConversion($today_start);
-        $invite_conversion = self::CalcInviteConversion($today_start);
+        $activity_signup_density = self::CalcActivitySignupDensity($today_start);
+        $invite_register_ratio = self::CalcInviteRegisterRatio($today_start);
         $repurchase_rate = self::CalcRepurchaseRate();
 
         return DataReturn(MyLang('handle_success'), 0, [
             'today' => [
                 'new_users'        => $new_users_today,
                 'activity_signups' => $activity_signup_today,
-                'invite_rewards'   => intval($invite_reward_today),
+                'invite_first_order' => $invite_first_order_today,
                 'feedback_count'   => $feedback_today,
                 'orders'           => $today_orders,
                 'sales'            => round(floatval($today_sales), 2),
@@ -119,9 +119,9 @@ class DashboardService
             'baby_age_buckets'   => $baby_age_buckets,
             'feedback_pending'   => $feedback_pending,
             'conversion'         => [
-                'signup_conversion' => $signup_conversion,
-                'invite_conversion' => $invite_conversion,
-                'repurchase_rate'   => $repurchase_rate,
+                'activity_signup_density' => $activity_signup_density,
+                'invite_register_ratio'   => $invite_register_ratio,
+                'repurchase_rate'         => $repurchase_rate,
             ],
         ]);
     }
@@ -137,11 +137,11 @@ class DashboardService
         $start_date = date('Y-m-d', strtotime("-{$days} days"));
 
         if (!empty($metric_key)) {
-            return self::GetTrendByMetric($metric_key, $start_date);
+            return DataReturn(MyLang('handle_success'), 0, self::GetTrendByMetric($metric_key, $start_date));
         }
 
         $metrics = ['new_users', 'activity_signups', 'orders', 'sales', 'feedback_count',
-                    'signup_conversion', 'invite_conversion', 'repurchase_rate', 'stage_completion'];
+                    'activity_signup_density', 'invite_register_ratio', 'repurchase_rate', 'stage_completion'];
         $result = [];
         foreach ($metrics as $key) {
             $result[$key] = self::GetTrendByMetric($key, $start_date);
@@ -156,6 +156,17 @@ class DashboardService
             ['metric_key', '=', $metric_key],
             ['stat_date', '>=', $start_date],
         ])->order('stat_date asc')->field('stat_date,metric_value')->select()->toArray();
+
+        $legacy_map = [
+            'activity_signup_density' => 'signup_conversion',
+            'invite_register_ratio'  => 'invite_conversion',
+        ];
+        if (isset($legacy_map[$metric_key]) && empty($data)) {
+            $data = Db::name('MuyingStatSnapshot')->where([
+                ['metric_key', '=', $legacy_map[$metric_key]],
+                ['stat_date', '>=', $start_date],
+            ])->order('stat_date asc')->field('stat_date,metric_value')->select()->toArray();
+        }
 
         $items = [];
         foreach ($data as $row) {
@@ -193,7 +204,7 @@ class DashboardService
             Db::name('Order')
                 ->where('add_time', '>=', $yesterday_start)
                 ->where('add_time', '<', $yesterday_end)
-                ->where('status', '>=', 4),
+                ->where('status', 4),
             'total_price'
         );
 
@@ -212,8 +223,8 @@ class DashboardService
         );
         $metrics['stage_completion'] = $total_new > 0 ? round($with_stage / $total_new * 100, 2) : 0;
 
-        $metrics['signup_conversion'] = self::CalcSignupConversion($yesterday_start);
-        $metrics['invite_conversion'] = self::CalcInviteConversion($yesterday_start);
+        $metrics['activity_signup_density'] = self::CalcActivitySignupDensity($yesterday_start);
+        $metrics['invite_register_ratio'] = self::CalcInviteRegisterRatio($yesterday_start);
         $metrics['repurchase_rate'] = self::CalcRepurchaseRate();
 
         foreach ($metrics as $key => $value) {
@@ -264,19 +275,12 @@ class DashboardService
         ];
     }
 
-    private static function CalcSignupConversion($day_start)
+    private static function CalcActivitySignupDensity($day_start)
     {
         $day_end = $day_start + 86400;
         $signup_count = self::SafeCount(
             Db::name('ActivitySignup')->where('add_time', '>=', $day_start)->where('add_time', '<', $day_end)
         );
-        $activity_view_count = self::SafeCount(
-            Db::name('ActivitySignup')->where('add_time', '>=', $day_start)->where('add_time', '<', $day_end)
-                ->group('activity_id')
-        );
-        if ($activity_view_count <= 0) {
-            return 0;
-        }
         $active_activities = self::SafeCount(
             Db::name('Activity')->where('is_enable', 1)->where('is_delete_time', 0)
         );
@@ -286,11 +290,16 @@ class DashboardService
         return round($signup_count / $active_activities, 2);
     }
 
-    private static function CalcInviteConversion($day_start)
+    private static function CalcInviteRegisterRatio($day_start)
     {
         $day_end = $day_start + 86400;
-        $invite_count = self::SafeCount(
-            Db::name('InviteReward')->where('add_time', '>=', $day_start)->where('add_time', '<', $day_end)->where('status', 1)
+        $invited_user_count = self::SafeCount(
+            Db::name('InviteReward')
+                ->where('add_time', '>=', $day_start)
+                ->where('add_time', '<', $day_end)
+                ->where('trigger_event', 'register')
+                ->where('status', 1)
+                ->group('invitee_id')
         );
         $new_users = self::SafeCount(
             Db::name('User')->where('add_time', '>=', $day_start)->where('add_time', '<', $day_end)
@@ -298,26 +307,37 @@ class DashboardService
         if ($new_users <= 0) {
             return 0;
         }
-        return round($invite_count / $new_users * 100, 2);
+        return round($invited_user_count / $new_users * 100, 2);
     }
 
     private static function CalcRepurchaseRate()
     {
         try {
-            $repeat_buyers = Db::name('Order')
-                ->where('status', 4)
-                ->group('user_id')
-                ->having('COUNT(*) > 1')
-                ->count();
-            $total_buyers = Db::name('Order')
-                ->where('status', 4)
-                ->group('user_id')
-                ->count();
-            if ($total_buyers <= 0) {
+            $repeat_buyers = Db::query(
+                "SELECT COUNT(*) as cnt FROM (
+                    SELECT user_id FROM `sxo_order`
+                    WHERE `status` = 4 AND `user_id` > 0
+                    GROUP BY `user_id`
+                    HAVING COUNT(*) > 1
+                ) t"
+            );
+            $repeat_count = !empty($repeat_buyers) ? intval($repeat_buyers[0]['cnt']) : 0;
+
+            $total_buyers = Db::query(
+                "SELECT COUNT(*) as cnt FROM (
+                    SELECT user_id FROM `sxo_order`
+                    WHERE `status` = 4 AND `user_id` > 0
+                    GROUP BY `user_id`
+                ) t"
+            );
+            $total_count = !empty($total_buyers) ? intval($total_buyers[0]['cnt']) : 0;
+
+            if ($total_count <= 0) {
                 return 0;
             }
-            return round($repeat_buyers / $total_buyers * 100, 2);
+            return round($repeat_count / $total_count * 100, 2);
         } catch (\Exception $e) {
+            Log::error('[Dashboard] 复购率计算失败: ' . $e->getMessage());
             return 0;
         }
     }

@@ -924,3 +924,71 @@
 | 1 | 迁移期间新写入数据 | 低 | 新数据自动加密，建议低峰期执行 |
 | 2 | 字段扩展锁表 | 低 | ALTER TABLE 在大表上可能锁表，建议低峰期执行 |
 | 3 | 回滚依赖数据库备份 | 中 | 无"解密回明文"SQL 函数，必须依赖备份恢复 |
+
+### Commit 信息
+
+- **commit**: `1cba7c1`
+- **message**: `feat(privacy): add sensitive data encryption migration script`
+
+---
+
+## 2026-04-26 — 第十四轮运营 Dashboard 指标口径修正
+
+### 整改目标
+
+修正 DashboardService 中指标名称、计算逻辑、展示含义不一致的问题。没有准确数据支撑的指标不伪装成转化率。
+
+### 问题诊断
+
+| 旧指标 | 问题 | 修正 |
+|--------|------|------|
+| signup_conversion（活动报名转化） | 无活动浏览日志，报名数/活跃活动数不是转化率 | 改名 activity_signup_density（活动报名密度），单位"人/活动" |
+| invite_conversion（邀请转化率） | 统计所有 status=1 的 InviteReward 记录数（含 register+first_order），未去重，不是"邀请人数" | 改名 invite_register_ratio（邀请注册占比），仅统计 trigger_event='register' + group(invitee_id) 去重 |
+| repurchase_rate（复购率） | ThinkPHP group()->count() 语义可能歧义；未排除 user_id=0 | 改用原生 SQL 子查询，排除 user_id=0，注释说明 status=4 含义 |
+| invite_rewards（今日邀请数） | 显示的是积分奖励值，不是邀请人数 | 改名 invite_first_order（今日邀请首单），统计去重 invitee_id |
+| 总订单数/总销售额 | 未说明仅含已完成订单 | 标题改为"总已完成订单"/"总已完成销售额" |
+| today_sales | status>=4 含已完成+已取消后状态 | 改为 status=4（仅已完成） |
+
+### 核心变更
+
+1. **CalcSignupConversion → CalcActivitySignupDensity** — 去掉无意义的 activity_view_count 变量，公式简化为报名数/上架活动数
+2. **CalcInviteConversion → CalcInviteRegisterRatio** — 仅统计 trigger_event='register' + status=1 + group('invitee_id') 去重
+3. **CalcRepurchaseRate** — 改用原生 SQL 子查询，排除 user_id=0，注释说明 status=4=已完成
+4. **Overview 返回字段重命名** — invite_rewards → invite_first_order，signup_conversion → activity_signup_density，invite_conversion → invite_register_ratio
+5. **today_sales 条件修正** — status>=4 → status=4（仅已完成订单销售额）
+6. **快照 metric_key 对齐** — signup_conversion → activity_signup_density，invite_conversion → invite_register_ratio
+7. **趋势查询旧 key 兼容** — GetTrendByMetric 自动回退旧 metric_key 查询
+8. **后台模板文案修正** — "转化指标"→"运营指标"，"活动报名转化"→"活动报名密度"，"邀请转化率"→"邀请注册占比"，增加公式说明
+9. **新增 docs/dashboard-metrics-definition.md** — 每个指标公式、数据来源、刷新频率、适用限制
+
+### 修改文件清单
+
+| 文件 | 修改内容 |
+|------|----------|
+| `shopxo-backend/app/service/DashboardService.php` | 重命名3个指标方法+返回字段+快照key；修正复购率SQL；修正today_sales条件；趋势查询旧key兼容 |
+| `shopxo-backend/app/admin/view/default/dashboard/index.html` | 指标标题/单位/tooltip修正；JS字段名对齐；conversion为空时显示0 |
+| `docs/dashboard-metrics-definition.md` | 新建：指标定义文档 |
+| `docs/trae-remediation-log.md` | 追加本轮整改记录 |
+
+### 自测结果
+
+| 验证项 | 结果 | 说明 |
+|--------|------|------|
+| Dashboard 无数据时正常显示 | ✅ | SafeCount/SafeSum catch 异常返回 0；模板 conversion 为空时显示 0 |
+| 有活动但无报名时密度为 0 | ✅ | signup_count=0 时 round(0/active, 2)=0 |
+| 有报名时密度符合定义 | ✅ | 报名数/上架活动数，保留2位小数 |
+| 邀请注册占比仅统计 register 事件 | ✅ | trigger_event='register' + group('invitee_id') |
+| 复购率使用原生 SQL | ✅ | 子查询 COUNT(*) 避免语义歧义 |
+| GenerateDailySnapshot 重复执行不重复插入 | ✅ | 先查 count 再 insert/update |
+| 旧 metric_key 趋势数据兼容 | ✅ | GetTrendByMetric 自动回退旧 key |
+| 前端文案不再叫"转化率" | ✅ | "活动报名密度"/"邀请注册占比"/"复购率" |
+| today_sales 仅含已完成订单 | ✅ | status=4 而非 status>=4 |
+| 总订单/总销售额标题明确 | ✅ | "总已完成订单"/"总已完成销售额" |
+
+### 遗留风险
+
+| # | 风险 | 严重性 | 说明 |
+|---|------|--------|------|
+| 1 | 无活动浏览日志 | 中 | 无法计算真正的报名转化率，后续可新建 sxo_activity_browse 表 |
+| 2 | 旧快照数据 metric_key 未迁移 | 低 | 趋势查询已兼容旧 key；可选执行 UPDATE SQL 统一 key |
+| 3 | 复购率全量计算 | 低 | 非按日增量，反映历史累计情况 |

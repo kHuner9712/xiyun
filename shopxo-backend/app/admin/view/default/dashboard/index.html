@@ -30,7 +30,7 @@
             </div>
             <div class="am-u-md-2 am-u-sm-4 am-margin-bottom-sm">
                 <div class="am-panel am-panel-default">
-                    <div class="am-panel-hd">今日邀请数</div>
+                    <div class="am-panel-hd">今日邀请首单</div>
                     <div class="am-panel-bd am-text-center am-text-xl am-text-warning" id="stat-today-invites">-</div>
                 </div>
             </div>
@@ -114,7 +114,7 @@
 <div class="am-g am-margin-bottom">
     <div class="am-u-sm-12">
         <div class="am-panel am-panel-default">
-            <div class="am-panel-hd">转化指标</div>
+            <div class="am-panel-hd">运营指标</div>
             <div class="am-panel-bd">
                 <table class="am-table am-table-bordered am-table-striped am-margin-bottom-0">
                     <thead>
@@ -125,9 +125,9 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <tr><td>活动报名转化</td><td id="stat-signup-conversion">-</td><td>今日报名数 / 活跃活动数</td></tr>
-                        <tr><td>邀请转化率</td><td id="stat-invite-conversion">-</td><td>今日邀请数 / 今日新用户 × 100%</td></tr>
-                        <tr><td>复购率</td><td id="stat-repurchase-rate">-</td><td>多次购买用户 / 总购买用户 × 100%</td></tr>
+                        <tr><td>活动报名密度</td><td id="stat-activity-signup-density">-</td><td>当日报名数 / 上架活动数，单位：人/活动</td></tr>
+                        <tr><td>邀请注册占比</td><td id="stat-invite-register-ratio">-</td><td>通过邀请注册的用户数 / 当日新用户数 × 100%</td></tr>
+                        <tr><td>复购率</td><td id="stat-repurchase-rate">-</td><td>已完成订单中购买≥2次的用户 / 有已完成订单的用户 × 100%（status=4 已完成）</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -151,11 +151,11 @@
                     </thead>
                     <tbody id="total-stats">
                         <tr><td>总用户</td><td id="stat-total-users">-</td></tr>
-                        <tr><td>总订单数</td><td id="stat-total-orders">-</td></tr>
-                        <tr><td>总销售额</td><td id="stat-total-sales">-</td></tr>
-                        <tr><td>进行中活动</td><td id="stat-total-activities">-</td></tr>
+                        <tr><td>总已完成订单</td><td id="stat-total-orders">-</td></tr>
+                        <tr><td>总已完成销售额</td><td id="stat-total-sales">-</td></tr>
+                        <tr><td>上架活动</td><td id="stat-total-activities">-</td></tr>
                         <tr><td>总报名数</td><td id="stat-total-signups">-</td></tr>
-                        <tr><td>邀请人数</td><td id="stat-total-invites">-</td></tr>
+                        <tr><td>邀请首单人数</td><td id="stat-total-invites">-</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -186,7 +186,7 @@ $(function() {
                         $('#stat-today-orders').text(d.today.orders || 0);
                         $('#stat-today-sales').text('¥' + (d.today.sales || 0));
                         $('#stat-today-signups').text(d.today.activity_signups || 0);
-                        $('#stat-today-invites').text(d.today.invite_rewards || 0);
+                        $('#stat-today-invites').text(d.today.invite_first_order || 0);
                         $('#stat-today-feedback').text(d.today.feedback_count || 0);
                     }
                     if(d.total) {
@@ -224,9 +224,13 @@ $(function() {
                     }
 
                     if(d.conversion) {
-                        $('#stat-signup-conversion').text(d.conversion.signup_conversion || 0);
-                        $('#stat-invite-conversion').text((d.conversion.invite_conversion || 0) + '%');
+                        $('#stat-activity-signup-density').text(d.conversion.activity_signup_density || 0);
+                        $('#stat-invite-register-ratio').text((d.conversion.invite_register_ratio || 0) + '%');
                         $('#stat-repurchase-rate').text((d.conversion.repurchase_rate || 0) + '%');
+                    } else {
+                        $('#stat-activity-signup-density').text('0');
+                        $('#stat-invite-register-ratio').text('0%');
+                        $('#stat-repurchase-rate').text('0%');
                     }
                 }
             }
