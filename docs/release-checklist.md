@@ -28,6 +28,9 @@
 | 1.16 | 上传文件大小限制 ≥20MB | ☐ | php.ini post_max_size / upload_max_filesize |
 | 1.17 | config/database.php 已创建 | ☐ | 从 .env 读取数据库配置 |
 | 1.18 | config/domain.php 已配置 | ☐ | 绑定实际域名 |
+| 1.19 | check-baota-runtime.php 通过 | ☐ | php scripts/preflight/check-baota-runtime.php，0 BLOCKER |
+| 1.20 | check-db-schema.php 通过 | ☐ | php scripts/preflight/check-db-schema.php，0 BLOCKER |
+| 1.21 | preflight-production-check.php 通过 | ☐ | php scripts/preflight/preflight-production-check.php，0 BLOCKER |
 
 ## 2. 后端功能开关
 

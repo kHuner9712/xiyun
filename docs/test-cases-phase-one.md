@@ -154,3 +154,28 @@
 | E-05 | production用测试AppID | 使用wxda7779770f53e901构建 | 构建失败，抛出Error | |
 | E-06 | production用http | request_url用http://开头 | 构建失败，抛出Error | |
 | E-07 | production用localhost | request_url含localhost | 构建失败，抛出Error | |
+
+## 五、部署实测测试
+
+| 用例ID | 测试场景 | 操作步骤 | 预期结果 | 实际结果 |
+|--------|----------|----------|----------|----------|
+| D-01 | 宝塔运行环境检查 | php scripts/preflight/check-baota-runtime.php | 0 BLOCKER，PHP 8.1 + 所有必需扩展 | |
+| D-02 | 数据库Schema检查 | php scripts/preflight/check-db-schema.php | 0 BLOCKER，所有表/字段/索引存在 | |
+| D-03 | 生产配置检查 | php scripts/preflight/preflight-production-check.php | 0 BLOCKER，APP_DEBUG=false + PRIVACY_KEY | |
+| D-04 | 敏感数据迁移dry-run | php scripts/migrate-encrypt-sensitive.php --dry-run | 输出统计，不写库 | |
+| D-05 | 敏感数据迁移正式 | php scripts/migrate-encrypt-sensitive.php --force | 加密成功，0 failed | |
+| D-06 | Dashboard无数据 | 后台首页 | 所有指标显示0或"暂无数据"，不报错 | |
+| D-07 | Dashboard有数据 | 有报名/订单后查看 | 指标数值正确，运营指标不叫"转化率" | |
+| D-08 | 小程序启动 | 微信开发者工具运行 | 启动页→首页正常加载 | |
+| D-09 | 小程序登录 | 点击登录按钮 | 微信授权/手机号登录成功 | |
+| D-10 | 活动报名全流程 | 登录→活动详情→报名→查看我的活动 | 报名成功+我的活动显示记录 | |
+| D-11 | 后台报名查看 | 后台→报名管理 | 姓名/手机脱敏显示 | |
+| D-12 | 后台敏感权限 | 有敏感权限的管理员查看报名 | 显示明文+审计日志记录 | |
+| D-13 | 合规拦截验证 | 前端直达/wallet路由+抓包传wallet支付 | 路由拦截+后端返回-403 | |
+| D-14 | 支付方式过滤 | 后台查看支付方式列表 | 不返回WalletPay/CoinPay | |
+| D-15 | 邀请功能 | 登录→邀请页→分享→新用户注册 | 邀请记录+首单奖励 | |
+| D-16 | 反馈提交 | 登录→反馈→提交 | 提交成功+后台可查看 | |
+| D-17 | 下单流程 | 选商品→加购物车→下单 | 生成待支付订单 | |
+| D-18 | 后台创建活动 | 后台→活动管理→新增 | 保存成功+小程序可见 | |
+| D-19 | 快照幂等 | 连续执行2次GenerateDailySnapshot | 同一天不重复插入 | |
+| D-20 | 重复迁移 | 执行2次migrate-encrypt-sensitive.php --force | 已加密数据不重复加密 | |

@@ -11,6 +11,8 @@
 | R-03 | ICP备案未完成 | 高 | 域名无法使用，小程序无法提审 | 使用测试号开发，备案完成后切换正式号 | 外部依赖 |
 | R-04 | MUYING_PRIVACY_KEY 未配置 | 高 | 用户敏感数据无法加密存储 | .env.production.example 中有说明 | 部署时配置 |
 | R-05 | 旧数据未加密 | 高→有脚本 | 历史明文数据需迁移为加密存储 | scripts/migrate-encrypt-sensitive.php 已创建，部署时必须执行 | 有脚本，部署时必须执行 |
+| R-06 | 未经服务器实测 | 高 | 当前所有测试基于代码审查，未在宝塔环境实际运行 | 已创建 check-baota-runtime.php + check-db-schema.php + UAT 报告模板 | 待部署实测 |
+| R-07 | 无活动浏览日志 | 中 | 无法计算真正的活动报名转化率 | Dashboard 使用 activity_signup_density 替代 | 已知 |
 
 ## 二、中风险项（一期可接受，后续修复）
 

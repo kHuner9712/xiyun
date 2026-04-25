@@ -992,3 +992,95 @@
 | 1 | 无活动浏览日志 | 中 | 无法计算真正的报名转化率，后续可新建 sxo_activity_browse 表 |
 | 2 | 旧快照数据 metric_key 未迁移 | 低 | 趋势查询已兼容旧 key；可选执行 UPDATE SQL 统一 key |
 | 3 | 复购率全量计算 | 低 | 非按日增量，反映历史累计情况 |
+
+### Commit 信息
+
+- **commit**: `0b781d9`
+- **message**: `fix(dashboard): align operation metrics with actual data semantics`
+
+---
+
+## 2026-04-26 — 第十五轮体验版部署实测准备
+
+### 整改目标
+
+不再盲目开发新功能，而是把当前代码真正部署到宝塔服务器环境所需的最小闭环准备好，并产出真实问题清单。
+
+### 核心变更
+
+1. **新建 `scripts/preflight/check-baota-runtime.php`** — 宝塔运行环境检查脚本
+   - PHP 版本 8.1.x 检查
+   - 11 个必需扩展检查（openssl/pdo_mysql/fileinfo/mbstring/curl/gd/json/simplexml/xml/zip/pdo）
+   - 1 个可选扩展检查（redis）
+   - runtime/public/upload 目录权限检查
+   - .env 配置检查（APP_DEBUG/MUYING_PRIVACY_KEY/数据库配置）
+   - Nginx 公网安全检查提示
+   - 数据库连接 + 12 张关键表存在性检查
+   - 后台入口混淆 + install.php 删除检查
+   - 输出 PASS/WARN/BLOCKER 三级，退出码 0/1
+
+2. **新建 `scripts/preflight/check-db-schema.php`** — 数据库 Schema 完整性检查脚本
+   - 8 张母婴专属表存在性检查
+   - sxo_activity 12 个关键字段检查
+   - sxo_activity_signup 8 个关键字段检查
+   - sxo_muying_feedback 5 个关键字段检查
+   - sxo_user 4 个扩展字段检查
+   - sxo_goods 11 个扩展字段检查
+   - sxo_goods_favor.type 字段检查
+   - 4 个关键索引检查（uk_invite_code/uk_inviter_invitee_event/idx_phone_hash/uk_date_metric）
+   - 9 个关键配置项检查
+   - 数据完整性快速检查（邀请码空值/旧注册奖励）
+   - 输出 PASS/WARN/BLOCKER 三级，退出码 0/1
+
+3. **新建 `docs/uat-report-template.md`** — UAT 测试报告模板
+   - 前置检查 7 项
+   - 小程序端浏览路径 6 项
+   - 小程序端交互路径 8 项
+   - 合规拦截路径 4 项
+   - 后台端测试路径 9 项
+   - 问题清单模板
+
+4. **新建 `docs/uat-report-current.md`** — 当前版本 UAT 报告
+   - 基于代码审查的 20 条测试路径评估
+   - 4 个已知阻塞问题（域名备案/正式AppID/微信支付/服务器部署）
+   - 部署后待执行清单（9 步）
+   - 测试结论：代码审查通过，待服务器部署后实测
+
+5. **更新 `docs/release-checklist.md`** — 新增 3 项 preflight 检查项（1.19-1.21）
+6. **更新 `docs/test-cases-phase-one.md`** — 新增第五节"部署实测测试"20 条用例（D-01~D-20）
+7. **更新 `docs/known-risks.md`** — 新增 R-06（未经服务器实测）、R-07（无活动浏览日志）
+
+### 修改文件清单
+
+| 文件 | 修改内容 |
+|------|----------|
+| `scripts/preflight/check-baota-runtime.php` | 新建：宝塔运行环境检查 |
+| `scripts/preflight/check-db-schema.php` | 新建：数据库 Schema 完整性检查 |
+| `docs/uat-report-template.md` | 新建：UAT 测试报告模板 |
+| `docs/uat-report-current.md` | 新建：当前版本 UAT 报告 |
+| `docs/release-checklist.md` | 新增 1.19-1.21 preflight 检查项 |
+| `docs/test-cases-phase-one.md` | 新增 D-01~D-20 部署实测用例 |
+| `docs/known-risks.md` | 新增 R-06、R-07 |
+| `docs/trae-remediation-log.md` | 追加本轮整改记录 |
+
+### 自测结果
+
+| 验证项 | 结果 | 说明 |
+|--------|------|------|
+| check-baota-runtime.php 语法正确 | ✅ | 无 PHP 8.2+ 特性 |
+| check-db-schema.php 语法正确 | ✅ | 仅使用 PDO 原生查询 |
+| 两个脚本均输出 PASS/WARN/BLOCKER | ✅ | 三级输出 + 退出码 |
+| UAT 模板覆盖 20 条测试路径 | ✅ | 小程序+后台+合规 |
+| 当前 UAT 报告标注待实测项 | ✅ | ⏳ 待部署执行 |
+| release-checklist 增加 preflight 项 | ✅ | 1.19-1.21 |
+| test-cases 增加 D-01~D-20 | ✅ | 20 条部署实测用例 |
+| known-risks 增加 R-06/R-07 | ✅ | 未经实测+无浏览日志 |
+
+### 遗留风险
+
+| # | 风险 | 严重性 | 说明 |
+|---|------|--------|------|
+| 1 | 域名备案未完成 | BLOCKER | 无法配置 HTTPS 域名，小程序无法提审 |
+| 2 | 正式 AppID 未申请 | BLOCKER | 无法提交正式审核 |
+| 3 | 服务器未部署代码 | BLOCKER | 无法运行任何实测 |
+| 4 | 所有测试基于代码审查 | 高 | 需服务器部署后实测验证 |
