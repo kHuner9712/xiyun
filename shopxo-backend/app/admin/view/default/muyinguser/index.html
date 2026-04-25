@@ -1,0 +1,97 @@
+{{:ModuleInclude('public/header')}}
+
+<div class="am-g">
+    <div class="am-u-sm-12">
+        <div class="am-panel am-panel-default">
+            <div class="am-panel-hd am-cf">
+                <span>用户运营</span>
+            </div>
+            <div class="am-panel-bd">
+                <form class="am-form am-form-inline am-margin-bottom" method="get" action="{{:MyUrl('admin/muyinguser/index')}}">
+                    <input type="hidden" name="s" value="{{:input('s')}}">
+                    <div class="am-form-group">
+                        <select name="current_stage" class="am-input-sm">
+                            <option value="">全部阶段</option>
+                            {{foreach $stage_list as $s}}
+                            <option value="{{$s.value}}" {{if !empty($params['current_stage']) && $params['current_stage'] == $s.value}}selected{{/if}}>{{$s.name}}</option>
+                            {{/foreach}}
+                        </select>
+                    </div>
+                    <div class="am-form-group">
+                        <input type="text" name="keywords" class="am-input-sm" placeholder="昵称/用户名/邀请码" value="{{if !empty($params['keywords'])}}{{$params.keywords}}{{/if}}">
+                    </div>
+                    <div class="am-form-group">
+                        <select name="baby_month_age" class="am-input-sm">
+                            <option value="">全部月龄</option>
+                            <option value="0" {{if !empty($params['baby_month_age']) && $params['baby_month_age'] == '0'}}selected{{/if}}>0-3月</option>
+                            <option value="3" {{if !empty($params['baby_month_age']) && $params['baby_month_age'] == '3'}}selected{{/if}}>3-6月</option>
+                            <option value="6" {{if !empty($params['baby_month_age']) && $params['baby_month_age'] == '6'}}selected{{/if}}>6-12月</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="am-btn am-btn-primary am-btn-sm am-radius">搜索</button>
+                    <a href="{{:MyUrl('admin/muyinguser/index')}}" class="am-btn am-btn-default am-btn-sm am-radius">重置</a>
+                </form>
+
+                <table class="am-table am-table-bordered am-table-striped am-text-sm">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>头像</th>
+                            <th>昵称</th>
+                            <th>手机号</th>
+                            <th>当前阶段</th>
+                            <th>预产期</th>
+                            <th>宝宝生日</th>
+                            <th>宝宝月龄</th>
+                            <th>邀请码</th>
+                            <th>积分</th>
+                            <th>注册时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{if !empty($data_list) && is_array($data_list)}}
+                        {{foreach $data_list as $v}}
+                        <tr>
+                            <td>{{$v.id}}</td>
+                            <td>{{if !empty($v['avatar'])}}<img src="{{$v.avatar}}" style="width:30px;height:30px;border-radius:50%;">{{/if}}</td>
+                            <td>{{$v.nickname}}</td>
+                            <td>{{$v.mobile}} {{if !empty($can_view_sensitive)}}<span class="am-badge am-badge-warning am-radius am-text-xs">明文</span>{{else /}}<span class="am-badge am-badge-default am-radius am-text-xs">已脱敏</span>{{/if}}</td>
+                            <td>{{$v.current_stage_text}}</td>
+                            <td>{{$v.due_date_text}}</td>
+                            <td>{{$v.baby_birthday_text}}</td>
+                            <td>{{$v.baby_month_age_text}}</td>
+                            <td>{{$v.invite_code}}</td>
+                            <td>{{$v.integral}}</td>
+                            <td>{{if $v.add_time > 0}}{{$v.add_time|date='Y-m-d H:i'}}{{/if}}</td>
+                            <td>
+                                <a href="{{:MyUrl('admin/muyinguser/detail', ['id'=>$v['id']])}}" class="am-badge am-badge-primary am-radius">详情</a>
+                            </td>
+                        </tr>
+                        {{/foreach}}
+                        {{else /}}
+                        <tr><td colspan="12" class="am-text-center">暂无数据</td></tr>
+                        {{/if}}
+                    </tbody>
+                </table>
+
+                {{if $total > $page_size}}
+                <div class="am-text-center am-margin-top">
+                    <ul class="am-pagination am-pagination-centered">
+                        {{if $page > 1}}
+                        <li><a href="{{$page_url}}?page={{$page-1}}">上一页</a></li>
+                        {{/if}}
+                        <li class="am-active"><a href="javascript:;">{{$page}} / {{$page_total}}</a></li>
+                        {{if $page < $page_total}}
+                        <li><a href="{{$page_url}}?page={{$page+1}}">下一页</a></li>
+                        {{/if}}
+                    </ul>
+                    <span class="am-text-sm am-text-gray">共 {{$total}} 条</span>
+                </div>
+                {{/if}}
+            </div>
+        </div>
+    </div>
+</div>
+
+{{:ModuleInclude('public/footer')}}

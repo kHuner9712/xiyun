@@ -1,0 +1,144 @@
+{{:ModuleInclude('public/header')}}
+
+{{if !empty($data)}}
+<div class="am-g">
+    <div class="am-u-sm-12">
+        <div class="am-panel am-panel-default">
+            <div class="am-panel-hd am-cf">
+                <span>用户详情 - {{$data.nickname}}</span>
+                <a href="{{:MyUrl('admin/muyinguser/index')}}" class="am-btn am-btn-xs am-btn-default am-radius am-fr">返回列表</a>
+            </div>
+            <div class="am-panel-bd">
+                <div class="am-g">
+                    <div class="am-u-md-6 am-u-sm-12">
+                        <table class="am-table am-table-bordered">
+                            <tr><th width="120">ID</th><td>{{$data.id}}</td></tr>
+                            <tr><th>昵称</th><td>{{$data.nickname}}</td></tr>
+                            <tr><th>用户名</th><td>{{$data.username}}</td></tr>
+                            <tr><th>手机号</th><td>{{$data.mobile}} {{if !empty($can_view_sensitive)}}<span class="am-badge am-badge-warning am-radius am-text-xs">明文</span>{{else /}}<span class="am-badge am-badge-default am-radius am-text-xs">已脱敏</span>{{/if}}</td></tr>
+                            <tr><th>当前阶段</th><td>{{$data.current_stage_text}}</td></tr>
+                            <tr><th>预产期</th><td>{{$data.due_date_text}}</td></tr>
+                            <tr><th>宝宝生日</th><td>{{$data.baby_birthday_text}}</td></tr>
+                            <tr><th>邀请码</th><td>{{$data.invite_code}}</td></tr>
+                            <tr><th>积分</th><td>{{$data.integral}}</td></tr>
+                            <tr><th>注册时间</th><td>{{if $data.add_time > 0}}{{$data.add_time|date='Y-m-d H:i:s'}}{{/if}}</td></tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="am-g">
+    <div class="am-u-md-6 am-u-sm-12">
+        <div class="am-panel am-panel-default">
+            <div class="am-panel-hd">活动报名记录</div>
+            <div class="am-panel-bd">
+                {{if !empty($signups) && is_array($signups)}}
+                <table class="am-table am-table-bordered am-table-striped am-text-sm">
+                    <thead><tr><th>ID</th><th>活动ID</th><th>状态</th><th>候补</th><th>时间</th></tr></thead>
+                    <tbody>
+                    {{foreach $signups as $s}}
+                    <tr>
+                        <td>{{$s.id}}</td>
+                        <td><a href="{{:MyUrl('admin/activity/detail', ['id'=>$s['activity_id']])}}">{{$s.activity_id}}</a></td>
+                        <td>{{if $s.status == 0}}待确认{{elseif $s.status == 1 /}}已确认{{elseif $s.status == 2 /}}已取消{{/if}}</td>
+                        <td>{{if $s.is_waitlist}}候补{{else /}}正式{{/if}}</td>
+                        <td>{{$s.add_time|date='Y-m-d H:i'}}</td>
+                    </tr>
+                    {{/foreach}}
+                    </tbody>
+                </table>
+                {{else /}}
+                <p class="am-text-center am-text-gray">暂无报名记录</p>
+                {{/if}}
+            </div>
+        </div>
+    </div>
+    <div class="am-u-md-6 am-u-sm-12">
+        <div class="am-panel am-panel-default">
+            <div class="am-panel-hd">反馈记录</div>
+            <div class="am-panel-bd">
+                {{if !empty($feedbacks) && is_array($feedbacks)}}
+                <table class="am-table am-table-bordered am-table-striped am-text-sm">
+                    <thead><tr><th>ID</th><th>内容</th><th>审核</th><th>时间</th></tr></thead>
+                    <tbody>
+                    {{foreach $feedbacks as $f}}
+                    <tr>
+                        <td>{{$f.id}}</td>
+                        <td>{{$f.content|msubstr=0,30}}</td>
+                        <td>{{if $f.review_status == 'pending'}}待审核{{elseif $f.review_status == 'approved' /}}已通过{{elseif $f.review_status == 'rejected' /}}已驳回{{/if}}</td>
+                        <td>{{$f.add_time|date='Y-m-d H:i'}}</td>
+                    </tr>
+                    {{/foreach}}
+                    </tbody>
+                </table>
+                {{else /}}
+                <p class="am-text-center am-text-gray">暂无反馈记录</p>
+                {{/if}}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="am-g">
+    <div class="am-u-md-6 am-u-sm-12">
+        <div class="am-panel am-panel-default">
+            <div class="am-panel-hd">邀请记录</div>
+            <div class="am-panel-bd">
+                {{if !empty($invites) && is_array($invites)}}
+                <table class="am-table am-table-bordered am-table-striped am-text-sm">
+                    <thead><tr><th>ID</th><th>被邀请人</th><th>触发事件</th><th>奖励</th><th>状态</th></tr></thead>
+                    <tbody>
+                    {{foreach $invites as $i}}
+                    <tr>
+                        <td>{{$i.id}}</td>
+                        <td>{{$i.invitee_id}}</td>
+                        <td>{{$i.trigger_event}}</td>
+                        <td>{{$i.reward_value}}</td>
+                        <td>{{if $i.status == 1}}已发放{{else /}}待发放{{/if}}</td>
+                    </tr>
+                    {{/foreach}}
+                    </tbody>
+                </table>
+                {{else /}}
+                <p class="am-text-center am-text-gray">暂无邀请记录</p>
+                {{/if}}
+            </div>
+        </div>
+    </div>
+    <div class="am-u-md-6 am-u-sm-12">
+        <div class="am-panel am-panel-default">
+            <div class="am-panel-hd">订单记录</div>
+            <div class="am-panel-bd">
+                {{if !empty($orders) && is_array($orders)}}
+                <table class="am-table am-table-bordered am-table-striped am-text-sm">
+                    <thead><tr><th>订单号</th><th>状态</th><th>金额</th><th>时间</th></tr></thead>
+                    <tbody>
+                    {{foreach $orders as $o}}
+                    <tr>
+                        <td>{{$o.order_no}}</td>
+                        <td>{{$o.status}}</td>
+                        <td>{{$o.total_price}}</td>
+                        <td>{{$o.add_time|date='Y-m-d H:i'}}</td>
+                    </tr>
+                    {{/foreach}}
+                    </tbody>
+                </table>
+                {{else /}}
+                <p class="am-text-center am-text-gray">暂无订单记录</p>
+                {{/if}}
+            </div>
+        </div>
+    </div>
+</div>
+
+{{else /}}
+<div class="am-text-center am-margin-top-xl">
+    <p>用户不存在</p>
+    <a href="{{:MyUrl('admin/muyinguser/index')}}" class="am-btn am-btn-primary am-radius">返回列表</a>
+</div>
+{{/if}}
+
+{{:ModuleInclude('public/footer')}}

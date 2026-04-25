@@ -69,6 +69,73 @@
 </div>
 
 <div class="am-g am-margin-bottom">
+    <div class="am-u-md-6 am-u-sm-12 am-margin-bottom-sm">
+        <div class="am-panel am-panel-default">
+            <div class="am-panel-hd">孕期用户 - 未来30天预产期</div>
+            <div class="am-panel-bd am-text-center">
+                <span class="am-text-xxxl am-text-primary" id="stat-due-soon">-</span>
+                <span class="am-text-sm"> 人即将分娩</span>
+            </div>
+        </div>
+    </div>
+    <div class="am-u-md-6 am-u-sm-12 am-margin-bottom-sm">
+        <div class="am-panel am-panel-default">
+            <div class="am-panel-hd">待审核反馈</div>
+            <div class="am-panel-bd am-text-center">
+                <span class="am-text-xxxl am-text-danger" id="stat-feedback-pending">-</span>
+                <span class="am-text-sm"> 条待处理</span>
+                <a href="{{:MyUrl('admin/feedback/index')}}" class="am-btn am-btn-xs am-btn-warning am-radius am-margin-left-sm">去处理</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="am-g am-margin-bottom">
+    <div class="am-u-sm-12">
+        <div class="am-panel am-panel-default">
+            <div class="am-panel-hd">产后用户 - 宝宝月龄分布</div>
+            <div class="am-panel-bd">
+                <table class="am-table am-table-bordered am-table-striped am-margin-bottom-0">
+                    <thead>
+                        <tr>
+                            <th>月龄段</th>
+                            <th>用户数</th>
+                        </tr>
+                    </thead>
+                    <tbody id="baby-age-buckets">
+                        <tr><td colspan="2" class="am-text-center">加载中...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="am-g am-margin-bottom">
+    <div class="am-u-sm-12">
+        <div class="am-panel am-panel-default">
+            <div class="am-panel-hd">转化指标</div>
+            <div class="am-panel-bd">
+                <table class="am-table am-table-bordered am-table-striped am-margin-bottom-0">
+                    <thead>
+                        <tr>
+                            <th>指标</th>
+                            <th>数值</th>
+                            <th>说明</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>活动报名转化</td><td id="stat-signup-conversion">-</td><td>今日报名数 / 活跃活动数</td></tr>
+                        <tr><td>邀请转化率</td><td id="stat-invite-conversion">-</td><td>今日邀请数 / 今日新用户 × 100%</td></tr>
+                        <tr><td>复购率</td><td id="stat-repurchase-rate">-</td><td>多次购买用户 / 总购买用户 × 100%</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="am-g am-margin-bottom">
     <div class="am-u-sm-12">
         <div class="am-panel am-panel-default">
             <div class="am-panel-hd am-cf">
@@ -141,6 +208,25 @@ $(function() {
                         $('#stage-distribution').html(html);
                     } else {
                         $('#stage-distribution').html('<tr><td colspan="3" class="am-text-center">暂无数据</td></tr>');
+                    }
+
+                    $('#stat-due-soon').text(d.due_soon_count || 0);
+                    $('#stat-feedback-pending').text(d.feedback_pending || 0);
+
+                    if(d.baby_age_buckets && d.baby_age_buckets.length > 0) {
+                        var bhtml = '';
+                        d.baby_age_buckets.forEach(function(b) {
+                            bhtml += '<tr><td>' + b.name + '</td><td>' + b.count + '</td></tr>';
+                        });
+                        $('#baby-age-buckets').html(bhtml);
+                    } else {
+                        $('#baby-age-buckets').html('<tr><td colspan="2" class="am-text-center">暂无数据</td></tr>');
+                    }
+
+                    if(d.conversion) {
+                        $('#stat-signup-conversion').text(d.conversion.signup_conversion || 0);
+                        $('#stat-invite-conversion').text((d.conversion.invite_conversion || 0) + '%');
+                        $('#stat-repurchase-rate').text((d.conversion.repurchase_rate || 0) + '%');
                     }
                 }
             }

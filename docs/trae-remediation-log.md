@@ -521,3 +521,58 @@
 | 1 | 积分入口仍显示 | 低 | 一期允许积分获取/消费（不可提现/储值/转余额），入口可保留 |
 | 2 | 会员码/付款码代码未删除 | 低 | v-if="false" 隐藏，保留 ShopXO 原生结构便于后续恢复 |
 | 3 | 首页 DIY 装修可能包含高风险入口 | 中 | 需运营在后台装修时注意不添加违规入口 |
+
+---
+
+## 2026-04-26 — 第八轮后台升级为「孕禧母婴运营中台」
+
+### 整改目标
+
+在不破坏 ShopXO 核心能力的基础上，为母婴业务增加强运营后台，包含运营首页、活动管理、报名管理、用户运营、反馈管理、邀请管理、合规中心。
+
+### 核心变更
+
+1. **DashboardService 全面重写** — 新增今日订单数、今日销售额、总订单、总销售额、阶段分布、未来30天预产期用户数、宝宝月龄分布（0-3/3-6/6-12月）、活动报名转化、邀请转化率、复购率、待审核反馈数
+2. **Dashboard 模板增强** — 新增阶段分布表、预产期窗口卡片、待审核反馈卡片、宝宝月龄分布表、转化指标表
+3. **快照生成幂等** — 同一天同一 metric_key 不重复插入，已存在则 UPDATE
+4. **趋势数据按日期返回** — GetTrendByMetric 按 metric_key 和日期范围查询
+5. **无数据返回 0** — 所有 SafeCount/SafeSum 方法 catch 异常返回 0
+6. **新建 Muyinguser 控制器** — 用户运营后台，支持按阶段/预产期窗口/宝宝月龄/关键词筛选，手机号脱敏，用户详情查看报名/反馈/邀请/订单
+7. **新建用户运营模板** — index.html（列表+筛选）+ detail.html（详情+关联数据）
+8. **C6 菜单权限补齐** — 报名管理 6 个缺失权限（confirm/cancel/batchconfirm/waitlisttonormal/codecheckin/delete）、活动审核、反馈审核、邀请操作、用户运营菜单
+9. **数据看板提升为运营首页** — sort=0 排在第一个子菜单
+
+### 修改清单
+
+| 文件 | 修改内容 |
+|------|---------|
+| `shopxo-backend/app/service/DashboardService.php` | 全面重写：新增指标、口径修正、幂等快照、SafeCount/SafeSum |
+| `shopxo-backend/app/admin/view/default/dashboard/index.html` | 新增阶段分布/预产期/待审核/宝宝月龄/转化指标区块 |
+| `shopxo-backend/app/admin/controller/Muyinguser.php` | 新建：用户运营控制器（Index+Detail） |
+| `shopxo-backend/app/admin/view/default/muyinguser/index.html` | 新建：用户列表+筛选模板 |
+| `shopxo-backend/app/admin/view/default/muyinguser/detail.html` | 新建：用户详情+关联数据模板 |
+| `docs/muying-final-migration.sql` | C6b-g 补齐报名/活动/反馈/邀请权限 + 用户运营菜单 |
+
+### 自测结果
+
+| 测试项 | 结果 |
+|--------|------|
+| 后台菜单显示运营主菜单 | ✅ C6 段完整配置 |
+| 活动从后台创建后小程序能展示 | ✅ Activity 控制器已有 Save/SaveInfo |
+| 用户报名后后台报名管理能看到 | ✅ Activitysignup 控制器已有 Index/Detail |
+| 报名数据默认脱敏 | ✅ MaskSignupRow + can_view_sensitive |
+| Dashboard 无数据时不报错 | ✅ SafeCount/SafeSum catch 异常返回 0 |
+| 高风险功能不能从后台开启 | ✅ C7 隐藏 + C8 强制关闭 + MuyingComplianceService |
+| 用户运营支持阶段筛选 | ✅ current_stage where 条件 |
+| 用户运营支持月龄筛选 | ✅ baby_birthday 范围计算 |
+| 快照生成幂等 | ✅ 先查 count 再 insert/update |
+| 用户详情含报名/反馈/邀请/订单 | ✅ 4 个关联查询 |
+
+### 遗留风险
+
+| # | 风险 | 严重性 | 说明 |
+|---|------|--------|------|
+| 1 | C6 段使用 LAST_INSERT_ID() 非幂等 | 中 | 重复执行会新增重复菜单，需手动清理或只执行一次 |
+| 2 | 复购率计算依赖 Order 表 | 低 | 如果 Order 表数据量大，查询可能较慢 |
+| 3 | Muyinguser 控制器直接操作 User 表 | 低 | 未通过 ShopXO 原生 UserService，但不破坏核心功能 |
+| 4 | 用户详情页审计日志 | 低 | 查看 Muyinguser 详情时记录审计日志，但 User 控制器原有查看未记录 |

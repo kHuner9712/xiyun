@@ -506,6 +506,39 @@ INSERT INTO `sxo_power` (`pid`, `name`, `control`, `action`, `url`, `sort`, `is_
 INSERT INTO `sxo_power` (`pid`, `name`, `control`, `action`, `url`, `sort`, `is_show`, `icon`, `add_time`, `upd_time`) VALUES
 (@op_id, '用户标签', 'usertag', 'index', '', 8, 1, '', UNIX_TIMESTAMP(), UNIX_TIMESTAMP());
 
+-- C6b. 报名管理补齐缺失权限
+INSERT INTO `sxo_power` (`pid`, `name`, `control`, `action`, `url`, `sort`, `is_show`, `icon`, `add_time`, `upd_time`) VALUES
+(@signup_id, '确认报名', 'activitysignup', 'confirm', '', 4, 0, '', UNIX_TIMESTAMP(), UNIX_TIMESTAMP()),
+(@signup_id, '取消报名', 'activitysignup', 'cancel', '', 5, 0, '', UNIX_TIMESTAMP(), UNIX_TIMESTAMP()),
+(@signup_id, '批量确认', 'activitysignup', 'batchconfirm', '', 6, 0, '', UNIX_TIMESTAMP(), UNIX_TIMESTAMP()),
+(@signup_id, '候补转正', 'activitysignup', 'waitlisttonormal', '', 7, 0, '', UNIX_TIMESTAMP(), UNIX_TIMESTAMP()),
+(@signup_id, '签到码核销', 'activitysignup', 'codecheckin', '', 8, 0, '', UNIX_TIMESTAMP(), UNIX_TIMESTAMP()),
+(@signup_id, '删除报名', 'activitysignup', 'delete', '', 9, 0, '', UNIX_TIMESTAMP(), UNIX_TIMESTAMP());
+
+-- C6c. 活动管理补齐审核权限
+INSERT INTO `sxo_power` (`pid`, `name`, `control`, `action`, `url`, `sort`, `is_show`, `icon`, `add_time`, `upd_time`) VALUES
+(@act_id, '活动审核', 'activity', 'review', '', 6, 0, '', UNIX_TIMESTAMP(), UNIX_TIMESTAMP());
+
+-- C6d. 反馈管理补齐审核权限
+INSERT INTO `sxo_power` (`pid`, `name`, `control`, `action`, `url`, `sort`, `is_show`, `icon`, `add_time`, `upd_time`) VALUES
+(@feedback_id, '审核反馈', 'feedback', 'review', '', 4, 0, '', UNIX_TIMESTAMP(), UNIX_TIMESTAMP());
+
+-- C6e. 邀请管理补齐操作权限
+INSERT INTO `sxo_power` (`pid`, `name`, `control`, `action`, `url`, `sort`, `is_show`, `icon`, `add_time`, `upd_time`) VALUES
+(@invite_id, '发放奖励', 'invite', 'grant', '', 2, 0, '', UNIX_TIMESTAMP(), UNIX_TIMESTAMP()),
+(@invite_id, '取消奖励', 'invite', 'cancel', '', 3, 0, '', UNIX_TIMESTAMP(), UNIX_TIMESTAMP());
+
+-- C6f. 用户运营菜单
+INSERT INTO `sxo_power` (`pid`, `name`, `control`, `action`, `url`, `sort`, `is_show`, `icon`, `add_time`, `upd_time`) VALUES
+(@op_id, '用户运营', 'muyinguser', 'index', '', 9, 1, '', UNIX_TIMESTAMP(), UNIX_TIMESTAMP());
+SET @muyinguser_id = LAST_INSERT_ID();
+
+INSERT INTO `sxo_power` (`pid`, `name`, `control`, `action`, `url`, `sort`, `is_show`, `icon`, `add_time`, `upd_time`) VALUES
+(@muyinguser_id, '用户详情', 'muyinguser', 'detail', '', 1, 0, '', UNIX_TIMESTAMP(), UNIX_TIMESTAMP());
+
+-- C6g. 运营首页（数据看板）提升为第一个子菜单
+UPDATE `sxo_power` SET `sort`=0 WHERE `pid`=@op_id AND `control`='dashboard' AND `action`='index';
+
 -- C7. 隐藏一期不需要的功能菜单
 -- 一期白名单：商品管理/订单管理/用户管理/文章管理/运营/系统管理/应用管理/站点管理/支付管理
 -- 一期允许插件：brand/delivery/express（菜单保留可见）

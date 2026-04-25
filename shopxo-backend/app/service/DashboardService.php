@@ -11,62 +11,97 @@ class DashboardService
         $today_start = strtotime(date('Y-m-d'));
         $yesterday_start = $today_start - 86400;
 
-        $new_users_today = Db::name('User')->where(['add_time' => [['>=', $today_start], ['<', $today_start + 86400]]])->count();
-        $new_users_yesterday = Db::name('User')->where(['add_time' => [['>=', $yesterday_start], ['<', $today_start]]])->count();
+        $new_users_today = self::SafeCount(
+            Db::name('User')->where('add_time', '>=', $today_start)->where('add_time', '<', $today_start + 86400)
+        );
+        $new_users_yesterday = self::SafeCount(
+            Db::name('User')->where('add_time', '>=', $yesterday_start)->where('add_time', '<', $today_start)
+        );
 
-        $activity_signup_today = Db::name('ActivitySignup')->where([
-            ['add_time', '>=', $today_start],
-            ['add_time', '<', $today_start + 86400],
-            ['status', 'in', [0, 1]],
-        ])->count();
+        $activity_signup_today = self::SafeCount(
+            Db::name('ActivitySignup')
+                ->where('add_time', '>=', $today_start)
+                ->where('add_time', '<', $today_start + 86400)
+                ->where('status', 'in', [0, 1])
+        );
 
-        $invite_reward_today = Db::name('InviteReward')->where([
-            ['add_time', '>=', $today_start],
-            ['add_time', '<', $today_start + 86400],
-            ['status', '=', 1],
-            ['trigger_event', '=', 'first_order'],
-        ])->sum('reward_value');
+        $invite_reward_today = self::SafeSum(
+            Db::name('InviteReward')
+                ->where('add_time', '>=', $today_start)
+                ->where('add_time', '<', $today_start + 86400)
+                ->where('status', 1)
+                ->where('trigger_event', 'first_order'),
+            'reward_value'
+        );
 
-        $feedback_today = Db::name('MuyingFeedback')->where([
-            ['add_time', '>=', $today_start],
-            ['add_time', '<', $today_start + 86400],
-            ['is_delete_time', '=', 0],
-            ['review_status', '=', 'approved'],
-        ])->count();
+        $feedback_today = self::SafeCount(
+            Db::name('MuyingFeedback')
+                ->where('add_time', '>=', $today_start)
+                ->where('add_time', '<', $today_start + 86400)
+                ->where('is_delete_time', 0)
+        );
 
-        $total_users = Db::name('User')->count();
-        $total_activities = Db::name('Activity')->where(['is_enable' => 1, 'is_delete_time' => 0])->count();
-        $total_signups = Db::name('ActivitySignup')->where([['status', 'in', [0, 1]]])->count();
-        $total_invites = Db::name('InviteReward')->where(['status' => 1, 'trigger_event' => 'first_order'])->group('invitee_id')->count();
+        $feedback_pending = self::SafeCount(
+            Db::name('MuyingFeedback')
+                ->where('is_delete_time', 0)
+                ->where('review_status', 'pending')
+        );
 
-        $total_orders = Db::name('Order')->where(['status' => 4])->count();
-        $total_sales = Db::name('Order')->where(['status' => 4])->sum('total_price');
-        $today_orders = Db::name('Order')->where([
-            ['add_time', '>=', $today_start],
-            ['add_time', '<', $today_start + 86400],
-        ])->count();
-        $today_sales = Db::name('Order')->where([
-            ['add_time', '>=', $today_start],
-            ['add_time', '<', $today_start + 86400],
-            ['status', '>=', 4],
-        ])->sum('total_price');
+        $total_users = self::SafeCount(Db::name('User'));
+        $total_activities = self::SafeCount(
+            Db::name('Activity')->where('is_enable', 1)->where('is_delete_time', 0)
+        );
+        $total_signups = self::SafeCount(
+            Db::name('ActivitySignup')->where('status', 'in', [0, 1])
+        );
+        $total_invites = self::SafeCount(
+            Db::name('InviteReward')->where('status', 1)->where('trigger_event', 'first_order')->group('invitee_id')
+        );
+
+        $today_orders = self::SafeCount(
+            Db::name('Order')->where('add_time', '>=', $today_start)->where('add_time', '<', $today_start + 86400)
+        );
+        $today_sales = self::SafeSum(
+            Db::name('Order')
+                ->where('add_time', '>=', $today_start)
+                ->where('add_time', '<', $today_start + 86400)
+                ->where('status', '>=', 4),
+            'total_price'
+        );
+        $total_orders = self::SafeCount(Db::name('Order')->where('status', 4));
+        $total_sales = self::SafeSum(Db::name('Order')->where('status', 4), 'total_price');
 
         $stage_distribution = [];
         $stage_list = \app\extend\muying\MuyingStage::getList();
-        foreach ($stage_list as $value => $name) {
-            if ($value === 'all') continue;
-            $count = Db::name('User')->where(['current_stage' => $value])->count();
-            $stage_distribution[] = ['stage' => $value, 'name' => $name, 'count' => $count];
+        foreach ($stage_list as $item) {
+            if ($item['value'] === 'all') continue;
+            $count = self::SafeCount(Db::name('User')->where('current_stage', $item['value']));
+            $stage_distribution[] = ['stage' => $item['value'], 'name' => $item['name'], 'count' => $count];
         }
+
+        $now = time();
+        $thirty_days_later = $now + 86400 * 30;
+        $due_soon_count = self::SafeCount(
+            Db::name('User')
+                ->where('current_stage', 'pregnancy')
+                ->where('due_date', '>', 0)
+                ->where('due_date', '<=', $thirty_days_later)
+        );
+
+        $baby_age_buckets = self::GetBabyAgeBuckets();
+
+        $signup_conversion = self::CalcSignupConversion($today_start);
+        $invite_conversion = self::CalcInviteConversion($today_start);
+        $repurchase_rate = self::CalcRepurchaseRate();
 
         return DataReturn(MyLang('handle_success'), 0, [
             'today' => [
-                'new_users'          => $new_users_today,
-                'activity_signups'   => $activity_signup_today,
-                'invite_rewards'     => intval($invite_reward_today),
-                'feedback_count'     => $feedback_today,
-                'orders'             => $today_orders,
-                'sales'              => round(floatval($today_sales), 2),
+                'new_users'        => $new_users_today,
+                'activity_signups' => $activity_signup_today,
+                'invite_rewards'   => intval($invite_reward_today),
+                'feedback_count'   => $feedback_today,
+                'orders'           => $today_orders,
+                'sales'            => round(floatval($today_sales), 2),
             ],
             'yesterday' => [
                 'new_users' => $new_users_yesterday,
@@ -80,6 +115,14 @@ class DashboardService
                 'sales'      => round(floatval($total_sales), 2),
             ],
             'stage_distribution' => $stage_distribution,
+            'due_soon_count'     => $due_soon_count,
+            'baby_age_buckets'   => $baby_age_buckets,
+            'feedback_pending'   => $feedback_pending,
+            'conversion'         => [
+                'signup_conversion' => $signup_conversion,
+                'invite_conversion' => $invite_conversion,
+                'repurchase_rate'   => $repurchase_rate,
+            ],
         ]);
     }
 
@@ -94,44 +137,35 @@ class DashboardService
         $start_date = date('Y-m-d', strtotime("-{$days} days"));
 
         if (!empty($metric_key)) {
-            $data = Db::name('MuyingStatSnapshot')->where([
-                ['metric_key', '=', $metric_key],
-                ['stat_date', '>=', $start_date],
-            ])->order('stat_date asc')->field('stat_date,metric_value')->select()->toArray();
-
-            $items = [];
-            foreach ($data as $row) {
-                $items[] = [
-                    'date'  => $row['stat_date'],
-                    'value' => floatval($row['metric_value']),
-                ];
-            }
-
-            return DataReturn(MyLang('handle_success'), 0, [
-                'metric_key' => $metric_key,
-                'items'      => $items,
-            ]);
+            return self::GetTrendByMetric($metric_key, $start_date);
         }
 
-        $metrics = ['registration_conversion', 'activity_signup_conversion', 'invite_referral', 'repurchase', 'stage_completion'];
+        $metrics = ['new_users', 'activity_signups', 'orders', 'sales', 'feedback_count',
+                    'signup_conversion', 'invite_conversion', 'repurchase_rate', 'stage_completion'];
         $result = [];
         foreach ($metrics as $key) {
-            $snapshots = Db::name('MuyingStatSnapshot')->where([
-                ['metric_key', '=', $key],
-                ['stat_date', '>=', $start_date],
-            ])->order('stat_date asc')->field('stat_date,metric_value')->select()->toArray();
-
-            $items = [];
-            foreach ($snapshots as $row) {
-                $items[] = [
-                    'date'  => $row['stat_date'],
-                    'value' => floatval($row['metric_value']),
-                ];
-            }
-            $result[$key] = $items;
+            $result[$key] = self::GetTrendByMetric($key, $start_date);
         }
 
         return DataReturn(MyLang('handle_success'), 0, $result);
+    }
+
+    private static function GetTrendByMetric($metric_key, $start_date)
+    {
+        $data = Db::name('MuyingStatSnapshot')->where([
+            ['metric_key', '=', $metric_key],
+            ['stat_date', '>=', $start_date],
+        ])->order('stat_date asc')->field('stat_date,metric_value')->select()->toArray();
+
+        $items = [];
+        foreach ($data as $row) {
+            $items[] = [
+                'date'  => $row['stat_date'],
+                'value' => floatval($row['metric_value']),
+            ];
+        }
+
+        return $items;
     }
 
     public static function GenerateDailySnapshot()
@@ -142,40 +176,168 @@ class DashboardService
 
         $metrics = [];
 
-        $total_new = Db::name('User')->where(['add_time' => [['>=', $yesterday_start], ['<', $yesterday_end]]])->count();
-        $with_stage = Db::name('User')->where([
-            ['add_time', '>=', $yesterday_start],
-            ['add_time', '<', $yesterday_end],
-            ['current_stage', '<>', ''],
-        ])->count();
+        $total_new = self::SafeCount(
+            Db::name('User')->where('add_time', '>=', $yesterday_start)->where('add_time', '<', $yesterday_end)
+        );
+        $metrics['new_users'] = $total_new;
+
+        $metrics['activity_signups'] = self::SafeCount(
+            Db::name('ActivitySignup')->where('add_time', '>=', $yesterday_start)->where('add_time', '<', $yesterday_end)
+        );
+
+        $metrics['orders'] = self::SafeCount(
+            Db::name('Order')->where('add_time', '>=', $yesterday_start)->where('add_time', '<', $yesterday_end)
+        );
+
+        $metrics['sales'] = self::SafeSum(
+            Db::name('Order')
+                ->where('add_time', '>=', $yesterday_start)
+                ->where('add_time', '<', $yesterday_end)
+                ->where('status', '>=', 4),
+            'total_price'
+        );
+
+        $metrics['feedback_count'] = self::SafeCount(
+            Db::name('MuyingFeedback')
+                ->where('add_time', '>=', $yesterday_start)
+                ->where('add_time', '<', $yesterday_end)
+                ->where('is_delete_time', 0)
+        );
+
+        $with_stage = self::SafeCount(
+            Db::name('User')
+                ->where('add_time', '>=', $yesterday_start)
+                ->where('add_time', '<', $yesterday_end)
+                ->where('current_stage', '<>', '')
+        );
         $metrics['stage_completion'] = $total_new > 0 ? round($with_stage / $total_new * 100, 2) : 0;
 
-        $activity_views = Db::name('Activity')->where(['is_enable' => 1, 'is_delete_time' => 0])->sum('access_count');
-        $activity_signups = Db::name('ActivitySignup')->where([
-            ['add_time', '>=', $yesterday_start],
-            ['add_time', '<', $yesterday_end],
-        ])->count();
-        $metrics['activity_signup_conversion'] = $activity_views > 0 ? round($activity_signups / $activity_views * 100, 4) : 0;
-
-        $invite_count = Db::name('InviteReward')->where([
-            ['add_time', '>=', $yesterday_start],
-            ['add_time', '<', $yesterday_end],
-        ])->group('invitee_id')->count();
-        $metrics['invite_referral'] = $total_new > 0 ? round($invite_count / $total_new * 100, 4) : 0;
-
-        $metrics['registration_conversion'] = 0;
-        $metrics['repurchase'] = 0;
+        $metrics['signup_conversion'] = self::CalcSignupConversion($yesterday_start);
+        $metrics['invite_conversion'] = self::CalcInviteConversion($yesterday_start);
+        $metrics['repurchase_rate'] = self::CalcRepurchaseRate();
 
         foreach ($metrics as $key => $value) {
-            Db::name('MuyingStatSnapshot')->save([
-                'stat_date'    => $today,
-                'metric_key'   => $key,
-                'metric_value' => $value,
-                'add_time'     => time(),
-            ]);
+            $exists = Db::name('MuyingStatSnapshot')
+                ->where('stat_date', $today)
+                ->where('metric_key', $key)
+                ->count();
+            if ($exists > 0) {
+                Db::name('MuyingStatSnapshot')
+                    ->where('stat_date', $today)
+                    ->where('metric_key', $key)
+                    ->update(['metric_value' => $value, 'add_time' => time()]);
+            } else {
+                Db::name('MuyingStatSnapshot')->insert([
+                    'stat_date'    => $today,
+                    'metric_key'   => $key,
+                    'metric_value' => $value,
+                    'add_time'     => time(),
+                ]);
+            }
         }
 
-        Log::info('仪表盘每日快照生成完成 date=' . $today);
-        return DataReturn('快照生成完成', 0);
+        Log::info('仪表盘每日快照生成完成 date=' . $today . ' metrics=' . count($metrics));
+        return DataReturn('快照生成完成', 0, ['date' => $today, 'metrics' => count($metrics)]);
+    }
+
+    private static function GetBabyAgeBuckets()
+    {
+        $now = time();
+        $three_months = $now - 86400 * 90;
+        $six_months = $now - 86400 * 180;
+        $twelve_months = $now - 86400 * 365;
+
+        $bucket_0_3 = self::SafeCount(
+            Db::name('User')->where('current_stage', 'postpartum')->where('baby_birthday', '>', 0)->where('baby_birthday', '>=', $three_months)
+        );
+        $bucket_3_6 = self::SafeCount(
+            Db::name('User')->where('current_stage', 'postpartum')->where('baby_birthday', '>', 0)->where('baby_birthday', '<', $three_months)->where('baby_birthday', '>=', $six_months)
+        );
+        $bucket_6_12 = self::SafeCount(
+            Db::name('User')->where('current_stage', 'postpartum')->where('baby_birthday', '>', 0)->where('baby_birthday', '<', $six_months)->where('baby_birthday', '>=', $twelve_months)
+        );
+
+        return [
+            ['key' => '0_3', 'name' => '0-3月', 'count' => $bucket_0_3],
+            ['key' => '3_6', 'name' => '3-6月', 'count' => $bucket_3_6],
+            ['key' => '6_12', 'name' => '6-12月', 'count' => $bucket_6_12],
+        ];
+    }
+
+    private static function CalcSignupConversion($day_start)
+    {
+        $day_end = $day_start + 86400;
+        $signup_count = self::SafeCount(
+            Db::name('ActivitySignup')->where('add_time', '>=', $day_start)->where('add_time', '<', $day_end)
+        );
+        $activity_view_count = self::SafeCount(
+            Db::name('ActivitySignup')->where('add_time', '>=', $day_start)->where('add_time', '<', $day_end)
+                ->group('activity_id')
+        );
+        if ($activity_view_count <= 0) {
+            return 0;
+        }
+        $active_activities = self::SafeCount(
+            Db::name('Activity')->where('is_enable', 1)->where('is_delete_time', 0)
+        );
+        if ($active_activities <= 0) {
+            return 0;
+        }
+        return round($signup_count / $active_activities, 2);
+    }
+
+    private static function CalcInviteConversion($day_start)
+    {
+        $day_end = $day_start + 86400;
+        $invite_count = self::SafeCount(
+            Db::name('InviteReward')->where('add_time', '>=', $day_start)->where('add_time', '<', $day_end)->where('status', 1)
+        );
+        $new_users = self::SafeCount(
+            Db::name('User')->where('add_time', '>=', $day_start)->where('add_time', '<', $day_end)
+        );
+        if ($new_users <= 0) {
+            return 0;
+        }
+        return round($invite_count / $new_users * 100, 2);
+    }
+
+    private static function CalcRepurchaseRate()
+    {
+        try {
+            $repeat_buyers = Db::name('Order')
+                ->where('status', 4)
+                ->group('user_id')
+                ->having('COUNT(*) > 1')
+                ->count();
+            $total_buyers = Db::name('Order')
+                ->where('status', 4)
+                ->group('user_id')
+                ->count();
+            if ($total_buyers <= 0) {
+                return 0;
+            }
+            return round($repeat_buyers / $total_buyers * 100, 2);
+        } catch (\Exception $e) {
+            return 0;
+        }
+    }
+
+    private static function SafeCount($query)
+    {
+        try {
+            return $query->count();
+        } catch (\Exception $e) {
+            return 0;
+        }
+    }
+
+    private static function SafeSum($query, $field)
+    {
+        try {
+            $val = $query->sum($field);
+            return $val ?: 0;
+        } catch (\Exception $e) {
+            return 0;
+        }
     }
 }
