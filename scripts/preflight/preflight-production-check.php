@@ -345,6 +345,50 @@ if (!empty($env_file) && file_exists($env_file)) {
 }
 
 // ============================================================
+// 10. 隐私加密密钥检查
+// ============================================================
+section("10. 隐私加密密钥检查");
+
+if (!empty($env_file) && file_exists($env_file)) {
+    $env_content = file_get_contents($env_file);
+    if (preg_match('/MUYING_PRIVACY_KEY\s*=\s*(.+)/', $env_content, $m)) {
+        $key = trim($m[1]);
+        if (empty($key) || $key === '{{PRIVACY_KEY}}' || strlen($key) < 16) {
+            block_item("MUYING_PRIVACY_KEY 未配置或过短（当前: " . (empty($key) ? '空' : $key) . "），用户敏感数据将无法加密");
+        } else {
+            pass_item("MUYING_PRIVACY_KEY 已配置（长度: " . strlen($key) . "）");
+        }
+    } else {
+        block_item("MUYING_PRIVACY_KEY 未在 .env 中设置，用户敏感数据将无法加密");
+    }
+} else {
+    warn_item(".env 不可用，无法检查隐私加密密钥");
+}
+
+// ============================================================
+// 11. pages.json 合规检查
+// ============================================================
+section("11. pages.json 合规检查");
+
+$pages_json_path = $repo_path . '/shopxo-uniapp/pages.json';
+if (file_exists($pages_json_path)) {
+    $pages_content = file_get_contents($pages_json_path);
+    $blocked_plugin_patterns = ['/plugins\/wallet/', '/plugins\/coin/', '/plugins\/distribution/', '/plugins\/shop/', '/plugins\/realstore/', '/plugins\/ask/', '/plugins\/blog/', '/plugins\/seckill/', '/plugins\/video/', '/plugins\/hospital/', '/plugins\/giftcard/', '/plugins\/membershiplevelvip/', '/plugins\/weixinliveplayer/', '/plugins\/scanpay/', '/plugins\/complaint/', '/plugins\/invoice/', '/plugins\/certificate/', '/plugins\/intellectstools/', '/extraction-address/'];
+    $found_blocked = false;
+    foreach ($blocked_plugin_patterns as $pattern) {
+        if (strpos($pages_content, $pattern) !== false) {
+            block_item("pages.json 包含被屏蔽插件页面: {$pattern}");
+            $found_blocked = true;
+        }
+    }
+    if (!$found_blocked) {
+        pass_item("pages.json 未包含被屏蔽插件页面");
+    }
+} else {
+    warn_item("pages.json 不存在，无法检查");
+}
+
+// ============================================================
 // 汇总
 // ============================================================
 section("检查汇总");
