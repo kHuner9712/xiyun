@@ -140,10 +140,10 @@
     },
     "quickapp": {},
     "mp-weixin": {
-        "requiredPrivateInfos": ["chooseLocation", "getLocation"],
-        "appid": "wxda7779770f53e901",
+        "requiredPrivateInfos": [],
+        "appid": "",
         "setting": {
-            "urlCheck": true,
+            "urlCheck": false,
             "es6": true,
             "minified": true,
             "ignoreDevUnusedFiles": true,
@@ -154,11 +154,7 @@
         },
         "lazyCodeLoading": "requiredComponents",
         "usingComponents": true,
-        "permission": {
-            "scope.userLocation": {
-                "desc": "用于活动签到、收货地址选择，为您提供附近的活动和服务"
-            }
-        },
+        "permission": {},
         "__usePrivacyCheck__": true,
         "plugins": {}
     },

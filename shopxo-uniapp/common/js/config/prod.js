@@ -2,6 +2,13 @@
 // 当 NODE_ENV=production 时，缺少必填配置直接 throw Error 阻止构建
 import { build_runtime_config, get_default_dev_request_url, ENV_PRODUCTION } from './runtime-config.js';
 
+var TEST_APPIDS = ['wxda7779770f53e901'];
+
+var is_localhost_or_ip = function(url) {
+    if (!url) return false;
+    return /(?:localhost|127\.0\.0\.1|0\.0\.0\.0|10\.\d+\.\d+\.\d+|172\.(?:1[6-9]|2\d|3[01])\.\d+\.\d+|192\.168\.\d+\.\d+)/.test(url);
+};
+
 var config = build_runtime_config({
     default_request_url: process.env.NODE_ENV === 'production' ? '' : get_default_dev_request_url(),
 });
@@ -23,10 +30,28 @@ if (process.env.NODE_ENV === 'production') {
         );
     }
 
+    if (is_localhost_or_ip(config.request_url)) {
+        throw new Error(
+            '[CONFIG][PROD] 生产环境 request_url 不能使用 localhost/127.0.0.1/内网IP，当前值: ' + config.request_url
+        );
+    }
+
+    if (config.static_url && config.static_url.indexOf('https://') !== 0) {
+        throw new Error(
+            '[CONFIG][PROD] 生产环境 static_url 必须以 https:// 开头，当前值: ' + config.static_url
+        );
+    }
+
     if (!config.wx_appid) {
         throw new Error(
             '[CONFIG][PROD] UNI_APP_WX_APPID 未配置，生产构建终止。' +
             '必须在 .env.production 中设置正式 AppID'
+        );
+    }
+
+    if (TEST_APPIDS.indexOf(config.wx_appid) !== -1) {
+        throw new Error(
+            '[CONFIG][PROD] UNI_APP_WX_APPID 为测试号 (' + config.wx_appid + ')，生产环境必须使用正式 AppID'
         );
     }
 }

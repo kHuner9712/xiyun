@@ -191,3 +191,78 @@
 | 4 | 默认管理员密码 | 高 | 首次登录后必须修改 |
 | 5 | 合规日志表 DDL 变更 | 中 | 需在生产环境执行 ALTER TABLE 添加 controller/api_action/user_id 列 |
 | 6 | ShopXO 升级兼容 | 中 | [MUYING-二开] 标注代码需人工合并 |
+
+---
+
+## 2026-04-25 — 第三轮生产配置与微信小程序提审配置整改
+
+### 整改目标
+
+确保生产环境配置安全：HTTPS、正式 AppID、禁止 localhost/内网IP、禁止测试号、构建时硬校验。
+
+### 核心变更
+
+1. **manifest.json 不再硬编码 AppID** — appid 留空，通过 .env 环境变量注入
+2. **requiredPrivateInfos/permission 清空** — 不默认申请定位权限，按需动态申请
+3. **prod.js 增加构建时 5 项硬校验** — HTTPS/AppID/localhost/内网IP/测试号
+4. **.env.production.example 增强** — 明确 HTTPS/AppID 约束，增加 UNI_APP_ENABLE_LOCATION
+5. **.env.development.example 增强** — 明确测试号仅用于开发
+6. **后端 .env.production.example 增强** — 增加宝塔部署注意事项 10 项
+7. **新建宝塔部署文档** — docs/deploy-baota-production.md
+8. **新建提审检查清单** — docs/wechat-miniapp-submit-checklist.md
+9. **preflight 增加 3 项检查** — #15 密钥泄露、#16 测试号 AppID、#17 static_url HTTPS
+
+### 修改清单
+
+#### 前端（5个文件）
+
+| 文件 | 修改内容 |
+|------|---------|
+| `shopxo-uniapp/manifest.json` | appid 清空、requiredPrivateInfos=[]、permission={}、urlCheck=false |
+| `shopxo-uniapp/project.config.json` | appid 清空 |
+| `shopxo-uniapp/common/js/config/prod.js` | 5项构建时硬校验（HTTPS/AppID/localhost/内网IP/测试号） |
+| `shopxo-uniapp/.env.production.example` | 增加 HTTPS/AppID 约束、UNI_APP_ENABLE_LOCATION |
+| `shopxo-uniapp/.env.development.example` | 增加测试号 AppID、UNI_APP_ENABLE_LOCATION |
+
+#### 后端（1个文件）
+
+| 文件 | 修改内容 |
+|------|---------|
+| `shopxo-backend/.env.production.example` | 增加宝塔部署注意事项 10 项、APP_DEBUG=false 强调 |
+
+#### 脚本（1个文件）
+
+| 文件 | 修改内容 |
+|------|---------|
+| `scripts/preflight/preflight-production-check.php` | 增加 #15 密钥泄露、#16 测试号 AppID、#17 static_url HTTPS |
+
+#### 文档（2个新文件）
+
+| 文件 | 修改内容 |
+|------|---------|
+| `docs/deploy-baota-production.md` | 新建：宝塔面板生产部署指南（7章） |
+| `docs/wechat-miniapp-submit-checklist.md` | 新建：微信小程序提审检查清单（5章） |
+
+### 自测结果
+
+| 测试项 | 结果 |
+|--------|------|
+| prod.js 5项硬校验完整 | 通过 |
+| manifest.json appid 为空 | 通过 |
+| manifest.json requiredPrivateInfos 为空 | 通过 |
+| project.config.json appid 为空 | 通过 |
+| .env.development.example 含测试号 | 通过 |
+| .env.production.example 含 HTTPS 约束 | 通过 |
+| 后端 .env.production.example 含宝塔注意事项 | 通过 |
+| 宝塔部署文档存在 | 通过 |
+| 提审检查清单存在 | 通过 |
+| preflight #15/#16/#17 存在 | 通过 |
+
+### 遗留风险
+
+| # | 风险 | 严重性 | 说明 |
+|---|------|--------|------|
+| 1 | 正式 AppID 未申请 | 中 | 当前 appid 为空，开发用 .env.development 注入测试号 |
+| 2 | 域名备案未完成 | 中 | 体验版可用 IP，提审需备案域名 |
+| 3 | 定位权限运行时注入 | 中 | manifest.json 不含定位权限，需在代码中按需动态申请 |
+| 4 | urlCheck 提审时需开启 | 低 | 当前 urlCheck=false（开发用），提审时微信后台会自动校验合法域名 |

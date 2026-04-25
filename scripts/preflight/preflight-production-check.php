@@ -479,6 +479,88 @@ if (file_exists($backend_env_path)) {
 }
 
 // ============================================================
+// 15. 真实密钥泄露检查
+// ============================================================
+section("15. 真实密钥泄露检查");
+
+$secret_patterns = [
+    '/MUYING_PRIVACY_KEY\s*=\s*[0-9a-f]{32,}/i' => 'MUYING_PRIVACY_KEY 可能包含真实密钥',
+    '/MYSQL_ROOT_PASSWORD\s*=\s*(?!CHANGE_ME)[^\s]+/i' => 'MYSQL_ROOT_PASSWORD 可能包含真实密码',
+    '/PASSWORD\s*=\s*(?!{{DB_PASS}})(?!{{PRIVACY_KEY}})(?!CHANGE_ME)[^\s{\[{]+/i' => 'PASSWORD 可能包含真实密码',
+];
+
+$tracked_files_output = [];
+exec("cd " . escapeshellarg($repo_path) . " && git ls-files 2>/dev/null", $tracked_files_output);
+$env_tracked = false;
+foreach ($tracked_files_output as $tf) {
+    if (preg_match('/\.env$|\.env\.production$|\.env\.local$/i', $tf)) {
+        $env_tracked = true;
+        block_item("Git 跟踪了敏感文件: {$tf}，必须从版本控制中移除");
+    }
+}
+if (!$env_tracked) {
+    pass_item("Git 未跟踪 .env 敏感文件");
+}
+
+$example_files = glob($repo_path . '/*/.env*.example');
+$found_secrets = false;
+foreach ($example_files as $ef) {
+    $content = file_get_contents($ef);
+    $basename = str_replace($repo_path . '/', '', $ef);
+    foreach ($secret_patterns as $pattern => $desc) {
+        if (preg_match($pattern, $content)) {
+            block_item("{$desc} 在 {$basename}，不应提交真实密钥");
+            $found_secrets = true;
+        }
+    }
+}
+if (!$found_secrets) {
+    pass_item(".env.example 文件未包含真实密钥");
+}
+
+// ============================================================
+// 16. 测试号 AppID 在生产配置中的检查
+// ============================================================
+section("16. 测试号 AppID 生产配置检查");
+
+$test_appid = 'wxda7779770f53e901';
+if (file_exists($uniapp_prod_env)) {
+    $prod_content = file_get_contents($uniapp_prod_env);
+    if (stripos($prod_content, $test_appid) !== false) {
+        block_item("生产配置 .env.production 包含测试号 AppID: {$test_appid}，提审必须使用正式 AppID");
+    } else {
+        pass_item("生产配置未使用测试号 AppID");
+    }
+} else {
+    warn_item(".env.production 不存在，无法检查测试号 AppID");
+}
+
+// ============================================================
+// 17. static_url HTTPS 检查
+// ============================================================
+section("17. static_url HTTPS 检查");
+
+if (file_exists($uniapp_prod_env)) {
+    $prod_content = file_get_contents($uniapp_prod_env);
+    if (preg_match('/UNI_APP_STATIC_URL\s*=\s*(.+)/', $prod_content, $m)) {
+        $surl = trim($m[1]);
+        if (empty($surl)) {
+            pass_item("static_url 未配置（将使用 request_url）");
+        } elseif (strpos($surl, 'https://') === 0) {
+            pass_item("static_url 使用 HTTPS: {$surl}");
+        } elseif (strpos($surl, 'http://') === 0) {
+            block_item("static_url 使用 HTTP（不安全）: {$surl}");
+        } elseif (strpos($surl, '{{') !== false) {
+            warn_item("static_url 仍为占位符: {$surl}");
+        }
+    } else {
+        pass_item("static_url 未单独配置（将使用 request_url）");
+    }
+} else {
+    warn_item(".env.production 不存在，无法检查 static_url");
+}
+
+// ============================================================
 // 汇总
 // ============================================================
 section("检查汇总");
