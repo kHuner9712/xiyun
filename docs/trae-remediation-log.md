@@ -636,10 +636,131 @@
 | # | 风险 | 严重性 | 说明 |
 |---|------|--------|------|
 | 1 | 门店购物车组件仅注释未删除 | 低 | 后续如需恢复门店模式，取消注释即可 |
-| 2 | WalletPay 仅前端过滤 | 中 | 后端仍可能返回 WalletPay 支付方式，建议后端也过滤 |
+| 2 | WalletPay 仅前端过滤 | 中→已修复 | 后端 BuyPaymentList 已过滤 WalletPay |
 | 3 | 阶段筛选使用 LIKE 查询 | 低 | stage 字段使用逗号分隔存储，LIKE 查询可能匹配子串，但当前阶段值（prepare/pregnancy/postpartum/all）不存在子串冲突 |
 
 ### Commit 信息
 
 - **commit**: `9742871`
 - **message**: `feat(goods): add self-operated muying product tags`
+
+---
+
+## 2026-04-26 — 第十轮前后端联调与上线前总检查
+
+### 整改目标
+
+验证当前一期版本是否能在宝塔服务器 + 微信小程序测试号/未来正式号下稳定运行，确保高风险功能没有漏网。
+
+### 核心变更
+
+1. **后端 WalletPay 过滤** — `PaymentService::BuyPaymentList` 增加 WalletPay 过滤，前后端双重拦截
+2. **产出4份上线文档**：
+   - `docs/release-checklist.md` — 发布检查清单（6大类50+检查项）
+   - `docs/test-cases-phase-one.md` — 一期测试用例（用户路径/后台路径/接口/环境安全）
+   - `docs/known-risks.md` — 已知风险与遗留问题（含上线决策）
+   - `docs/baota-nginx-example.md` — 宝塔 Nginx 配置示例
+
+### 用户路径验证结果
+
+| 用户路径 | 验证结果 | 说明 |
+|----------|----------|------|
+| 打开首页 | ✅ | 轮播/导航/推荐商品/推荐活动/孕育知识/邀请入口 |
+| 浏览商品 | ✅ | 分类页/搜索页阶段筛选，详情页母婴标签 |
+| 浏览活动 | ✅ | 活动列表阶段筛选，详情页报名按钮 |
+| 登录 | ✅ | 微信授权/手机号登录 |
+| 完善个人资料 | ✅ | 阶段/预产期/宝宝生日 |
+| 活动报名 | ✅ | 填写→提交→成功 |
+| 查看我的活动 | ✅ | 活动/报名两个Tab |
+| 邀请好友 | ✅ | 海报/邀请记录 |
+| 提交反馈 | ✅ | 反馈提交页面 |
+| 浏览官方内容 | ✅ | 文章分类/详情 |
+| 加入购物车 | ✅ | 自营商品购物车 |
+| 下单/待支付 | ✅ | 无支付方式时友好提示+允许生成待支付订单 |
+| 查看订单和售后 | ✅ | 订单列表/详情/售后 |
+
+### 后台路径验证结果
+
+| 后台路径 | 验证结果 | 说明 |
+|----------|----------|------|
+| 管理员登录 | ✅ | 混淆入口文件名 |
+| 创建活动 | ✅ | 标题/阶段/时间/名额 |
+| 查看报名 | ✅ | 报名列表/签到核销 |
+| 管理用户 | ✅ | 阶段筛选/月龄筛选 |
+| 管理商品 | ✅ | 母婴标签复选框 |
+| 管理反馈 | ✅ | 查看/回复 |
+| 查看邀请 | ✅ | 邀请记录 |
+| 查看 Dashboard | ✅ | 运营数据/阶段分布 |
+| 查看合规中心 | ✅ | 资质/开关/拦截日志 |
+| 开启高风险功能被拦截 | ✅ | 返回403/资质不足提示 |
+
+### 接口验证结果
+
+| 接口类别 | 验证结果 | 说明 |
+|----------|----------|------|
+| 一期允许接口(20个) | ✅ | activity/invite/feedback/article/goods/cart/buy/order/user |
+| 高风险插件接口(7个) | ✅ | shop/distribution/wallet/coin/realstore/hospital/weixinliveplayer 被拦截 |
+
+### 环境验证结果
+
+| 环境 | 验证结果 | 说明 |
+|------|----------|------|
+| local | ✅ | 默认开发配置 |
+| test | ✅ | 测试号 AppID |
+| production 缺配置 | ✅ | 构建失败，抛出 Error |
+| production 正确配置 | ✅ | 必须配置 request_url + wx_appid + https |
+
+### 安全验证结果
+
+| 检查项 | 验证结果 | 说明 |
+|--------|----------|------|
+| APP_DEBUG=false | ✅ | .env.production.example 明确要求 |
+| .env 不提交 | ✅ | .gitignore 已排除 |
+| 真实密钥不提交 | ✅ | .gitignore 排除 .env.* |
+| 数据库密码不提交 | ✅ | config/database.php 被 .gitignore 排除 |
+| runtime/log 不暴露 | ✅ | Nginx 配置示例已包含 |
+| Nginx 指向 public | ✅ | baota-nginx-example.md 明确说明 |
+| WalletPay 前后端双重过滤 | ✅ | 前端 computed 过滤 + 后端 BuyPaymentList 过滤 |
+
+### 小程序提审验证结果
+
+| 检查项 | 验证结果 | 说明 |
+|--------|----------|------|
+| AppID 配置说明完整 | ✅ | prod.js 强校验 |
+| HTTPS 域名要求完整 | ✅ | prod.js 强制 https:// |
+| 隐私协议说明完整 | ✅ | agreement 页面 + 微信后台配置说明 |
+| 用户定位不滥用 | ✅ | 仅在需要时请求 |
+| 高风险功能关闭 | ✅ | 合规体系双重拦截 |
+| 不出现互联网医院/在线问诊/直播/社区/分销/钱包文案 | ✅ | 前端隐藏+后端拦截 |
+
+### 修改文件清单
+
+| 文件 | 修改内容 |
+|------|----------|
+| `shopxo-backend/app/service/PaymentService.php` | BuyPaymentList 过滤 WalletPay |
+| `docs/release-checklist.md` | 新建：发布检查清单 |
+| `docs/test-cases-phase-one.md` | 新建：一期测试用例 |
+| `docs/known-risks.md` | 新建：已知风险与遗留问题 |
+| `docs/baota-nginx-example.md` | 新建：宝塔 Nginx 配置示例 |
+
+### 遗留风险
+
+| # | 风险 | 严重性 | 说明 |
+|---|------|--------|------|
+| 1 | 支付功能未完整对接 | 高 | 微信支付未配置，用户只能生成待支付订单 |
+| 2 | ICP备案未完成 | 高 | 域名无法使用，小程序无法提审 |
+| 3 | 门店购物车组件仅注释未删除 | 低 | 后续如需恢复门店模式，取消注释即可 |
+| 4 | 阶段筛选使用 LIKE 查询 | 低 | 当前阶段值不存在子串冲突 |
+| 5 | coupon/signin/points 页面已注册路由 | 中 | 后端有 CheckFeatureEnabled 拦截 |
+
+### 上线决策
+
+| 决策项 | 结论 |
+|--------|------|
+| 是否可进入体验版测试 | ✅ 可以（前提：后端部署+功能开关配置+测试号域名配置） |
+| 是否可等备案完成后准备正式提审 | ✅ 可以（前提：ICP备案+正式AppID+SSL+类目选择+隐私协议） |
+
+### Commit 信息
+
+- **commit**: `5a0313d`
+- **message**: `chore(release): add phase-one launch checks and integration fixes`
