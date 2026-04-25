@@ -394,3 +394,61 @@
 | 3 | 反馈模块无导出功能 | 低 | FeedbackExport 方法不存在，如需导出需后续开发 |
 | 4 | 报名列表搜索手机号 | 中 | 数据已加密，需用 phone_hash 精确匹配（已实现） |
 | 5 | 旧数据未加密 | 高 | 需运行 scripts/migrate-encrypt-sensitive.php 将明文数据加密 |
+
+---
+
+## 2026-04-26 — 第六轮数据库迁移脚本完整性与 MySQL 5.7 兼容性整改
+
+### 整改目标
+
+全面扫描母婴业务代码使用的表和字段，对照 muying-final-migration.sql 补齐所有缺失项，确保 MySQL 5.7 兼容，增加安全检查脚本。
+
+### 核心变更
+
+1. **A1 sxo_activity 表补齐 9 个缺失字段** — activity_type, activity_status, waitlist_count, waitlist_signup_count, allow_waitlist, signup_code_enabled, require_location_checkin, latitude, longitude
+2. **A2 sxo_activity_signup 表补齐 4 个缺失字段** — phone_hash, privacy_version, waitlist_to_normal_time, signup_code
+3. **A4 sxo_muying_feedback 补齐 contact_hash 字段** — 联系方式哈希用于去重
+4. **D1 sxo_muying_audit_log 补齐 5 个业务日志字段** — type, action, user_id, detail, status（MuyingLogService 使用）
+5. **D5 新增 sxo_muying_compliance_log 表** — 合规拦截日志（MuyingComplianceService 使用）
+6. **D6 新增 sxo_muying_stat_snapshot 表** — 统计快照（DashboardService 使用）
+7. **D7 合规中心菜单权限合并** — id=770-775（之前在独立文件中）
+8. **D8 功能开关配置项合并** — 25 个 feature_*_enabled 配置项
+9. **D9 资质门禁配置项合并** — 6 个 qualification_* 配置项
+10. **D10 新增 sxo_muying_sensitive_log 表** — 敏感词拦截日志（MuyingStatService 引用）
+11. **B6 补齐 sxo_goods.approval_number 字段** — 批准文号（MuyingStatService 使用）
+12. **B7b 补齐 sxo_muying_feedback.contact_hash 字段** — 增量补丁
+13. **B8 补齐 sxo_activity 9 个字段的增量补丁** — 已有环境升级用
+14. **B9 补齐 sxo_activity_signup 2 个字段的增量补丁** — privacy_version, waitlist_to_normal_time
+15. **C2/C3 唯一索引改为幂等版本** — 使用 information_schema.STATISTICS 判断索引是否存在
+16. **新增 docs/database-migration-checklist.md** — 部署前 SQL 检查文档
+17. **新增 scripts/preflight/check-migration.js** — 安全检查脚本
+
+### 修改清单
+
+| 文件 | 修改内容 |
+|------|---------|
+| `docs/muying-final-migration.sql` | A1/A2/A4 建表补齐字段；B6-B9 增量补丁；C2/C3 幂等化；D1 审计表补字段；D5-D10 新增表/权限/配置 |
+| `docs/database-migration-checklist.md` | 新建：执行前备份、执行前检查、执行后验证、常见失败处理 |
+| `scripts/preflight/check-migration.js` | 新建：9 项安全检查（DROP TABLE/TRUNCATE/MySQL8语法/表完整性/字段完整性/索引完整性/配置项/幂等性/权限ID冲突） |
+
+### 自测结果
+
+| 测试项 | 结果 |
+|--------|------|
+| check-migration.js 全部检查通过 | ✅ 0 错误 0 警告 |
+| 8 张母婴专属表建表语句完整 | ✅ |
+| 所有代码引用字段在迁移 SQL 中找到 | ✅ |
+| MySQL 5.7 兼容（无 IF NOT EXISTS ADD COLUMN、无窗口函数、无 CTE） | ✅ |
+| 所有 ADD INDEX/ADD COLUMN 有幂等保护 | ✅ |
+| DROP TABLE 仅在注释中 | ✅ |
+| 权限 ID 无冲突 | ✅ |
+| 配置项完整 | ✅ |
+
+### 遗留风险
+
+| # | 风险 | 严重性 | 说明 |
+|---|------|--------|------|
+| 1 | C1 存储过程在 phpMyAdmin 中可能执行失败 | 中 | 需使用 mysql 命令行客户端 |
+| 2 | C3 去重会删除重复邀请奖励记录 | 低 | 保留 id 最小的，不可逆 |
+| 3 | C4 枚举修复会修改旧数据 | 低 | 仅影响脏数据 |
+| 4 | 旧数据未加密 | 高 | 需运行 scripts/migrate-encrypt-sensitive.php |

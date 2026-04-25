@@ -57,6 +57,8 @@ CREATE TABLE IF NOT EXISTS `sxo_activity` (
   `cover` char(255) NOT NULL DEFAULT '' COMMENT '封面图',
   `images` text COMMENT '相册图片JSON',
   `category` char(30) NOT NULL DEFAULT '' COMMENT '活动类型(classroom/salon/lecture/trial/holiday/checkin)',
+  `activity_type` char(30) NOT NULL DEFAULT 'offline' COMMENT '活动形式(offline线下/online线上)',
+  `activity_status` char(30) NOT NULL DEFAULT 'draft' COMMENT '活动状态(draft草稿/published已发布/signing报名中/full已满/ended已结束/cancelled已取消)',
   `stage` char(30) NOT NULL DEFAULT '' COMMENT '适用阶段(prepare/pregnancy/postpartum/all)',
   `description` text COMMENT '活动简介',
   `content` longtext COMMENT '活动详情HTML',
@@ -68,6 +70,13 @@ CREATE TABLE IF NOT EXISTS `sxo_activity` (
   `signup_end_time` int unsigned NOT NULL DEFAULT 0 COMMENT '报名截止时间',
   `max_count` int unsigned NOT NULL DEFAULT 0 COMMENT '最大报名人数(0不限)',
   `signup_count` int unsigned NOT NULL DEFAULT 0 COMMENT '已报名人数',
+  `waitlist_count` int unsigned NOT NULL DEFAULT 0 COMMENT '候补名额(0不开放)',
+  `waitlist_signup_count` int unsigned NOT NULL DEFAULT 0 COMMENT '已候补人数',
+  `allow_waitlist` tinyint unsigned NOT NULL DEFAULT 0 COMMENT '是否允许候补(0否/1是)',
+  `signup_code_enabled` tinyint unsigned NOT NULL DEFAULT 0 COMMENT '是否启用签到码(0否/1是)',
+  `require_location_checkin` tinyint unsigned NOT NULL DEFAULT 0 COMMENT '是否需要定位签到(0否/1是)',
+  `latitude` decimal(10,6) NOT NULL DEFAULT 0.000000 COMMENT '签到纬度',
+  `longitude` decimal(10,6) NOT NULL DEFAULT 0.000000 COMMENT '签到经度',
   `is_free` tinyint unsigned NOT NULL DEFAULT 1 COMMENT '是否免费(0否/1是)',
   `price` decimal(10,2) NOT NULL DEFAULT 0.00 COMMENT '活动价格',
   `contact_name` char(60) NOT NULL DEFAULT '' COMMENT '联系人',
@@ -80,24 +89,32 @@ CREATE TABLE IF NOT EXISTS `sxo_activity` (
   `upd_time` int unsigned NOT NULL DEFAULT 0 COMMENT '更新时间',
   PRIMARY KEY (`id`),
   KEY `idx_category` (`category`),
+  KEY `idx_activity_type` (`activity_type`),
+  KEY `idx_activity_status` (`activity_status`),
   KEY `idx_stage` (`stage`),
   KEY `idx_enable` (`is_enable`, `is_delete_time`),
   KEY `idx_time` (`start_time`, `end_time`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='活动表';
 
--- A2. 活动报名表（含 privacy_agreed_time 字段）
+-- A2. 活动报名表（含隐私与候补完整字段）
 CREATE TABLE IF NOT EXISTS `sxo_activity_signup` (
   `id` int unsigned NOT NULL AUTO_INCREMENT,
   `activity_id` int unsigned NOT NULL DEFAULT 0 COMMENT '活动ID',
   `user_id` int unsigned NOT NULL DEFAULT 0 COMMENT '用户ID',
-  `name` char(60) NOT NULL DEFAULT '' COMMENT '报名姓名',
-  `phone` char(30) NOT NULL DEFAULT '' COMMENT '联系电话',
+  `name` char(60) NOT NULL DEFAULT '' COMMENT '报名姓名(加密)',
+  `phone` char(30) NOT NULL DEFAULT '' COMMENT '联系电话(加密)',
+  `phone_hash` char(64) NOT NULL DEFAULT '' COMMENT '手机号哈希(用于重复校验)',
+  `privacy_version` tinyint unsigned NOT NULL DEFAULT 0 COMMENT '隐私加密版本(0明文/1AES加密)',
   `stage` char(30) NOT NULL DEFAULT '' COMMENT '当前阶段',
   `due_date` int unsigned NOT NULL DEFAULT 0 COMMENT '预产期(时间戳)',
   `baby_month_age` int unsigned NOT NULL DEFAULT 0 COMMENT '宝宝月龄(月)',
+  `baby_birthday` int unsigned NOT NULL DEFAULT 0 COMMENT '宝宝生日(时间戳)',
   `remark` char(255) NOT NULL DEFAULT '' COMMENT '备注',
   `privacy_agreed_time` int unsigned NOT NULL DEFAULT 0 COMMENT '隐私同意时间',
   `status` tinyint unsigned NOT NULL DEFAULT 0 COMMENT '状态(0待确认/1已确认/2已取消)',
+  `is_waitlist` tinyint unsigned NOT NULL DEFAULT 0 COMMENT '是否候补(0正式/1候补)',
+  `waitlist_to_normal_time` int unsigned NOT NULL DEFAULT 0 COMMENT '候补转正时间',
+  `signup_code` char(8) NOT NULL DEFAULT '' COMMENT '签到码',
   `checkin_status` tinyint unsigned NOT NULL DEFAULT 0 COMMENT '签到状态(0未签到/1已签到)',
   `checkin_time` int unsigned NOT NULL DEFAULT 0 COMMENT '签到时间',
   `is_delete_time` int unsigned NOT NULL DEFAULT 0 COMMENT '是否删除',
@@ -106,6 +123,8 @@ CREATE TABLE IF NOT EXISTS `sxo_activity_signup` (
   PRIMARY KEY (`id`),
   KEY `idx_activity` (`activity_id`),
   KEY `idx_user` (`user_id`),
+  KEY `idx_phone_hash` (`phone_hash`),
+  KEY `idx_signup_code` (`signup_code`),
   KEY `idx_status` (`status`),
   KEY `idx_checkin` (`checkin_status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='活动报名表';
@@ -136,7 +155,8 @@ CREATE TABLE IF NOT EXISTS `sxo_muying_feedback` (
   `avatar` varchar(255) NOT NULL DEFAULT '' COMMENT '头像',
   `content` text NOT NULL COMMENT '反馈内容',
   `stage` varchar(30) NOT NULL DEFAULT '' COMMENT '当前阶段',
-  `contact` varchar(60) NOT NULL DEFAULT '' COMMENT '联系方式',
+  `contact` varchar(60) NOT NULL DEFAULT '' COMMENT '联系方式(加密)',
+  `contact_hash` char(64) NOT NULL DEFAULT '' COMMENT '联系方式哈希(用于去重)',
   `review_status` char(20) NOT NULL DEFAULT 'pending' COMMENT '审核状态(pending待审核/approved已通过/rejected已驳回)',
   `review_remark` varchar(255) NOT NULL DEFAULT '' COMMENT '审核备注',
   `review_admin_id` int unsigned NOT NULL DEFAULT 0 COMMENT '审核管理员ID',
@@ -149,7 +169,8 @@ CREATE TABLE IF NOT EXISTS `sxo_muying_feedback` (
   PRIMARY KEY (`id`),
   KEY `idx_enable` (`is_enable`, `is_delete_time`),
   KEY `idx_sort` (`sort_level`),
-  KEY `idx_review_status` (`review_status`)
+  KEY `idx_review_status` (`review_status`),
+  KEY `idx_contact_hash` (`contact_hash`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='母婴用户反馈';
 
 -- A段回滚：
@@ -235,7 +256,7 @@ SELECT COUNT(*) INTO @col_exists FROM information_schema.COLUMNS WHERE TABLE_SCH
 SET @sql = IF(@col_exists=0, 'ALTER TABLE `sxo_activity_signup` ADD COLUMN `signup_code` char(8) NOT NULL DEFAULT '''' COMMENT ''签到码'' AFTER `is_waitlist`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
--- B6. sxo_goods 补 stage / selling_point 字段（母婴阶段标签与卖点标签数据来源）
+-- B6. sxo_goods 补 stage / selling_point / approval_number 字段（母婴阶段标签与卖点标签数据来源）
 SET @tablename = 'sxo_goods';
 
 SET @colname = 'stage';
@@ -248,19 +269,91 @@ SELECT COUNT(*) INTO @col_exists FROM information_schema.COLUMNS WHERE TABLE_SCH
 SET @sql = IF(@col_exists=0, 'ALTER TABLE `sxo_goods` ADD COLUMN `selling_point` varchar(500) NOT NULL DEFAULT '''' COMMENT ''卖点标签(逗号分隔)'' AFTER `stage`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
+SET @colname = 'approval_number';
+SELECT COUNT(*) INTO @col_exists FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@dbname AND TABLE_NAME=@tablename AND COLUMN_NAME=@colname;
+SET @sql = IF(@col_exists=0, 'ALTER TABLE `sxo_goods` ADD COLUMN `approval_number` char(60) NOT NULL DEFAULT '''' COMMENT ''批准文号(国食注字/妆字号等)'' AFTER `selling_point`', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
 -- B段回滚：
 -- ALTER TABLE sxo_user DROP COLUMN invite_code, DROP COLUMN baby_birthday, DROP COLUMN due_date, DROP COLUMN current_stage;
--- ALTER TABLE sxo_activity_signup DROP COLUMN privacy_agreed_time, DROP COLUMN baby_birthday;
+-- ALTER TABLE sxo_activity_signup DROP COLUMN privacy_agreed_time, DROP COLUMN baby_birthday, DROP COLUMN phone_hash, DROP COLUMN is_waitlist, DROP COLUMN signup_code, DROP COLUMN privacy_version, DROP COLUMN waitlist_to_normal_time;
 -- ALTER TABLE sxo_goods_favor DROP COLUMN type;
--- ALTER TABLE sxo_activity DROP COLUMN suitable_crowd;
+-- ALTER TABLE sxo_activity DROP COLUMN suitable_crowd, DROP COLUMN activity_type, DROP COLUMN activity_status, DROP COLUMN waitlist_count, DROP COLUMN waitlist_signup_count, DROP COLUMN allow_waitlist, DROP COLUMN signup_code_enabled, DROP COLUMN require_location_checkin, DROP COLUMN latitude, DROP COLUMN longitude;
 -- ALTER TABLE sxo_goods DROP COLUMN stage, DROP COLUMN selling_point;
--- ALTER TABLE sxo_muying_feedback DROP COLUMN contact;
+-- ALTER TABLE sxo_muying_feedback DROP COLUMN contact, DROP COLUMN contact_hash;
 
 -- B7. sxo_muying_feedback 补 contact 字段
 SET @tablename = 'sxo_muying_feedback';
 SET @colname = 'contact';
 SELECT COUNT(*) INTO @col_exists FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@dbname AND TABLE_NAME=@tablename AND COLUMN_NAME=@colname;
-SET @sql = IF(@col_exists=0, 'ALTER TABLE `sxo_muying_feedback` ADD COLUMN `contact` varchar(60) NOT NULL DEFAULT \'\' COMMENT \'联系方式\' AFTER `stage`', 'SELECT 1');
+SET @sql = IF(@col_exists=0, 'ALTER TABLE `sxo_muying_feedback` ADD COLUMN `contact` varchar(60) NOT NULL DEFAULT \'\' COMMENT \'联系方式(加密)\' AFTER `stage`', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- B7b. sxo_muying_feedback 补 contact_hash 字段
+SET @colname = 'contact_hash';
+SELECT COUNT(*) INTO @col_exists FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@dbname AND TABLE_NAME=@tablename AND COLUMN_NAME=@colname;
+SET @sql = IF(@col_exists=0, 'ALTER TABLE `sxo_muying_feedback` ADD COLUMN `contact_hash` char(64) NOT NULL DEFAULT '''' COMMENT ''联系方式哈希(用于去重)'' AFTER `contact`, ADD INDEX `idx_contact_hash` (`contact_hash`)', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- B8. sxo_activity 补 activity_type / activity_status 字段（已有环境升级用）
+SET @tablename = 'sxo_activity';
+
+SET @colname = 'activity_type';
+SELECT COUNT(*) INTO @col_exists FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@dbname AND TABLE_NAME=@tablename AND COLUMN_NAME=@colname;
+SET @sql = IF(@col_exists=0, 'ALTER TABLE `sxo_activity` ADD COLUMN `activity_type` char(30) NOT NULL DEFAULT ''offline'' COMMENT ''活动形式(offline线下/online线上)'' AFTER `category`', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @colname = 'activity_status';
+SELECT COUNT(*) INTO @col_exists FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@dbname AND TABLE_NAME=@tablename AND COLUMN_NAME=@colname;
+SET @sql = IF(@col_exists=0, 'ALTER TABLE `sxo_activity` ADD COLUMN `activity_status` char(30) NOT NULL DEFAULT ''draft'' COMMENT ''活动状态(draft/published/signing/full/ended/cancelled)'' AFTER `activity_type`', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @colname = 'waitlist_count';
+SELECT COUNT(*) INTO @col_exists FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@dbname AND TABLE_NAME=@tablename AND COLUMN_NAME=@colname;
+SET @sql = IF(@col_exists=0, 'ALTER TABLE `sxo_activity` ADD COLUMN `waitlist_count` int unsigned NOT NULL DEFAULT 0 COMMENT ''候补名额(0不开放)'' AFTER `signup_count`', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @colname = 'waitlist_signup_count';
+SELECT COUNT(*) INTO @col_exists FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@dbname AND TABLE_NAME=@tablename AND COLUMN_NAME=@colname;
+SET @sql = IF(@col_exists=0, 'ALTER TABLE `sxo_activity` ADD COLUMN `waitlist_signup_count` int unsigned NOT NULL DEFAULT 0 COMMENT ''已候补人数'' AFTER `waitlist_count`', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @colname = 'allow_waitlist';
+SELECT COUNT(*) INTO @col_exists FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@dbname AND TABLE_NAME=@tablename AND COLUMN_NAME=@colname;
+SET @sql = IF(@col_exists=0, 'ALTER TABLE `sxo_activity` ADD COLUMN `allow_waitlist` tinyint unsigned NOT NULL DEFAULT 0 COMMENT ''是否允许候补(0否/1是)'' AFTER `waitlist_signup_count`', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @colname = 'signup_code_enabled';
+SELECT COUNT(*) INTO @col_exists FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@dbname AND TABLE_NAME=@tablename AND COLUMN_NAME=@colname;
+SET @sql = IF(@col_exists=0, 'ALTER TABLE `sxo_activity` ADD COLUMN `signup_code_enabled` tinyint unsigned NOT NULL DEFAULT 0 COMMENT ''是否启用签到码(0否/1是)'' AFTER `allow_waitlist`', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @colname = 'require_location_checkin';
+SELECT COUNT(*) INTO @col_exists FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@dbname AND TABLE_NAME=@tablename AND COLUMN_NAME=@colname;
+SET @sql = IF(@col_exists=0, 'ALTER TABLE `sxo_activity` ADD COLUMN `require_location_checkin` tinyint unsigned NOT NULL DEFAULT 0 COMMENT ''是否需要定位签到(0否/1是)'' AFTER `signup_code_enabled`', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @colname = 'latitude';
+SELECT COUNT(*) INTO @col_exists FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@dbname AND TABLE_NAME=@tablename AND COLUMN_NAME=@colname;
+SET @sql = IF(@col_exists=0, 'ALTER TABLE `sxo_activity` ADD COLUMN `latitude` decimal(10,6) NOT NULL DEFAULT 0.000000 COMMENT ''签到纬度'' AFTER `require_location_checkin`', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @colname = 'longitude';
+SELECT COUNT(*) INTO @col_exists FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@dbname AND TABLE_NAME=@tablename AND COLUMN_NAME=@colname;
+SET @sql = IF(@col_exists=0, 'ALTER TABLE `sxo_activity` ADD COLUMN `longitude` decimal(10,6) NOT NULL DEFAULT 0.000000 COMMENT ''签到经度'' AFTER `latitude`', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- B9. sxo_activity_signup 补 privacy_version / waitlist_to_normal_time 字段
+SET @tablename = 'sxo_activity_signup';
+
+SET @colname = 'privacy_version';
+SELECT COUNT(*) INTO @col_exists FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@dbname AND TABLE_NAME=@tablename AND COLUMN_NAME=@colname;
+SET @sql = IF(@col_exists=0, 'ALTER TABLE `sxo_activity_signup` ADD COLUMN `privacy_version` tinyint unsigned NOT NULL DEFAULT 0 COMMENT ''隐私加密版本(0明文/1AES加密)'' AFTER `phone_hash`', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @colname = 'waitlist_to_normal_time';
+SELECT COUNT(*) INTO @col_exists FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@dbname AND TABLE_NAME=@tablename AND COLUMN_NAME=@colname;
+SET @sql = IF(@col_exists=0, 'ALTER TABLE `sxo_activity_signup` ADD COLUMN `waitlist_to_normal_time` int unsigned NOT NULL DEFAULT 0 COMMENT ''候补转正时间'' AFTER `is_waitlist`', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 
@@ -312,7 +405,10 @@ DROP PROCEDURE IF EXISTS `muying_fill_invite_code`;
 -- C2. 邀请码唯一索引
 -- 执行前检查：SELECT COUNT(*) FROM sxo_user WHERE invite_code='' OR invite_code IS NULL; → 必须=0
 -- 如果不为0，先执行C1
-ALTER TABLE `sxo_user` ADD UNIQUE INDEX `uk_invite_code` (`invite_code`);
+SET @index_name = 'uk_invite_code';
+SELECT COUNT(*) INTO @index_exists FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=@dbname AND TABLE_NAME='sxo_user' AND INDEX_NAME=@index_name;
+SET @sql = IF(@index_exists=0, 'ALTER TABLE `sxo_user` ADD UNIQUE INDEX `uk_invite_code` (`invite_code`)', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- C3. 邀请奖励去重 + 唯一约束
 -- 执行前检查：SELECT inviter_id, invitee_id, trigger_event, COUNT(*) AS cnt FROM sxo_invite_reward GROUP BY inviter_id, invitee_id, trigger_event HAVING cnt > 1;
@@ -323,8 +419,10 @@ ON r1.inviter_id = r2.inviter_id
    AND r1.trigger_event = r2.trigger_event
    AND r1.id > r2.id;
 
-ALTER TABLE `sxo_invite_reward`
-ADD UNIQUE INDEX `uk_inviter_invitee_event` (`inviter_id`, `invitee_id`, `trigger_event`);
+SET @index_name = 'uk_inviter_invitee_event';
+SELECT COUNT(*) INTO @index_exists FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=@dbname AND TABLE_NAME='sxo_invite_reward' AND INDEX_NAME=@index_name;
+SET @sql = IF(@index_exists=0, 'ALTER TABLE `sxo_invite_reward` ADD UNIQUE INDEX `uk_inviter_invitee_event` (`inviter_id`, `invitee_id`, `trigger_event`)', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- C4. 枚举值漂移修复（仅当有旧脏数据时执行）
 -- 执行前检查：SELECT DISTINCT stage FROM sxo_activity WHERE stage NOT IN ('prepare','pregnancy','postpartum','all','');
@@ -430,23 +528,30 @@ UPDATE `sxo_config` SET `value`='0' WHERE `only_tag` IN ('feature_shop_enabled',
 -- D段：隐私安全与审计
 -- ============================================================
 
--- D1. 审计日志表
+-- D1. 审计日志表（同时服务 MuyingAuditLogService 和 MuyingLogService）
 CREATE TABLE IF NOT EXISTS `sxo_muying_audit_log` (
   `id` int unsigned NOT NULL AUTO_INCREMENT,
-  `admin_id` int unsigned NOT NULL DEFAULT 0 COMMENT '管理员ID',
+  `admin_id` int unsigned NOT NULL DEFAULT 0 COMMENT '管理员ID(审计场景)',
   `admin_username` char(60) NOT NULL DEFAULT '' COMMENT '管理员用户名(冗余)',
   `scene` char(30) NOT NULL DEFAULT '' COMMENT '操作场景(signup_export/feedback_export/user_export/sensitive_view)',
   `target_id` int unsigned NOT NULL DEFAULT 0 COMMENT '目标记录ID',
   `conditions` text COMMENT '查询条件JSON(不含明文敏感数据)',
   `export_count` int unsigned NOT NULL DEFAULT 0 COMMENT '导出/查看数量',
+  `type` char(30) NOT NULL DEFAULT '' COMMENT '业务日志类型(activity_signup/activity_checkin/activity_confirm/invite_reward等)',
+  `action` char(30) NOT NULL DEFAULT '' COMMENT '业务操作动作(create/update/cancel等)',
+  `user_id` int unsigned NOT NULL DEFAULT 0 COMMENT '前端用户ID(业务日志场景)',
+  `detail` varchar(500) NOT NULL DEFAULT '' COMMENT '业务日志详情',
+  `status` tinyint unsigned NOT NULL DEFAULT 1 COMMENT '状态(0失败/1成功)',
   `ip` char(45) NOT NULL DEFAULT '' COMMENT '操作IP',
   `remark` varchar(500) NOT NULL DEFAULT '' COMMENT '备注',
   `add_time` int unsigned NOT NULL DEFAULT 0 COMMENT '操作时间',
   PRIMARY KEY (`id`),
   KEY `idx_admin` (`admin_id`),
   KEY `idx_scene` (`scene`),
+  KEY `idx_type` (`type`),
+  KEY `idx_user` (`user_id`),
   KEY `idx_time` (`add_time`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='隐私审计日志';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='审计与业务日志';
 
 -- D2. 敏感数据查看/导出权限注册
 INSERT IGNORE INTO `sxo_power` (`id`, `pid`, `name`, `control`, `action`, `url`, `sort`, `is_show`, `icon`, `add_time`, `upd_time`) VALUES
@@ -470,3 +575,112 @@ ON DUPLICATE KEY UPDATE `name`=VALUES(`name`), `describe`=VALUES(`describe`), `u
 -- DELETE FROM sxo_role_power WHERE power_id IN (780, 781, 782);
 -- DELETE FROM sxo_power WHERE id IN (780, 781, 782);
 -- DELETE FROM sxo_config WHERE only_tag = 'muying_privacy_key_configured';
+
+-- D5. 合规拦截日志表（MuyingComplianceService 使用）
+CREATE TABLE IF NOT EXISTS `sxo_muying_compliance_log` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `admin_id` int unsigned NOT NULL DEFAULT 0 COMMENT '管理员ID',
+  `admin_username` varchar(60) NOT NULL DEFAULT '' COMMENT '管理员用户名',
+  `feature_key` varchar(60) NOT NULL DEFAULT '' COMMENT '功能开关key',
+  `action` varchar(30) NOT NULL DEFAULT '' COMMENT '操作类型(toggle_blocked/toggle_allowed/api_blocked)',
+  `reason` varchar(500) NOT NULL DEFAULT '' COMMENT '拦截原因',
+  `controller` varchar(60) NOT NULL DEFAULT '' COMMENT '控制器名',
+  `api_action` varchar(60) NOT NULL DEFAULT '' COMMENT '方法名',
+  `user_id` int unsigned NOT NULL DEFAULT 0 COMMENT '前端用户ID（API拦截时）',
+  `ip` char(45) NOT NULL DEFAULT '' COMMENT '操作IP',
+  `add_time` int unsigned NOT NULL DEFAULT 0 COMMENT '操作时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_admin` (`admin_id`),
+  KEY `idx_feature` (`feature_key`),
+  KEY `idx_time` (`add_time`),
+  KEY `idx_action` (`action`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='合规拦截日志';
+
+-- D6. 统计快照表（DashboardService 使用）
+CREATE TABLE IF NOT EXISTS `sxo_muying_stat_snapshot` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `stat_date` char(10) NOT NULL DEFAULT '' COMMENT '统计日期(YYYY-MM-DD)',
+  `metric_key` char(60) NOT NULL DEFAULT '' COMMENT '指标key',
+  `metric_value` decimal(15,2) NOT NULL DEFAULT 0.00 COMMENT '指标值',
+  `add_time` int unsigned NOT NULL DEFAULT 0 COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_date_metric` (`stat_date`, `metric_key`),
+  KEY `idx_date` (`stat_date`),
+  KEY `idx_metric` (`metric_key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='统计快照';
+
+-- D7. 合规中心菜单权限（id=770-775）
+INSERT IGNORE INTO `sxo_power` (`id`, `pid`, `name`, `control`, `action`, `url`, `sort`, `is_show`, `icon`, `add_time`, `upd_time`) VALUES
+(770, 700, '合规中心', 'Muyingcompliance', 'Index', '', 8, 1, '', UNIX_TIMESTAMP(), 0),
+(771, 770, '合规中心首页', 'Muyingcompliance', 'Index', '', 0, 0, '', UNIX_TIMESTAMP(), 0),
+(772, 770, '功能开关管理', 'Muyingcompliance', 'Features', '', 1, 0, '', UNIX_TIMESTAMP(), 0),
+(773, 770, '功能开关切换', 'Muyingcompliance', 'Toggle', '', 2, 0, '', UNIX_TIMESTAMP(), 0),
+(774, 770, '资质状态保存', 'Muyingcompliance', 'SaveQualification', '', 3, 0, '', UNIX_TIMESTAMP(), 0),
+(775, 770, '拦截日志', 'Muyingcompliance', 'Blocklogs', '', 4, 0, '', UNIX_TIMESTAMP(), 0);
+
+INSERT IGNORE INTO `sxo_role_power` (`role_id`, `power_id`, `add_time`) VALUES
+(1, 770, UNIX_TIMESTAMP()),
+(1, 771, UNIX_TIMESTAMP()),
+(1, 772, UNIX_TIMESTAMP()),
+(1, 773, UNIX_TIMESTAMP()),
+(1, 774, UNIX_TIMESTAMP()),
+(1, 775, UNIX_TIMESTAMP());
+
+-- D8. 一期功能开关配置项
+INSERT INTO `sxo_config` (`value`, `name`, `describe`, `error_tips`, `type`, `only_tag`, `upd_time`) VALUES
+('0', '第三方商家入驻开关', '控制第三方商家入驻功能是否开放（需ICP经营许可证+EDI许可证）', '请选择是否开启', 'admin', 'feature_shop_enabled', UNIX_TIMESTAMP()),
+('0', '门店/多门店开关', '控制门店/多门店功能是否开放（需ICP经营许可证+EDI许可证）', '请选择是否开启', 'admin', 'feature_realstore_enabled', UNIX_TIMESTAMP()),
+('0', '分销/多级返佣开关', '控制分销/多级返佣功能是否开放（需ICP经营许可证）', '请选择是否开启', 'admin', 'feature_distribution_enabled', UNIX_TIMESTAMP()),
+('0', '钱包/余额/提现开关', '控制钱包/余额/充值/提现功能是否开放（需支付牌照）', '请选择是否开启', 'admin', 'feature_wallet_enabled', UNIX_TIMESTAMP()),
+('0', '虚拟币开关', '控制虚拟币功能是否开放（需支付牌照）', '请选择是否开启', 'admin', 'feature_coin_enabled', UNIX_TIMESTAMP()),
+('0', 'UGC社区开关', '控制问答/博客/用户发帖功能是否开放（需ICP经营许可证+内容审核能力）', '请选择是否开启', 'admin', 'feature_ugc_enabled', UNIX_TIMESTAMP()),
+('0', '会员等级VIP开关', '控制会员等级/付费VIP功能是否开放（需ICP经营许可证）', '请选择是否开启', 'admin', 'feature_membership_enabled', UNIX_TIMESTAMP()),
+('0', '秒杀开关', '控制秒杀功能是否开放（需ICP经营许可证）', '请选择是否开启', 'admin', 'feature_seckill_enabled', UNIX_TIMESTAMP()),
+('0', '礼品卡开关', '控制礼品卡功能是否开放（需支付牌照）', '请选择是否开启', 'admin', 'feature_giftcard_enabled', UNIX_TIMESTAMP()),
+('0', '送礼开关', '控制送礼功能是否开放（需支付牌照）', '请选择是否开启', 'admin', 'feature_givegift_enabled', UNIX_TIMESTAMP()),
+('0', '视频开关', '控制视频功能是否开放（需网络视听许可证）', '请选择是否开启', 'admin', 'feature_video_enabled', UNIX_TIMESTAMP()),
+('0', '医疗咨询/问诊开关', '控制医疗咨询/问诊功能是否开放（需医疗机构执业许可证）', '请选择是否开启', 'admin', 'feature_hospital_enabled', UNIX_TIMESTAMP()),
+('0', '投诉开关', '控制投诉功能是否开放（需ICP经营许可证）', '请选择是否开启', 'admin', 'feature_complaint_enabled', UNIX_TIMESTAMP()),
+('0', '发票开关', '控制发票功能是否开放（需ICP经营许可证）', '请选择是否开启', 'admin', 'feature_invoice_enabled', UNIX_TIMESTAMP()),
+('0', '证书开关', '控制证书功能是否开放（需ICP经营许可证）', '请选择是否开启', 'admin', 'feature_certificate_enabled', UNIX_TIMESTAMP()),
+('0', '扫码支付开关', '控制扫码支付功能是否开放（需支付牌照）', '请选择是否开启', 'admin', 'feature_scanpay_enabled', UNIX_TIMESTAMP()),
+('0', '微信直播开关', '控制微信直播功能是否开放（需网络文化经营许可证）', '请选择是否开启', 'admin', 'feature_live_enabled', UNIX_TIMESTAMP()),
+('0', '智能工具开关', '控制智能工具功能是否开放（需ICP经营许可证）', '请选择是否开启', 'admin', 'feature_intellectstools_enabled', UNIX_TIMESTAMP()),
+('0', '优惠券开关', '控制优惠券领取/使用功能是否开放（仅自营商品、非现金、不可提现）', '请选择是否开启', 'admin', 'feature_coupon_enabled', UNIX_TIMESTAMP()),
+('0', '签到开关', '控制每日签到功能是否开放（非现金、不可提现、不可转让）', '请选择是否开启', 'admin', 'feature_signin_enabled', UNIX_TIMESTAMP()),
+('0', '积分开关', '控制积分获取/消费功能是否开放（仅自营商品、不可提现、不可储值、不可转余额）', '请选择是否开启', 'admin', 'feature_points_enabled', UNIX_TIMESTAMP()),
+('1', '活动报名开关', '控制官方活动报名功能是否开放（一期核心）', '请选择是否开启', 'admin', 'feature_activity_enabled', UNIX_TIMESTAMP()),
+('1', '一级邀请裂变开关', '控制一级邀请裂变功能是否开放（一期核心）', '请选择是否开启', 'admin', 'feature_invite_enabled', UNIX_TIMESTAMP()),
+('1', '官方内容开关', '控制文章/公告/首页装修等官方内容功能是否开放（一期核心）', '请选择是否开启', 'admin', 'feature_content_enabled', UNIX_TIMESTAMP()),
+('1', '用户反馈开关', '控制用户反馈/妈妈说功能是否开放（一期核心）', '请选择是否开启', 'admin', 'feature_feedback_enabled', UNIX_TIMESTAMP())
+ON DUPLICATE KEY UPDATE `name`=VALUES(`name`), `describe`=VALUES(`describe`), `upd_time`=UNIX_TIMESTAMP();
+
+-- D9. 资质门禁配置项
+INSERT INTO `sxo_config` (`value`, `name`, `describe`, `error_tips`, `type`, `only_tag`, `upd_time`) VALUES
+('0', 'ICP备案状态', 'ICP备案进度（0备案中/1已备案），与ICP经营许可证不同', '请选择备案状态', 'admin', 'qualification_icp_filing', UNIX_TIMESTAMP()),
+('0', 'ICP经营许可证资质', '是否已取得ICP经营许可证（控制第三方入驻、UGC社区、分销等平台型功能）', '请确认是否已取得', 'admin', 'qualification_icp_commercial', UNIX_TIMESTAMP()),
+('0', 'EDI许可证资质', '是否已取得EDI许可证（控制多商户、多门店等入驻型功能）', '请确认是否已取得', 'admin', 'qualification_edi', UNIX_TIMESTAMP()),
+('0', '医疗机构执业许可证资质', '是否已取得医疗机构执业许可证（控制互联网医院、医疗问诊功能）', '请确认是否已取得', 'admin', 'qualification_medical', UNIX_TIMESTAMP()),
+('0', '网络文化经营许可证资质', '是否已取得网络文化经营许可证（控制直播、视频功能）', '请确认是否已取得', 'admin', 'qualification_live', UNIX_TIMESTAMP()),
+('0', '支付牌照资质', '是否已取得支付牌照（控制钱包、余额、充值、提现、礼品卡、扫码支付功能）', '请确认是否已取得', 'admin', 'qualification_payment', UNIX_TIMESTAMP())
+ON DUPLICATE KEY UPDATE `name`=VALUES(`name`), `describe`=VALUES(`describe`), `upd_time`=UNIX_TIMESTAMP();
+
+-- D段回滚（追加）：
+-- DROP TABLE IF EXISTS sxo_muying_compliance_log, sxo_muying_stat_snapshot, sxo_muying_sensitive_log;
+-- DELETE FROM sxo_power WHERE id BETWEEN 770 AND 775;
+-- DELETE FROM sxo_role_power WHERE power_id BETWEEN 770 AND 775;
+-- DELETE FROM sxo_config WHERE only_tag LIKE 'feature_%_enabled';
+-- DELETE FROM sxo_config WHERE only_tag LIKE 'qualification_%';
+
+-- D10. 敏感词拦截日志表（MuyingStatService 统计引用，预留）
+CREATE TABLE IF NOT EXISTS `sxo_muying_sensitive_log` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `content_type` char(30) NOT NULL DEFAULT '' COMMENT '内容类型(feedback/activity_name等)',
+  `content_id` int unsigned NOT NULL DEFAULT 0 COMMENT '内容ID',
+  `word` char(60) NOT NULL DEFAULT '' COMMENT '命中的敏感词',
+  `ip` char(45) NOT NULL DEFAULT '' COMMENT '提交IP',
+  `add_time` int unsigned NOT NULL DEFAULT 0 COMMENT '拦截时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_time` (`add_time`),
+  KEY `idx_type` (`content_type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='敏感词拦截日志';
