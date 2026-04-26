@@ -560,8 +560,10 @@ function FromInit (form_name = null) {
                                     // [MUYING-二开] 低风险敏感词确认保存
                                     if (result.code == -2 && result.data && result.data.low_risk_words) {
                                         var words = result.data.low_risk_words.join('、');
-                                        if (confirm('内容包含低风险敏感词：' + words + '\n\n如确认内容合规，点击"确定"强制保存；点击"取消"返回修改。')) {
-                                            $temp_form.append('<input type="hidden" name="force_save" value="1">');
+                                        if (confirm('内容包含低风险敏感词：' + words + '\n\n确认业务表述合规并继续保存吗？\n\n点击"确定"继续保存，点击"取消"返回修改。')) {
+                                            if ($temp_form.find('input[name="force_save"]').length === 0) {
+                                                $temp_form.append('<input type="hidden" name="force_save" value="1">');
+                                            }
                                             $button.button('reset');
                                             $temp_form.trigger('submit');
                                         } else {
