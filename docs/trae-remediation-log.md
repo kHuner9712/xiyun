@@ -1198,3 +1198,54 @@
 |--------|---------|
 | dcc73e3 | feat(compliance): add qualifications to config output and expand controller feature map |
 | 09dda85 | fix(compliance): auto-show toast on -403 and frontend feature block |
+
+## 2026-04-26 — 第二八轮 pages.json 提审瘦身
+
+### 整改目标
+
+对 shopxo-uniapp/pages.json 做一期提审瘦身，避免微信小程序包里暴露高风险功能页面。
+
+### 从 pages.json 移除的页面（9个 subPackage）
+
+| 页面路径 | 原因 |
+|----------|------|
+| pages/form-input-data/form-input-data | form 插件数据页，一期不需要 |
+| pages/form-input-data-detail/form-input-data-detail | form 插件数据详情 |
+| pages/user-integral/user-integral | 积分页面，一期禁用 |
+| pages/paylog-list/paylog-list | 支付记录，一期禁用 |
+| pages/paylog-detail/paylog-detail | 支付记录详情 |
+| pages/web-view/web-view | 非必要 web-view |
+| pages/plugins/coupon (3个子页面) | 优惠券，一期禁用 |
+| pages/plugins/signin (2个子页面) | 签到，一期禁用 |
+| pages/plugins/points (1个子页面) | 积分，一期禁用 |
+
+### pages.json 组件引用清理
+
+| 页面 | 移除的组件引用 | 原因 |
+|------|---------------|------|
+| user-order-detail | component-hospital-order-detail | hospital 在 BLOCKED_PLUGINS 中 |
+| goods-detail | component-goods-compare | goodscompare 在 PERMANENTLY_BLOCKED 中 |
+
+### 前端导航门控修复
+
+| 文件 | 修复内容 |
+|------|----------|
+| App.vue | 清理 pages_always 白名单中的高风险页面 |
+| App.vue | open_web_view 改为 agreement 页面或 toast 提示 |
+| activity-signup.vue | web-view 改为 agreement 页面 |
+| goods-detail.vue | 优惠券区域增加 COUPON 门控 |
+| goods-detail.vue | 问答区域增加 UGC 门控 |
+| user-order-detail.vue | realstore 按钮增加 REALSTORE 门控 |
+| user-order-detail.vue | ordergoodsform/orderresources/orderfeed 按钮增加门控 |
+| user-order-detail.vue | intellectstools 按钮增加 INTELLECTSTOOLS 门控 |
+| user-order-detail.vue | hospital 组件增加 HOSPITAL 门控 |
+
+### 后台菜单数据过滤现状
+
+后端不对导航菜单数据进行一期合规过滤，完全依赖前端 filter_phase_one_navigation / filter_phase_one_plugin_sort_list 过滤。后端负责 API 层 -403 拦截。这个设计是合理的。
+
+### Commit 信息
+
+| commit | message |
+|--------|---------|
+| 663cdb4 | feat(compliance): slim down pages.json for phase-one review and gate high-risk navigation |
