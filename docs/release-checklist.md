@@ -125,6 +125,13 @@
 | 6.14 | 匿名化后敏感字段清空 | ☐ | 昵称/阶段/预产期/宝宝生日/报名信息/反馈联系方式 |
 | 6.15 | 匿名化后订单保留 | ☐ | 订单记录不删除 |
 | 6.16 | 审计日志记录操作 | ☐ | 不含明文手机号 |
+| 6.17 | 已取消报名也被匿名化 | ☐ | status=2 报名姓名/手机号替换 |
+| 6.18 | 无订单时 mobile 清空 | ☐ | mobile_action=cleared |
+| 6.19 | 有进行中订单时 mobile 保留 | ☐ | mobile_action=retained + 日志记录原因 |
+| 6.20 | 已完成订单地址脱敏 | ☐ | order_address name/tel/address 清空 |
+| 6.21 | 进行中订单地址不清空 | ☐ | 保障履约 |
+| 6.22 | 用户收货地址清空 | ☐ | user_address name/tel/address/alias 清空 |
+| 6.23 | 匿名化返回统计字段 | ☐ | signups_updated/feedbacks_updated/mobile_action 等 |
 
 ## 7. 数据删除请求处理流程
 

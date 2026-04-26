@@ -8,6 +8,16 @@ class MuyingDataAnonymizeService
 {
     const SCENE_DATA_ANONYMIZE = 'data_anonymize';
 
+    const ORDER_STATUS_PENDING = 0;
+    const ORDER_STATUS_CONFIRMED = 1;
+    const ORDER_STATUS_PAID = 2;
+    const ORDER_STATUS_SHIPPED = 3;
+    const ORDER_STATUS_COMPLETED = 4;
+    const ORDER_STATUS_CANCELLED = 5;
+    const ORDER_STATUS_CLOSED = 6;
+
+    const ACTIVE_ORDER_STATUSES = [0, 1, 2, 3];
+
     public static function SearchUser($params = [])
     {
         $keyword = trim($params['keyword'] ?? '');
@@ -43,7 +53,6 @@ class MuyingDataAnonymizeService
             ->alias('s')
             ->leftJoin('activity a', 's.activity_id = a.id')
             ->where('s.user_id', $user_id)
-            ->where('s.status', 'in', [0, 1])
             ->field('s.id,s.activity_id,s.name,s.phone,s.phone_hash,s.stage,s.status,s.add_time,a.title as activity_title')
             ->order('s.add_time desc')
             ->select()
@@ -72,6 +81,26 @@ class MuyingDataAnonymizeService
             ->select()
             ->toArray();
 
+        $order_addresses = Db::name('OrderAddress')
+            ->where('user_id', $user_id)
+            ->field('id,order_id,name,tel,address,province_name,city_name,county_name')
+            ->order('id desc')
+            ->limit(20)
+            ->select()
+            ->toArray();
+
+        $user_addresses = Db::name('UserAddress')
+            ->where('user_id', $user_id)
+            ->field('id,name,tel,address,province,city,county,is_default')
+            ->order('id desc')
+            ->select()
+            ->toArray();
+
+        $active_order_count = Db::name('Order')
+            ->where('user_id', $user_id)
+            ->where('status', 'in', self::ACTIVE_ORDER_STATUSES)
+            ->count();
+
         $masked_user = [
             'id'              => $user['id'],
             'nickname'        => $user['nickname'] ?? '',
@@ -94,6 +123,20 @@ class MuyingDataAnonymizeService
         }
         unset($f);
 
+        foreach ($order_addresses as &$oa) {
+            $oa['name'] = MuyingPrivacyService::MaskName($oa['name']);
+            $oa['tel'] = MuyingPrivacyService::MaskPhone($oa['tel']);
+            $oa['address'] = mb_substr($oa['address'], 0, 2) . '***';
+        }
+        unset($oa);
+
+        foreach ($user_addresses as &$ua) {
+            $ua['name'] = MuyingPrivacyService::MaskName($ua['name']);
+            $ua['tel'] = MuyingPrivacyService::MaskPhone($ua['tel']);
+            $ua['address'] = mb_substr($ua['address'], 0, 2) . '***';
+        }
+        unset($ua);
+
         return DataReturn(MyLang('handle_success'), 0, [
             'user'               => $masked_user,
             'signups'            => $signups,
@@ -101,6 +144,9 @@ class MuyingDataAnonymizeService
             'invite_as_inviter'  => $invite_as_inviter,
             'invite_as_invitee'  => $invite_as_invitee,
             'orders'             => $orders,
+            'order_addresses'    => $order_addresses,
+            'user_addresses'     => $user_addresses,
+            'active_order_count' => $active_order_count,
         ]);
     }
 
@@ -125,6 +171,18 @@ class MuyingDataAnonymizeService
             return DataReturn('当前权限不允许执行数据匿名化操作', -403);
         }
 
+        $stats = [
+            'user_updated'          => 0,
+            'signups_updated'       => 0,
+            'feedbacks_updated'     => 0,
+            'invites_disabled'      => 0,
+            'user_addresses_cleared' => 0,
+            'order_addresses_masked' => 0,
+            'orders_retained'       => 0,
+            'mobile_action'         => '',
+            'retained_reason'       => '',
+        ];
+
         Db::startTrans();
         try {
             $anonymized_name = '已注销用户';
@@ -135,12 +193,16 @@ class MuyingDataAnonymizeService
                 'current_stage'  => '',
                 'due_date'       => 0,
                 'baby_birthday'  => 0,
+                'address'        => '',
+                'province'       => '',
+                'city'           => '',
+                'county'         => '',
                 'upd_time'       => time(),
             ]);
+            $stats['user_updated'] = 1;
 
             $signups = Db::name('ActivitySignup')
                 ->where('user_id', $user_id)
-                ->where('status', 'in', [0, 1])
                 ->select()
                 ->toArray();
 
@@ -152,9 +214,10 @@ class MuyingDataAnonymizeService
                     'upd_time'   => time(),
                 ];
                 Db::name('ActivitySignup')->where('id', $signup['id'])->update($update);
+                $stats['signups_updated']++;
             }
 
-            Db::name('MuyingFeedback')
+            $feedback_count = Db::name('MuyingFeedback')
                 ->where('user_id', $user_id)
                 ->where('is_delete_time', 0)
                 ->update([
@@ -162,28 +225,109 @@ class MuyingDataAnonymizeService
                     'contact_hash' => '',
                     'upd_time'     => time(),
                 ]);
+            $stats['feedbacks_updated'] = $feedback_count;
 
-            Db::name('InviteReward')
+            $invite_count = Db::name('InviteReward')
                 ->where('invitee_id', $user_id)
                 ->where('trigger_event', 'register')
                 ->update([
                     'status'   => 2,
                     'upd_time' => time(),
                 ]);
+            $stats['invites_disabled'] = $invite_count;
+
+            Db::name('UserAddress')
+                ->where('user_id', $user_id)
+                ->update([
+                    'name'    => $anonymized_name,
+                    'tel'     => '',
+                    'address' => '',
+                    'alias'   => '',
+                    'upd_time' => time(),
+                ]);
+            $stats['user_addresses_cleared'] = Db::name('UserAddress')
+                ->where('user_id', $user_id)->count();
+
+            $active_orders = Db::name('Order')
+                ->where('user_id', $user_id)
+                ->where('status', 'in', self::ACTIVE_ORDER_STATUSES)
+                ->count();
+
+            $completed_orders = Db::name('Order')
+                ->where('user_id', $user_id)
+                ->where('status', 'in', [self::ORDER_STATUS_COMPLETED, self::ORDER_STATUS_CANCELLED, self::ORDER_STATUS_CLOSED])
+                ->count();
+
+            if ($active_orders > 0) {
+                $stats['mobile_action'] = 'retained';
+                $stats['retained_reason'] = '用户存在进行中订单(' . $active_orders . '个)，mobile保留以保障履约/售后';
+            } else {
+                $has_login_binding = !empty($user['mobile']) && (empty($user['username']) || $user['username'] === $user['mobile']);
+                if ($has_login_binding) {
+                    Db::name('User')->where('id', $user_id)->update([
+                        'mobile'   => '',
+                        'upd_time' => time(),
+                    ]);
+                    $stats['mobile_action'] = 'cleared';
+                    $stats['retained_reason'] = '无进行中订单，mobile已清空';
+                } else {
+                    Db::name('User')->where('id', $user_id)->update([
+                        'mobile'   => '',
+                        'upd_time' => time(),
+                    ]);
+                    $stats['mobile_action'] = 'cleared';
+                    $stats['retained_reason'] = '无进行中订单，mobile已清空';
+                }
+            }
+
+            $completed_order_ids = Db::name('Order')
+                ->where('user_id', $user_id)
+                ->where('status', 'in', [self::ORDER_STATUS_COMPLETED, self::ORDER_STATUS_CANCELLED, self::ORDER_STATUS_CLOSED])
+                ->column('id');
+
+            if (!empty($completed_order_ids)) {
+                Db::name('OrderAddress')
+                    ->where('order_id', 'in', $completed_order_ids)
+                    ->where('user_id', $user_id)
+                    ->update([
+                        'name'                        => $anonymized_name,
+                        'tel'                         => '',
+                        'address'                     => '',
+                        'extraction_contact_name'     => '',
+                        'extraction_contact_tel'      => '',
+                        'idcard_name'                 => '',
+                        'idcard_number'               => '',
+                        'upd_time'                    => time(),
+                    ]);
+                $stats['order_addresses_masked'] = Db::name('OrderAddress')
+                    ->where('order_id', 'in', $completed_order_ids)
+                    ->where('user_id', $user_id)
+                    ->count();
+            }
+
+            $stats['orders_retained'] = $active_orders + $completed_orders;
 
             Db::commit();
+
+            $log_remark = '用户数据匿名化 UID=' . $user_id
+                . ' signups=' . $stats['signups_updated']
+                . ' feedbacks=' . $stats['feedbacks_updated']
+                . ' invites=' . $stats['invites_disabled']
+                . ' mobile=' . $stats['mobile_action']
+                . ' reason=' . $stats['retained_reason']
+                . ' order_addr_masked=' . $stats['order_addresses_masked'];
 
             MuyingAuditLogService::Log([
                 'admin_id'   => $admin['id'],
                 'scene'      => self::SCENE_DATA_ANONYMIZE,
                 'target_id'  => $user_id,
-                'remark'     => '用户数据匿名化处理 UID=' . $user_id,
+                'remark'     => $log_remark,
                 'ip'         => request()->ip(),
             ]);
 
             Log::info('[MuyingDataAnonymize] 用户数据匿名化完成 user_id=' . $user_id . ' admin_id=' . $admin['id']);
 
-            return DataReturn('匿名化处理完成', 0);
+            return DataReturn('匿名化处理完成', 0, $stats);
         } catch (\Exception $e) {
             Db::rollback();
             Log::error('[MuyingDataAnonymize] 匿名化失败 user_id=' . $user_id . ' error=' . $e->getMessage());

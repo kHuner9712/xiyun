@@ -206,3 +206,20 @@
 | C-13 | blocked日志写入 | 执行C-01后查看sxo_muying_content_compliance_log | 存在action=blocked记录，含admin_id/word/risk/field/ip | |
 | C-14 | confirmed日志写入 | 执行C-05后查看sxo_muying_content_compliance_log | 存在action=confirmed记录，含admin_id/word/risk/field/ip | |
 | C-15 | 日志不含明文手机号 | 查看sxo_muying_content_compliance_log | 无手机号字段，仅含admin_id | |
+
+## 七、数据匿名化测试
+
+| 用例ID | 测试场景 | 操作步骤 | 预期结果 | 实际结果 |
+|--------|----------|----------|----------|----------|
+| P-01 | 已取消报名也被匿名化 | 用户有status=2的报名→执行匿名化 | 报名姓名/手机号被替换为匿名值 |
+| P-02 | 用户无订单时mobile清空 | 用户无任何订单→执行匿名化 | user.mobile 清空，mobile_action=cleared |
+| P-03 | 用户有进行中订单时mobile保留 | 用户有status=2(已支付)订单→执行匿名化 | user.mobile 保留，mobile_action=retained，日志记录原因 |
+| P-04 | 反馈联系方式清空 | 用户有反馈→执行匿名化 | feedback.contact 和 contact_hash 清空 |
+| P-05 | 邀请注册奖励失效 | 用户有邀请奖励→执行匿名化 | invite_reward.status=2 |
+| P-06 | 订单记录不被误删 | 用户有订单→执行匿名化 | sxo_order 记录完整保留 |
+| P-07 | 已完成订单地址脱敏 | 用户有已完成订单→执行匿名化 | order_address.name/tel/address 清空，order记录保留 |
+| P-08 | 进行中订单地址不清空 | 用户有进行中订单→执行匿名化 | 进行中订单地址保留，保障履约 |
+| P-09 | 用户收货地址清空 | 用户有收货地址→执行匿名化 | user_address.name/tel/address/alias 清空 |
+| P-10 | 用户地址字段清空 | 用户有province/city/county/address→执行匿名化 | user.province/city/county/address 清空 |
+| P-11 | 返回统计字段正确 | 执行匿名化→检查返回data | signups_updated/feedbacks_updated/mobile_action 等字段正确 |
+| P-12 | 审计日志不含明文敏感信息 | 执行匿名化→查看审计日志 | 无手机号/姓名/地址明文，含统计和retained_reason |
