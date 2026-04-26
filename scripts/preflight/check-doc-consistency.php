@@ -4,14 +4,16 @@
  * [MUYING-二开] 文档一致性检查脚本
  *
  * 用途：检查文档和脚本中的表名、占位符、版本号是否与代码一致
- * 用法：php scripts/preflight/check-doc-consistency.php [--root=/path/to/project]
+ * 用法：php scripts/preflight/check-doc-consistency.php [--root=/path/to/project] [--strict]
  *
  * 检查项：
  *   1. 文档中不应出现错误的表名 sxo_users（应为 sxo_user）
  *   2. 文档中不应出现占位符"待提交"
  *   3. UAT 报告中的代码版本应为最新 commit hash
+ *   4. [strict] UAT 报告中不应存在"服务器实测 ⏳"（表示真实 UAT 未完成）
  *
  * 输出等级：PASS / WARN / BLOCKER
+ * --strict：将 UAT 版本不一致和未完成 UAT 升级为 BLOCKER
  * 退出码：0=无 BLOCKER，1=存在 BLOCKER
  */
 
@@ -44,9 +46,13 @@ function section($title) {
 }
 
 $projectRoot = '';
+$strict = false;
 for ($i = 1; $i < $argc; $i++) {
     if (strpos($argv[$i], '--root=') === 0) {
         $projectRoot = substr($argv[$i], 7);
+    }
+    if ($argv[$i] === '--strict') {
+        $strict = true;
     }
 }
 
@@ -56,6 +62,7 @@ if (empty($projectRoot)) {
 
 echo "\n孕禧小程序 — 文档一致性检查\n";
 echo "项目目录: {$projectRoot}\n";
+echo "模式: " . ($strict ? 'strict（UAT不一致/未完成=BLOCKER）' : '默认（UAT不一致=WARN）') . "\n";
 
 // ============================================================
 // 1. 检查错误的表名 sxo_users
@@ -158,7 +165,11 @@ if (file_exists($uatReport)) {
             if ($docVersion === $gitHead) {
                 pass_item("UAT 报告代码版本 {$docVersion} 与最新 commit {$gitHead} 一致");
             } else {
-                warn_item("UAT 报告代码版本 {$docVersion} 与最新 commit {$gitHead} 不一致");
+                if ($strict) {
+                    block_item("UAT 报告代码版本 {$docVersion} 与最新 commit {$gitHead} 不一致（strict 模式：必须一致）");
+                } else {
+                    warn_item("UAT 报告代码版本 {$docVersion} 与最新 commit {$gitHead} 不一致");
+                }
             }
         } else {
             warn_item("无法获取 git HEAD，跳过版本一致性检查");
@@ -194,6 +205,31 @@ if (file_exists($checklist)) {
     }
 } else {
     warn_item("release-checklist.md 不存在");
+}
+
+// ============================================================
+// 5. [strict] 检查 UAT 报告中是否仍有服务器实测待执行
+// ============================================================
+if ($strict) {
+    section("5. [strict] 检查真实 UAT 是否完成");
+
+    if (file_exists($uatReport)) {
+        $content = file_get_contents($uatReport);
+        $pending_count = 0;
+        $lines = explode("\n", $content);
+        foreach ($lines as $num => $line) {
+            if (strpos($line, '⏳') !== false && (strpos($line, '待执行') !== false || strpos($line, '待确认') !== false || strpos($line, '待回填') !== false || strpos($line, '待签署') !== false)) {
+                $pending_count++;
+            }
+        }
+        if ($pending_count > 0) {
+            block_item("UAT 报告中仍有 {$pending_count} 处服务器实测待执行（strict 模式：真实 UAT 未完成不可发布）");
+        } else {
+            pass_item("UAT 报告中无待执行的服务器实测项");
+        }
+    } else {
+        block_item("UAT 报告文件不存在（strict 模式：必须存在）");
+    }
 }
 
 // ============================================================
