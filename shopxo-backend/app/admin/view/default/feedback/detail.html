@@ -6,6 +6,9 @@
             <dt><strong>反馈ID</strong></dt>
             <dd>{{$data.id}}</dd>
 
+            <dt><strong>反馈类型</strong></dt>
+            <dd>{{if !empty($data['type_text'])}}{{$data.type_text}}{{else /}}问题反馈{{/if}}</dd>
+
             <dt><strong>用户昵称</strong></dt>
             <dd>{{$data.nickname}}</dd>
 

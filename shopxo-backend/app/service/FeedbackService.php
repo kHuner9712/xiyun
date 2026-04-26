@@ -26,6 +26,13 @@ class FeedbackService
         '/[微薇威][信芯心][:：]?\s*[a-zA-Z0-9_\-]{5,}/',
     ];
 
+    private static $TYPE_MAP = [
+        'feedback'        => '问题反馈',
+        'suggestion'      => '功能建议',
+        'complaint'       => '投诉',
+        'privacy_request' => '数据删除/隐私请求',
+    ];
+
     public static function FeedbackWhere($params = [])
     {
         $where = [
@@ -98,9 +105,13 @@ class FeedbackService
         $user_id = intval($params['user']['id']);
         $user_row = Db::name('User')->where(['id' => $user_id])->find();
 
+        $valid_types = ['feedback', 'suggestion', 'complaint', 'privacy_request'];
+        $feedback_type = !empty($params['type']) && in_array($params['type'], $valid_types) ? $params['type'] : 'feedback';
+
         $contact_plain = !empty($params['contact']) ? strip_tags(trim($params['contact'])) : '';
         $data = [
             'user_id'       => $user_id,
+            'type'          => $feedback_type,
             'nickname'      => !empty($user_row['nickname']) ? strip_tags(trim($user_row['nickname'])) : '用户' . $user_id,
             'avatar'        => !empty($user_row['avatar']) ? trim($user_row['avatar']) : '',
             'content'       => $content,
@@ -172,6 +183,10 @@ class FeedbackService
             $where[] = ['content', 'like', '%' . trim($params['awd']) . '%'];
         }
 
+        if (!empty($params['type'])) {
+            $where[] = ['type', '=', trim($params['type'])];
+        }
+
         return $where;
     }
 
@@ -193,6 +208,7 @@ class FeedbackService
         if (!empty($data)) {
             foreach ($data as $k => &$v) {
                 $v['data_index'] = $k + 1;
+                $v['type_text'] = self::$TYPE_MAP[$v['type'] ?? 'feedback'] ?? '问题反馈';
                 $v['stage_text'] = MuyingStage::getName(MuyingStage::Normalize($v['stage'] ?? ''));
                 $v['add_time_text'] = empty($v['add_time']) ? '' : date('Y-m-d H:i:s', $v['add_time']);
                 $v['is_enable_text'] = $v['is_enable'] == 1 ? '显示' : '隐藏';
@@ -210,6 +226,7 @@ class FeedbackService
         if (!empty($data)) {
             foreach ($data as $k => &$v) {
                 $v['data_index'] = $k + 1;
+                $v['type_text'] = self::$TYPE_MAP[$v['type'] ?? 'feedback'] ?? '问题反馈';
                 $v['stage_text'] = MuyingStage::getName(MuyingStage::Normalize($v['stage'] ?? ''));
                 $v['add_time_text'] = empty($v['add_time']) ? '' : date('Y-m-d H:i:s', $v['add_time']);
                 $v['is_enable_text'] = $v['is_enable'] == 1 ? '显示' : '隐藏';

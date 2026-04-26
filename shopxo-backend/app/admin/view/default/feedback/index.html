@@ -2,6 +2,17 @@
 
 {{block name="form_search"}}
     <div class="am-form-group">
+        <label class="am-form-label">反馈类型</label>
+        <select name="type" class="am-radius">
+            <option value="">{{:MyLang('please_select')}}</option>
+            <option value="feedback">问题反馈</option>
+            <option value="suggestion">功能建议</option>
+            <option value="complaint">投诉</option>
+            <option value="privacy_request">数据删除/隐私请求</option>
+        </select>
+    </div>
+
+    <div class="am-form-group">
         <label class="am-form-label">{{:MyLang('common_service.goodscomments.form_item_stage')}}</label>
         <select name="stage" class="am-radius">
             <option value="">{{:MyLang('please_select')}}</option>

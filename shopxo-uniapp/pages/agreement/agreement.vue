@@ -43,6 +43,10 @@
                                 <text class="block margin-top-xs">1. 您可以随时查看、修改您的个人信息。</text>
                                 <text class="block margin-top-xs">2. 您可以选择注销账号，注销后我们将删除或匿名化您的个人信息。</text>
                                 <text class="block margin-top-xs">3. 您可以在系统设置中随时关闭位置、相册等权限授权。</text>
+                                <text class="block margin-top-xs">4. 您有权要求删除您的个人信息。如需申请数据删除，请通过以下方式联系我们：</text>
+                                <text class="block margin-top-xs">　　a. 在"反馈"页面选择"数据删除/隐私请求"类型提交申请；</text>
+                                <text class="block margin-top-xs">　　b. 联系平台客服提出数据删除请求；</text>
+                                <text class="block margin-top-xs">　　我们将在15个工作日内处理您的请求，处理完成后您的敏感个人信息（手机号、孕育阶段、预产期、宝宝生日、报名信息、反馈联系方式等）将被匿名化或删除，订单记录将保留必要信息以保障售后权益。</text>
                             </view>
                             <view class="margin-bottom-main">
                                 <text class="fw-b">六、未成年人保护</text>

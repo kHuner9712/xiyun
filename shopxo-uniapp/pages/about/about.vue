@@ -16,6 +16,10 @@
                         <text class="cp cr-blue margin-right" data-value="userregister" @tap="agreement_event">{{ $t('login.login.2v11we') }}</text>
                         <text class="cp cr-blue margin-left" data-value="userprivacy" @tap="agreement_event">{{ $t('login.login.myno2x') }}</text>
                     </view>
+                    <!-- 数据删除申请 -->
+                    <view class="margin-top-main">
+                        <text class="cp cr-blue" @tap="privacy_request_event">数据删除申请说明</text>
+                    </view>
                 </view>
             </view>
             <view class="margin-top cr-grey-c">Copyright 2018-{{year}} by {{title}}</view>
@@ -73,7 +77,6 @@
                     return false;
                 }
             
-                // 是否存在协议 url 地址
                 var key = 'agreement_' + value + '_url';
                 var url = app.globalData.get_config('config.' + key) || null;
                 if (url == null) {
@@ -81,8 +84,13 @@
                     return false;
                 }
             
-                // 打开 webview
                 app.globalData.open_web_view(url);
+            },
+
+            privacy_request_event() {
+                uni.navigateTo({
+                    url: '/pages/agreement/agreement?type=privacy',
+                });
             },
         }
     };

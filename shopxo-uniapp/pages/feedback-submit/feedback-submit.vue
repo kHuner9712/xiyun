@@ -3,6 +3,18 @@
         <view class="content-container padding-main">
             <!-- 表单区域 -->
             <view class="form-container bg-white border-radius-main padding-main">
+                <!-- 反馈类型 -->
+                <view class="form-item margin-bottom-main">
+                    <view class="form-label text-size-md fw-b cr-base margin-bottom-sm">反馈类型</view>
+                    <view class="form-input">
+                        <picker :value="type_index" :range="type_options" range-key="name" @change="type_change_event">
+                            <view class="picker-value text-size-sm" :class="{ 'picker-placeholder': !form.type }">
+                                {{ current_type_text || '请选择反馈类型' }}
+                            </view>
+                        </picker>
+                    </view>
+                </view>
+
                 <!-- 反馈内容 -->
                 <view class="form-item margin-bottom-main">
                     <view class="form-label text-size-md fw-b cr-base margin-bottom-sm">反馈内容</view>
@@ -61,7 +73,16 @@
                     content: '',
                     stage: '',
                     contact: '',
+                    type: '',
                 },
+                type_options: [
+                    { value: 'feedback', name: '问题反馈' },
+                    { value: 'suggestion', name: '功能建议' },
+                    { value: 'complaint', name: '投诉' },
+                    { value: 'privacy_request', name: '数据删除/隐私请求' },
+                ],
+                type_index: 0,
+                current_type_text: '',
                 stage_options: [],
                 stage_index: 0,
                 current_stage: '',
@@ -117,6 +138,13 @@
                 }
             },
 
+            type_change_event(e) {
+                var idx = e.detail.value;
+                this.setData({ type_index: idx });
+                this.form.type = this.type_options[idx].value;
+                this.current_type_text = this.type_options[idx].name;
+            },
+
             stage_change_event(e) {
                 var idx = e.detail.value;
                 this.setData({ stage_index: idx });
@@ -145,19 +173,21 @@
                         content: self.form.content.trim(),
                         stage: self.form.stage,
                         contact: self.form.contact ? self.form.contact.trim() : '',
+                        type: self.form.type || 'feedback',
                     },
-                    success: function() {
+                    success: function () {
+                        var is_privacy = self.form.type === 'privacy_request';
                         uni.showModal({
                             title: '提交成功',
-                            content: '您的反馈已提交，审核通过后将在首页展示',
+                            content: is_privacy ? '您的数据删除/隐私请求已提交，我们将在15个工作日内处理并回复您' : '您的反馈已提交，审核通过后将在首页展示',
                             showCancel: false,
                             confirmText: '我知道了',
-                            success: function() {
+                            success: function () {
                                 uni.navigateBack();
                             },
                         });
                     },
-                    fail: function(err) {
+                    fail: function (err) {
                         if (!err.feature_disabled && !err.login_expired) {
                             app.globalData.showToast(err.errMsg || '提交失败，请重试');
                         }
@@ -171,11 +201,11 @@
 <style>
     .page-wrapper {
         min-height: 100vh;
-        background-color: #F5F5F5;
+        background-color: #f5f5f5;
     }
 
     .bg-f5 {
-        background-color: #F5F5F5;
+        background-color: #f5f5f5;
     }
 
     .content-container {
@@ -187,7 +217,7 @@
     }
 
     .form-item {
-        border-bottom: 1rpx solid #F0F0F0;
+        border-bottom: 1rpx solid #f0f0f0;
         padding-bottom: 24rpx;
     }
 
@@ -201,7 +231,7 @@
 
     .form-input textarea,
     .form-input input {
-        background-color: #F8F8F8;
+        background-color: #f8f8f8;
         border-radius: 12rpx;
         padding: 16rpx 20rpx;
         width: 100%;
@@ -213,7 +243,7 @@
     }
 
     .picker-value {
-        background-color: #F8F8F8;
+        background-color: #f8f8f8;
         border-radius: 12rpx;
         padding: 16rpx 20rpx;
         width: 100%;

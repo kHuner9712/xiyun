@@ -51,6 +51,22 @@ class Feedback
                     ],
                 ],
                 [
+                    'label'             => '反馈类型',
+                    'view_type'         => 'field',
+                    'view_key'          => 'type_text',
+                    'is_sort'           => 1,
+                    'width'             => 120,
+                    'search_config'     => [
+                        'form_type'         => 'select',
+                        'form_name'         => 'type',
+                        'where_type'        => 'in',
+                        'data'              => $this->TypeList(),
+                        'data_key'          => 'value',
+                        'data_name'         => 'name',
+                        'is_multiple'       => 1,
+                    ],
+                ],
+                [
                     'label'             => '阶段',
                     'view_type'         => 'field',
                     'view_key'          => 'stage_text',
@@ -161,6 +177,16 @@ class Feedback
             ['value' => 'pending', 'name' => '待审核'],
             ['value' => 'approved', 'name' => '已通过'],
             ['value' => 'rejected', 'name' => '已驳回'],
+        ];
+    }
+
+    public function TypeList()
+    {
+        return [
+            ['value' => 'feedback', 'name' => '问题反馈'],
+            ['value' => 'suggestion', 'name' => '功能建议'],
+            ['value' => 'complaint', 'name' => '投诉'],
+            ['value' => 'privacy_request', 'name' => '数据删除/隐私请求'],
         ];
     }
 }
