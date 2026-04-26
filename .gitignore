@@ -74,3 +74,6 @@ docker-data/
 *.pem
 *.key
 *.cert
+*.crt
+*.p12
+*.jks
