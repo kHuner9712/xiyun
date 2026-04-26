@@ -1089,3 +1089,55 @@
 
 - **commit**: `a3fc533`
 - **message**: `chore(uat): add baota runtime checks and experience build test report`
+
+## 2026-04-26 — 第二六轮前端合规门控缺口修复与敏感信息清理
+
+### 整改目标
+
+修复审查发现的前端合规门控缺口、后端定义不一致、文档敏感信息泄露等问题。
+
+### 核心变更
+
+1. security-rotation.md 10 个真实 API 密钥替换为 REDACTED_*
+2. cart.vue HOSPITAL 门控 + REALSTORE 数据门控
+3. goods-detail.vue SECKILL/POINTS/BINDING/REALSTORE/SHOP 门控
+4. buy.vue REALSTORE 数据门控
+5. user-orderaftersale-detail.vue SHOP 数据门控
+6. payment.vue case 2 钱包支付拦截
+7. 后端 IsPhaseOneFeatureKey 统一
+8. 文档内网 IP 替换为占位符
+9. .gitignore 补充证书文件规则
+
+### 修改文件清单
+
+| 文件 | 修改内容 |
+|------|----------|
+| shopxo-uniapp/components/cart/cart.vue | HOSPITAL 门控 + REALSTORE 数据门控 |
+| shopxo-uniapp/pages/goods-detail/goods-detail.vue | SECKILL/POINTS/BINDING/REALSTORE/SHOP 门控 |
+| shopxo-uniapp/pages/buy/buy.vue | REALSTORE 数据门控 |
+| shopxo-uniapp/pages/user-orderaftersale-detail/user-orderaftersale-detail.vue | SHOP 数据门控 |
+| shopxo-uniapp/components/payment/payment.vue | case 2 钱包支付拦截 |
+| shopxo-backend/app/service/MuyingComplianceService.php | IsPhaseOneFeatureKey 统一 |
+| docs/archive/guides/security-rotation.md | API 密钥脱敏 |
+| docs/archive/ 5个文件 | 内网 IP 替换 |
+| .gitignore | 证书文件规则 |
+
+### 遗留风险
+
+| # | 风险 | 严重性 | 说明 |
+| --- | ---- | ------ | ---- |
+| 1 | git 历史中仍有真实密钥 | 高 | 需 git filter-repo 清理并轮换密钥 |
+| 2 | pages.json 仍注册 coupon/signin/points 页面 | 中 | 增加包体积 |
+| 3 | 缺少全局导航拦截器 | 中 | uni.navigateTo 未做全局拦截 |
+
+### Commit 信息
+
+| commit | message |
+|--------|---------|
+| c07cb57 | fix(security): redact API keys from docs and add cert patterns to gitignore |
+| 5bec740 | fix(compliance): add feature flag gates for hospital and realstore in cart |
+| 2d41ccf | fix(compliance): add feature flag gates for blocked plugins in goods-detail |
+| d39256d | fix(compliance): add realstore feature flag gate in buy page |
+| b47c9b4 | fix(compliance): gate shop dispute in aftersale detail and block wallet payment case |
+| e7fd889 | fix(compliance): unify IsPhaseOneFeatureKey definition with GetAllFeatureFlags |
+| 626688b | fix(security): replace internal IP addresses with placeholders in docs |
