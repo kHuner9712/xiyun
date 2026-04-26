@@ -1355,3 +1355,49 @@
 | commit | message |
 |--------|---------|
 | 229a46a | feat(config): harden production build gates in runtime-config and update env templates |
+
+## 2026-04-26 — 第三一轮生产部署安全配置与文档
+
+### 整改目标
+
+补齐生产部署安全配置和文档，避免部署后暴露敏感目录、安装入口、数据库、phpMyAdmin 等风险。
+
+### 核心变更
+
+1. 新增 docs/deployment-bt-production.md 宝塔生产部署指南，包含：
+   - 宝塔网站运行目录设为 /public
+   - PHP 8.1 / MySQL 5.7 版本要求
+   - APP_DEBUG = false
+   - 数据库独立用户（非 root）
+   - MySQL 3306 不开放公网
+   - phpMyAdmin 限制 IP 白名单
+   - HTTPS 开启
+   - ThinkPHP 伪静态配置
+   - Nginx 安全规则（deny .env/runtime/vendor/app/config/sql/install.php）
+   - 后台入口改为随机路径 + IP 限制
+   - MUYING_PRIVACY_KEY 独立生成并离线保存
+   - 数据库/上传目录每日备份
+   - 安全检查清单（15项）
+
+2. 补充 deploy/nginx.production.example.conf 安全规则：
+   - deny runtime 目录
+   - deny vendor 目录
+   - deny app 目录
+   - deny config 目录
+   - deny *.sql 文件
+   - deny install.php
+
+3. .gitignore 确认已覆盖所有必要项
+
+### 修改文件清单
+
+| 文件 | 修改内容 |
+|------|----------|
+| docs/deployment-bt-production.md | 新增宝塔生产部署指南 |
+| deploy/nginx.production.example.conf | 补充 6 条 deny 规则 |
+
+### Commit 信息
+
+| commit | message |
+|--------|---------|
+| 0df8f17 | docs(deployment): add BT panel production guide and harden Nginx security rules |
