@@ -15,7 +15,9 @@
 | 后端地址 | 待部署（域名备案中） |
 | 小程序 AppID | wxda7779770f53e901（测试号） |
 | 代码版本 | 850f9bb |
-| 数据库迁移版本 | muying-final-migration.sql（待执行） |
+| 数据库迁移版本 | muying-final-migration.sql + muying-v1-post-migration.sql（待执行） |
+| 发布分支 | 待创建（release/v1.0.0-rc1） |
+| 发布 tag | 待打（v1.0.0-rc1） |
 
 ---
 

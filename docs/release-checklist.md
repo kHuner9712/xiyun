@@ -193,3 +193,14 @@
 | 9.3 | UAT 报告版本号必须等于发布 commit | ☐ | docs/uat-report-current.md 代码版本 = git HEAD |
 | 9.4 | 服务器实测不得为待执行 | ☐ | UAT 报告中无 ⏳ 待执行项 |
 | 9.5 | 三个状态（代码审查/服务器UAT/微信体验版）已区分 | ☐ | 不可混用 |
+
+## 10. 发布冻结检查
+
+| # | 检查项 | 状态 | 说明 |
+|---|--------|------|------|
+| 10.1 | release-freeze-check.php 通过 | ☐ | php scripts/preflight/release-freeze-check.php |
+| 10.2 | 已创建 release/* 分支 | ☐ | 从 main 创建 release/v1.0.0-rcN |
+| 10.3 | 已打 tag | ☐ | v1.0.0-rcN 或 v1.0.0 |
+| 10.4 | 提审包对应 tag | ☐ | 严禁从非 tag 构建 |
+| 10.5 | release-notes-v1.0.0.md 已填写 | ☐ | 功能范围/开启功能/关闭功能/已知限制 |
+| 10.6 | release-freeze-checklist.md 已签署 | ☐ | 开发/测试/产品签字 |
