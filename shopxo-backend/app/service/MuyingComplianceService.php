@@ -222,11 +222,15 @@ class MuyingComplianceService
     {
         $result = [];
         $all_keys = array_keys(self::$FEATURE_FLAG_PLUGIN_MAP);
+        // [MUYING-二开] 统一 phase_one_keys 定义，与 IsPhaseOneFeatureKey 保持一致
         $phase_one_keys = [
             'feature_activity_enabled',
             'feature_invite_enabled',
             'feature_content_enabled',
             'feature_feedback_enabled',
+        ];
+        // 一期受控功能（默认关闭，后台可按需开启，需资质+约束）
+        $phase_one_controlled_keys = [
             'feature_coupon_enabled',
             'feature_signin_enabled',
             'feature_points_enabled',
@@ -237,7 +241,7 @@ class MuyingComplianceService
             'feature_membership_v2_enabled',
             'feature_wallet_v2_enabled',
         ];
-        $all_keys = array_merge($all_keys, $phase_one_keys, $v2_keys);
+        $all_keys = array_merge($all_keys, $phase_one_keys, $phase_one_controlled_keys, $v2_keys);
         foreach ($all_keys as $key) {
             $result[$key] = intval(MyC($key, 0));
         }
