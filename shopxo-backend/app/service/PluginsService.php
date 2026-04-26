@@ -662,7 +662,10 @@ class PluginsService
     public static function PluginsSortList()
     {
         $data = Db::name('Plugins')->field('id,name,plugins')->where(['is_enable'=>1])->order(PluginsAdminService::$plugins_order_by)->select()->toArray();
-        return empty($data) ? [] : $data;
+        $data = empty($data) ? [] : $data;
+        // [MUYING-二开] 应用合规过滤
+        $data = MuyingComplianceService::FilterPluginSortList($data);
+        return $data;
     }
 
     /**

@@ -515,6 +515,66 @@ class MuyingComplianceService
         }
     }
 
+    public static function FilterNavigationItems($items)
+    {
+        if (empty($items) || !is_array($items)) {
+            return [];
+        }
+        $blocked_plugins = self::GetEffectiveBlockedPlugins();
+        if (empty($blocked_plugins)) {
+            return $items;
+        }
+        $filtered = [];
+        foreach ($items as $item) {
+            if (self::IsNavigationItemBlocked($item, $blocked_plugins)) {
+                continue;
+            }
+            if (!empty($item['extension_data']) && is_array($item['extension_data'])) {
+                $item['extension_data'] = self::FilterNavigationItems($item['extension_data']);
+            }
+            $filtered[] = $item;
+        }
+        return $filtered;
+    }
+
+    public static function IsNavigationItemBlocked($item, $blocked_plugins)
+    {
+        $event_value = isset($item['event_value']) ? $item['event_value'] : '';
+        if (empty($event_value)) {
+            return false;
+        }
+        foreach ($blocked_plugins as $plugin) {
+            if (strpos($event_value, "/pages/plugins/{$plugin}/") !== false) {
+                return true;
+            }
+        }
+        $blocked_system_routes = [
+            '/pages/user-integral/user-integral',
+        ];
+        foreach ($blocked_system_routes as $route) {
+            if (strpos($event_value, $route) !== false) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static function FilterPluginSortList($list)
+    {
+        if (empty($list) || !is_array($list)) {
+            return [];
+        }
+        $filtered = [];
+        foreach ($list as $item) {
+            $plugins_name = isset($item['plugins']) ? strtolower(trim($item['plugins'])) : '';
+            if (empty($plugins_name) || self::IsPluginBlocked($plugins_name)) {
+                continue;
+            }
+            $filtered[] = $item;
+        }
+        return $filtered;
+    }
+
     public static function GetDashboardSummary()
     {
         $qualifications = self::GetQualificationDetailList();
