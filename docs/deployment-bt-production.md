@@ -208,11 +208,19 @@ php -r "echo bin2hex(openssl_random_pseudo_bytes(32));"
 
 ### 4.3 安装后安全操作
 
-1. **删除安装入口**：
+1. **确认 install.php 已删除**：
    ```bash
-   rm -f /www/wwwroot/yunxi-api/shopxo-backend/app/install/controller/Index.php
-   # 或在 Nginx 中已配置 deny install.php
+   # ⚠️ 生产部署前必须确认以下文件不存在
+   ls -la /www/wwwroot/yunxi-api/shopxo-backend/public/install.php
+   # 如果存在，必须删除：
+   rm -f /www/wwwroot/yunxi-api/shopxo-backend/public/install.php
+   rm -rf /www/wwwroot/yunxi-api/shopxo-backend/public/static/install/
+   # 确认删除成功
+   test -f /www/wwwroot/yunxi-api/shopxo-backend/public/install.php && echo "BLOCKER: install.php 仍存在！" || echo "OK: install.php 已删除"
    ```
+   > 本项目已从代码仓库中移除 `public/install.php`，安装入口已归档至 `docs/archive/install.php.disabled`。
+   > 如需重新安装，将该文件复制回 `shopxo-backend/public/install.php`，安装完成后必须立即删除。
+   > Nginx 配置中已添加 `deny /install.php` 和 `deny /install/` 作为双重保护。
 
 2. **修改后台入口**：
    - 默认后台入口为 `/admin`，容易被扫描
@@ -328,7 +336,7 @@ UNI_APP_WX_APPID=你的正式AppID
 | 5 | HTTPS 已开启 | ☐ |
 | 6 | .env 文件不可公网访问 | ☐ |
 | 7 | runtime/vendor/app/config 目录不可访问 | ☐ |
-| 8 | install.php 已删除或 Nginx deny | ☐ |
+| 8 | install.php 不存在于 Web root | ☐ |
 | 9 | 后台入口已改为随机路径 | ☐ |
 | 10 | MUYING_PRIVACY_KEY 已独立生成 | ☐ |
 | 11 | 上传目录禁止执行 PHP | ☐ |
