@@ -60,6 +60,9 @@ class Common extends BaseController
         'blog'              => 'feature_ugc_enabled',
         'cashier'           => 'feature_payment_enabled',
         'paylog'            => 'feature_payment_enabled',
+        'forminput'         => 'feature_dynamic_page_enabled',
+        'diy'               => 'feature_dynamic_page_enabled',
+        'design'            => 'feature_dynamic_page_enabled',
     ];
 
 	// 用户信息

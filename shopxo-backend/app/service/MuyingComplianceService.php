@@ -244,7 +244,10 @@ class MuyingComplianceService
         $payment_keys = [
             'feature_payment_enabled',
         ];
-        $all_keys = array_merge($all_keys, $phase_one_keys, $phase_one_controlled_keys, $v2_keys, $payment_keys);
+        $dynamic_page_keys = [
+            'feature_dynamic_page_enabled',
+        ];
+        $all_keys = array_merge($all_keys, $phase_one_keys, $phase_one_controlled_keys, $v2_keys, $payment_keys, $dynamic_page_keys);
         foreach ($all_keys as $key) {
             $result[$key] = intval(MyC($key, 0));
         }

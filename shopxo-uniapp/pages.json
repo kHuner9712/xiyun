@@ -125,26 +125,7 @@
                         "enablePullDownRefresh": true,
                         "navigationBarTitleText": ""
                     },
-                    "usingComponents": {
-                        "baidu-editor": "dynamicLib://editorLib/editor"
-                    }
-                },
-                {
-                    "path": "form-preview",
-                    "style": {
-                        // #ifdef MP-WEIXIN || MP-BAIDU || MP-QQ || MP-KUAISHOU || H5 || APP
-                        "navigationStyle": "custom",
-                        // #endif
-                        // #ifdef MP-ALIPAY
-                        "transparentTitle": "always",
-                        "titlePenetrate": "YES",
-                        // #endif
-                        "enablePullDownRefresh": true,
-                        "navigationBarTitleText": ""
-                    },
-                    "usingComponents": {
-                        "baidu-editor": "dynamicLib://editorLib/editor"
-                    }
+                    "usingComponents": {}
                 }
             ]
         },
@@ -454,18 +435,6 @@
                         "navigationStyle": "custom",
                         // #endif
                         "enablePullDownRefresh": false
-                    }
-                }
-            ]
-        },
-        {
-            "root": "pages/customview",
-            "pages": [
-                {
-                    "path": "customview",
-                    "style": {
-                        "enablePullDownRefresh": true,
-                        "navigationBarTitleText": ""
                     }
                 }
             ]

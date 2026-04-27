@@ -29,6 +29,7 @@ export var FeatureFlagKey = {
     MEMBERSHIP_V2: 'feature_membership_v2_enabled',
     WALLET_V2: 'feature_wallet_v2_enabled',
     PAYMENT: 'feature_payment_enabled',
+    DYNAMIC_PAGE: 'feature_dynamic_page_enabled',
 };
 
 export var QualificationKey = {

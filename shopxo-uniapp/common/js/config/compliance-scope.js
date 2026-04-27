@@ -52,9 +52,6 @@ var PHASE_ONE_ALLOWED_ROUTES = [
     '/pages/error/error',
     '/pages/article-category/article-category',
     '/pages/article-detail/article-detail',
-    '/pages/customview/customview',
-    '/pages/design/design',
-    '/pages/diy/diy',
     '/pages/activity-detail/activity-detail',
     '/pages/activity-signup/activity-signup',
     '/pages/my-activity/my-activity',
@@ -218,12 +215,23 @@ var _PAYMENT_ROUTES = [
     '/pages/paylog-detail/paylog-detail',
 ];
 
+var _DYNAMIC_PAGE_ROUTES = [
+    '/pages/form-input/form-input',
+    '/pages/diy/diy',
+    '/pages/design/design',
+];
+
 function is_route_allowed(url) {
     var path = normalize_page_path(url);
     if (path === '') return false;
     for (var i = 0; i < _PAYMENT_ROUTES.length; i++) {
         if (path === _PAYMENT_ROUTES[i]) {
             return is_feature_enabled('feature_payment_enabled');
+        }
+    }
+    for (var i = 0; i < _DYNAMIC_PAGE_ROUTES.length; i++) {
+        if (path === _DYNAMIC_PAGE_ROUTES[i]) {
+            return is_feature_enabled('feature_dynamic_page_enabled');
         }
     }
     for (var i = 0; i < PHASE_ONE_ALLOWED_ROUTES.length; i++) {

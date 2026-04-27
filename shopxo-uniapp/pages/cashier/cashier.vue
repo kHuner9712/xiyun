@@ -41,6 +41,7 @@
 </template>
 <script>
     const app = getApp();
+    import { is_feature_enabled, FeatureFlagKey } from '@/common/js/config/compliance-scope.js';
     import componentCommon from '@/components/common/common';
     import componentNoData from "@/components/no-data/no-data";
     export default {
@@ -69,6 +70,12 @@
             componentNoData
         },
         onLoad(params) {
+            // [MUYING-二开] 一期提审：收银台页面受支付功能开关控制
+            if (!is_feature_enabled(FeatureFlagKey.PAYMENT)) {
+                uni.redirectTo({ url: '/pages/error/error?msg=支付功能暂未开放' });
+                return;
+            }
+
             // 调用公共事件方法
             app.globalData.page_event_onload_handle(params);
 

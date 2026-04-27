@@ -360,6 +360,64 @@ if (gitignore) {
 }
 
 // ============================================================
+section('7. 动态页面与支付页面门控检查');
+// ============================================================
+
+var dynamicPages = [
+    { path: 'pages/form-input/form-input.vue', name: 'form-input', needFlag: 'feature_dynamic_page_enabled' },
+    { path: 'pages/diy/diy.vue', name: 'diy', needFlag: 'feature_dynamic_page_enabled' },
+    { path: 'pages/design/design.vue', name: 'design', needFlag: 'feature_dynamic_page_enabled' },
+];
+var paymentPages = [
+    { path: 'pages/cashier/cashier.vue', name: 'cashier', needFlag: 'feature_payment_enabled' },
+    { path: 'pages/paytips/paytips.vue', name: 'paytips', needFlag: 'feature_payment_enabled' },
+];
+
+dynamicPages.forEach(function(pg) {
+    var filePath = resolve('shopxo-uniapp', pg.path);
+    var content = readFile(filePath);
+    if (!content) {
+        warn(pg.name + ' 页面文件不存在（可能已移除）');
+        return;
+    }
+    var hasGuard = content.indexOf(pg.needFlag) !== -1 || content.indexOf('FeatureFlagKey.DYNAMIC_PAGE') !== -1;
+    if (hasGuard) {
+        pass(pg.name + ' 页面有 feature flag 门控（' + pg.needFlag + '）');
+    } else {
+        blocker(pg.name + ' 页面无 feature flag 门控（需要 ' + pg.needFlag + ' onLoad guard）');
+    }
+});
+
+paymentPages.forEach(function(pg) {
+    var filePath = resolve('shopxo-uniapp', pg.path);
+    var content = readFile(filePath);
+    if (!content) {
+        warn(pg.name + ' 页面文件不存在（可能已移除）');
+        return;
+    }
+    var hasGuard = content.indexOf(pg.needFlag) !== -1 || content.indexOf('FeatureFlagKey.PAYMENT') !== -1;
+    if (hasGuard) {
+        pass(pg.name + ' 页面有 feature flag 门控（' + pg.needFlag + '）');
+    } else {
+        blocker(pg.name + ' 页面无 feature flag 门控（需要 ' + pg.needFlag + ' onLoad guard）');
+    }
+});
+
+var pagesJson = readFile(resolve('shopxo-uniapp', 'pages.json'));
+if (pagesJson) {
+    if (pagesJson.indexOf('form-preview') !== -1) {
+        blocker('pages.json 仍注册 form-preview 页面（应移除）');
+    } else {
+        pass('pages.json 未注册 form-preview 页面');
+    }
+    if (pagesJson.indexOf('customview') !== -1) {
+        blocker('pages.json 仍注册 customview 页面（应移除）');
+    } else {
+        pass('pages.json 未注册 customview 页面');
+    }
+}
+
+// ============================================================
 section('检查汇总');
 // ============================================================
 
