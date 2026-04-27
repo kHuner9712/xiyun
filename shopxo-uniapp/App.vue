@@ -3397,9 +3397,9 @@
             //隐藏系统tabbar
             this.globalData.system_hide_tabbar();
 
-            // [MUYING-二开] 统一路由拦截：拦截所有 navigateTo/redirectTo/reLaunch 跳转到禁用页面
+            // [MUYING-二开] 统一路由拦截：拦截所有 navigateTo/redirectTo/reLaunch/switchTab 跳转到禁用页面
             var self = this;
-            ['navigateTo', 'redirectTo', 'reLaunch'].forEach(function (method) {
+            ['navigateTo', 'redirectTo', 'reLaunch', 'switchTab'].forEach(function (method) {
                 uni.addInterceptor(method, {
                     invoke: function (args) {
                         var url = args.url || '';

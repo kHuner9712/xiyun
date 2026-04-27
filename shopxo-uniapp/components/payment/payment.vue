@@ -263,7 +263,8 @@
         },
         computed: {
             payment_list_filtered() {
-                return (this.payment_list || []).filter(item => item.payment !== 'WalletPay');
+                var blocked = ['WalletPay', 'ChargePayment', 'CoinPay', 'UniPayment', 'GiftCardPay', 'ScanPay'];
+                return (this.payment_list || []).filter(item => blocked.indexOf(item.payment) === -1);
             }
         },
         methods: {
@@ -326,8 +327,9 @@
                     // 循环匹配支付方式
                     this.payment_list.forEach((item) => {
                         if (item.id == payment_id) {
-                            if (item.payment == 'WalletPay') {
-                                app.globalData.showToast('钱包支付暂未开放');
+                            var blocked_payments = ['WalletPay', 'ChargePayment', 'CoinPay', 'UniPayment', 'GiftCardPay', 'ScanPay'];
+                            if (blocked_payments.indexOf(item.payment) !== -1) {
+                                app.globalData.showToast('该支付方式暂未开放');
                                 return;
                             } else {
                                 this.pay_handle_event(order_id, payment_id);

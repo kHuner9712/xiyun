@@ -406,11 +406,13 @@ function main() {
         }
       }
 
-      // 10e. INSERT 无 IGNORE 检查
+      // 10e. INSERT 无幂等保护检查
       const bareInsert = fileSql.match(/^\s*INSERT\s+INTO\s+/gm);
       const ignoreInsert = fileSql.match(/^\s*INSERT\s+IGNORE\s+INTO\s+/gm);
-      if (bareInsert && (!ignoreInsert || bareInsert.length > ignoreInsert.length)) {
-        warn(`${file}: 发现 ${bareInsert.length - (ignoreInsert ? ignoreInsert.length : 0)} 处无 IGNORE 保护的 INSERT`);
+      const duplicateKeyInsert = fileSql.match(/ON\s+DUPLICATE\s+KEY\s+UPDATE/gi);
+      const protectedCount = (ignoreInsert ? ignoreInsert.length : 0) + (duplicateKeyInsert ? duplicateKeyInsert.length : 0);
+      if (bareInsert && protectedCount < bareInsert.length) {
+        warn(`${file}: 发现 ${bareInsert.length - protectedCount} 处无 IGNORE/ON DUPLICATE KEY UPDATE 保护的 INSERT`);
       }
     }
   } else {

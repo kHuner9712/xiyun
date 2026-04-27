@@ -58,6 +58,8 @@ class Common extends BaseController
         'invoice'           => 'feature_invoice_enabled',
         'ask'               => 'feature_ugc_enabled',
         'blog'              => 'feature_ugc_enabled',
+        'cashier'           => 'feature_payment_enabled',
+        'paylog'            => 'feature_payment_enabled',
     ];
 
 	// 用户信息

@@ -152,7 +152,7 @@
                     </view>
 
                     <!-- 积分 -->
-                    <view v-if="(plugins_points_data || null) != null && ((plugins_points_data.discount_price || 0) > 0 || (plugins_points_data.is_support_goods_exchange || 0) == 1)" class="plugins-points-buy-container padding-main border-radius-main bg-white spacing-mb">
+                    <view v-if="is_feature_enabled(FeatureFlagKey.POINTS) && (plugins_points_data || null) != null && ((plugins_points_data.discount_price || 0) > 0 || (plugins_points_data.is_support_goods_exchange || 0) == 1)" class="plugins-points-buy-container padding-main border-radius-main bg-white spacing-mb">
                         <block v-if="(plugins_points_data.discount_price || 0) > 0">
                             <view class="select oh">
                                 <block v-if="plugins_points_data.discount_type == 1">
@@ -639,12 +639,13 @@
                                     buy_datetime_info: datetime,
                                     buy_extraction_contact_info: extraction_contact,
                                     plugins_coupon_data: data.plugins_coupon_data || null,
-                                    plugins_points_data: data.plugins_points_data || null,
+                                    plugins_points_data: is_feature_enabled(FeatureFlagKey.POINTS) ? (data.plugins_points_data || null) : null,
                                     // [MUYING-二开] realstore 数据增加 feature flag 门控
                                     plugins_realstore_data: is_feature_enabled(FeatureFlagKey.REALSTORE) ? (data.plugins_realstore_data || null) : null,
                                     plugins_intellectstools_data: data.plugins_intellectstools_data || null,
-                                    plugins_coin_data: plugins_coin_data,
-                                    plugins_coin_is_valid:  plugins_coin_data != null && (plugins_coin_data.accounts_list || null) != null &&  plugins_coin_data.accounts_list.length > 0,
+                                    // [MUYING-二开] 虚拟币数据增加 feature flag 门控
+                                    plugins_coin_data: is_feature_enabled(FeatureFlagKey.COIN) ? (data.plugins_coin_data || null) : null,
+                                    plugins_coin_is_valid: is_feature_enabled(FeatureFlagKey.COIN) && plugins_coin_data != null && (plugins_coin_data.accounts_list || null) != null && plugins_coin_data.accounts_list.length > 0,
                                 });
 
                                 // 非门店模式则赋值指定的类型模式
@@ -755,13 +756,19 @@
                 }
 
                 // 积分
-                data['is_points'] = this.plugins_points_status === true ? 1 : 0;
-                if (data['is_points'] == 1) {
-                    data['actual_use_integral'] = this.actual_use_integral;
+                if (is_feature_enabled(FeatureFlagKey.POINTS)) {
+                    data['is_points'] = this.plugins_points_status === true ? 1 : 0;
+                    if (data['is_points'] == 1) {
+                        data['actual_use_integral'] = this.actual_use_integral;
+                    }
+                } else {
+                    data['is_points'] = 0;
                 }
 
                 // 虚拟币
-                data['plugins_coin_payment_id'] = this.plugins_coin_payment_id;
+                if (is_feature_enabled(FeatureFlagKey.COIN)) {
+                    data['plugins_coin_payment_id'] = this.plugins_coin_payment_id;
+                }
 
                 return data;
             },
