@@ -330,6 +330,13 @@ class Common extends BaseController
         if (isset(self::$CONTROLLER_FEATURE_MAP[$ctrl])) {
             $this->CheckFeatureEnabled(self::$CONTROLLER_FEATURE_MAP[$ctrl]);
         }
+
+        // [MUYING-二开] 集中式 action-level 支付门控
+        $act = strtolower($this->action_name);
+        $payment_check = MuyingComplianceService::AssertPaymentEnabledForAction($ctrl, $act);
+        if ($payment_check !== true) {
+            exit(json_encode($payment_check));
+        }
 	}
 
 	/**

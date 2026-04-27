@@ -244,6 +244,21 @@ compliance-scope.js
 14. docs/sql/yunxi-init-feedback-demo.sql      # 反馈演示数据
 ```
 
+### 动态页面收敛（二次加固）
+
+| 页面 | 处理策略 | 说明 |
+|------|----------|------|
+| form-input | 保留 pages.json 注册（组件依赖），从白名单移除，加 onLoad guard | buy.vue/goods-detail.vue 引用 form-input-base 组件 |
+| form-preview | 从 pages.json 移除 | 无导航入口，死页面 |
+| diy | 保留 pages.json 注册（组件依赖），从白名单移除，加 onLoad guard | 首页 index.vue 使用 component-diy 组件渲染 |
+| design | 保留 pages.json 注册（组件依赖），从白名单移除，加 onLoad guard | component-layout 组件依赖 |
+| customview | 从 pages.json 移除 | 无组件依赖，仅后台装修预览 |
+| cashier | 保留 pages.json 注册，加 onLoad guard | 受 feature_payment_enabled 门控 |
+| paytips | 保留 pages.json 注册，加 onLoad guard | 受 feature_payment_enabled 门控 |
+
+新增 feature flag：`feature_dynamic_page_enabled`（默认 0 = 关闭），控制 diy/design/form-input 页面直达。
+首页 DIY 组件渲染不受此开关影响（组件级引用，非页面直达）。
+
 ### 关键数据表
 
 | 表名 | 用途 |

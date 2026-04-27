@@ -597,6 +597,30 @@ class MuyingComplianceService
         return true;
     }
 
+    private static $PAYMENT_REQUIRED_ACTIONS = [
+        'order'     => ['pay', 'paycheck'],
+        'cashier'   => ['paydata'],
+        'paylog'    => ['index', 'detail'],
+    ];
+
+    public static function IsActionPaymentRequired($controller, $action)
+    {
+        $ctrl = strtolower($controller);
+        $act = strtolower($action);
+        if (isset(self::$PAYMENT_REQUIRED_ACTIONS[$ctrl])) {
+            return in_array($act, self::$PAYMENT_REQUIRED_ACTIONS[$ctrl]);
+        }
+        return false;
+    }
+
+    public static function AssertPaymentEnabledForAction($controller, $action)
+    {
+        if (self::IsActionPaymentRequired($controller, $action)) {
+            return self::CheckPaymentEnabled(true);
+        }
+        return true;
+    }
+
     public static function GetDashboardSummary()
     {
         $qualifications = self::GetQualificationDetailList();

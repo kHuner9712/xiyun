@@ -301,6 +301,12 @@ class Order extends Common
      */
     public function PayCheck()
     {
+        // [MUYING-二开] 支付门禁
+        $check = MuyingComplianceService::CheckPaymentEnabled();
+        if ($check !== true) {
+            return ApiService::ApiDataReturn($check);
+        }
+
         $params = $this->data_request;
         $params['user'] = $this->user;
         return ApiService::ApiDataReturn(OrderService::OrderPayCheck($params));
