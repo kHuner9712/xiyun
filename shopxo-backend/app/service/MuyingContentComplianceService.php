@@ -16,10 +16,20 @@ class MuyingContentComplianceService
     const ACTION_BLOCKED = 'blocked';
     const ACTION_CONFIRMED = 'confirmed';
 
+    private static $BLOCKED_CATEGORIES = [
+        ['value' => 'medical_diagnosis', 'name' => '医疗诊断', 'desc' => '一期禁止，涉及医疗诊断类内容'],
+        ['value' => 'medicine_usage', 'name' => '药品用药', 'desc' => '一期禁止，涉及药品/用药类内容'],
+        ['value' => 'consultation', 'name' => '问诊服务', 'desc' => '一期禁止，涉及在线问诊类内容'],
+        ['value' => 'medical_device', 'name' => '医疗器械', 'desc' => '一期禁止，涉及医疗器械类内容'],
+    ];
+
     private static $DEFAULT_HIGH_RISK_WORDS = [
         '治疗', '诊断', '治愈', '疗效', '处方',
         '药到病除', '根治', '医生推荐', '医院专用',
         '孕检报告解读', '在线问诊', '医疗级',
+        '用药建议', '诊疗建议', '医生问诊',
+        '互联网医院', '线上问诊', '远程诊疗',
+        '开具处方', '处方药', '医疗器械购买',
     ];
 
     private static $DEFAULT_LOW_RISK_WORDS = [
@@ -338,5 +348,43 @@ class MuyingContentComplianceService
             $where[] = ['risk', '=', trim($params['risk'])];
         }
         return (int) Db::name('MuyingContentSensitiveWord')->where($where)->count();
+    }
+
+    public static function GetBlockedCategories()
+    {
+        return self::$BLOCKED_CATEGORIES;
+    }
+
+    public static function IsCategoryBlocked($category_value)
+    {
+        if (empty($category_value)) {
+            return false;
+        }
+        foreach (self::$BLOCKED_CATEGORIES as $cat) {
+            if ($cat['value'] === $category_value) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static function ValidateCategory($category_value)
+    {
+        if (self::IsCategoryBlocked($category_value)) {
+            $cat_name = $category_value;
+            foreach (self::$BLOCKED_CATEGORIES as $cat) {
+                if ($cat['value'] === $category_value) {
+                    $cat_name = $cat['name'];
+                    break;
+                }
+            }
+            return DataReturn("内容分类【{$cat_name}】一期暂不支持，请选择其他分类", -1);
+        }
+        return DataReturn('校验通过', 0);
+    }
+
+    public static function GetDisclaimerText()
+    {
+        return '平台内容仅用于一般孕育知识科普和活动信息参考，不构成医疗诊断、治疗或用药建议。如有身体不适或医疗问题，请及时咨询正规医疗机构专业医生。';
     }
 }

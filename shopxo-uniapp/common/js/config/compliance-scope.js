@@ -185,6 +185,9 @@ function get_block_reason(plugin_name) {
     if (PERMANENTLY_BLOCKED_PLUGINS.indexOf(name) !== -1) {
         return '该功能暂未开放';
     }
+    if (name === 'hospital') {
+        return '医疗问诊功能暂未开放';
+    }
     if (PHASE_ONE_BLOCKED_PLUGINS.indexOf(name) !== -1) {
         if (!is_feature_enabled_for_plugin(name)) {
             return '该功能暂未开放';

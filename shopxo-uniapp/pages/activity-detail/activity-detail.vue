@@ -36,7 +36,7 @@
                         <text class="fw-b text-size-lg cr-base flex-1">{{ activity.title }}</text>
                     </view>
 
-                    <view class="tag-row flex-row align-c margin-top-xs" style="gap: 12rpx; flex-wrap: wrap;">
+                    <view class="tag-row flex-row align-c margin-top-xs" style="gap: 12rpx; flex-wrap: wrap">
                         <text :class="'muying-stage-tag ' + activity.stage_class">{{ activity.stage_name }}</text>
                         <text class="muying-category-tag">{{ activity.category_text }}</text>
                         <text class="muying-type-tag">{{ activity.activity_type_text }}</text>
@@ -53,18 +53,14 @@
                         </view>
                         <view class="info-item flex-row align-c margin-top-sm">
                             <iconfont name="icon-member" size="28rpx" color="#F5A0B1"></iconfont>
-                            <text class="cr-grey text-size-sm margin-left-sm">
-                                已报名 {{ activity.signup_count }}{{ activity.max_count > 0 ? '/' + activity.max_count : '' }}人
-                            </text>
+                            <text class="cr-grey text-size-sm margin-left-sm"> 已报名 {{ activity.signup_count }}{{ activity.max_count > 0 ? '/' + activity.max_count : '' }}人 </text>
                             <text v-if="activity.remain_count > 0" class="cr-main text-size-xs margin-left-sm">剩余{{ activity.remain_count }}个名额</text>
                             <text v-else-if="activity.max_count > 0 && activity.remain_count === 0" class="cr-grey-9 text-size-xs margin-left-sm">名额已满</text>
                         </view>
                         <view v-if="activity.allow_waitlist && activity.waitlist_count > 0" class="info-item flex-row align-c margin-top-sm">
                             <iconfont name="icon-member" size="28rpx" color="#e8a050"></iconfont>
-                            <text class="cr-grey text-size-sm margin-left-sm">
-                                候补 {{ activity.waitlist_signup_count }}/{{ activity.waitlist_count }}人
-                            </text>
-                            <text v-if="activity.waitlist_remain > 0" class="text-size-xs margin-left-sm" style="color: #e8a050;">还可候补{{ activity.waitlist_remain }}人</text>
+                            <text class="cr-grey text-size-sm margin-left-sm"> 候补 {{ activity.waitlist_signup_count }}/{{ activity.waitlist_count }}人 </text>
+                            <text v-if="activity.waitlist_remain > 0" class="text-size-xs margin-left-sm" style="color: #e8a050">还可候补{{ activity.waitlist_remain }}人</text>
                         </view>
                         <view class="info-item flex-row align-c margin-top-sm">
                             <iconfont name="icon-time" size="28rpx" color="#999"></iconfont>
@@ -113,6 +109,13 @@
                 </view>
             </view>
 
+            <!-- 免责声明 -->
+            <view class="disclaimer-container padding-horizontal-main margin-top-main margin-bottom-xxxl">
+                <view class="border-radius-main bg-grey-f5 padding-main">
+                    <text class="cr-grey-9 text-size-xs" style="line-height: 1.6">{{ disclaimer_text }}</text>
+                </view>
+            </view>
+
             <!-- 签到码展示（已报名且活动启用签到码） -->
             <view v-if="is_signed_up && my_signup && my_signup.signup_code && activity.signup_code_enabled" class="checkin-container padding-horizontal-main margin-top-main">
                 <view class="checkin-card muying-card padding-main tc">
@@ -121,7 +124,7 @@
                         <text class="fw-b text-size cr-base margin-left-xs">签到码</text>
                     </view>
                     <view class="checkin-code">
-                        <text class="fw-b text-size-xxxl cr-base" style="letter-spacing: 8rpx;">{{ my_signup.signup_code }}</text>
+                        <text class="fw-b text-size-xxxl cr-base" style="letter-spacing: 8rpx">{{ my_signup.signup_code }}</text>
                     </view>
                     <view class="cr-grey-9 text-size-xs margin-top-sm">现场出示此码完成签到</view>
                     <view v-if="my_signup.is_waitlist" class="waitlist-hint margin-top-sm">
@@ -173,6 +176,7 @@
                 my_signup: null,
                 activity: {},
                 data_loaded: false,
+                disclaimer_text: '',
             };
         },
 
@@ -209,6 +213,9 @@
 
         onLoad(params) {
             app.globalData.page_event_onload_handle(params);
+            this.setData({
+                disclaimer_text: app.globalData.get_config('muying_disclaimer', '平台内容仅用于一般孕育知识科普和活动信息参考，不构成医疗诊断、治疗或用药建议。如有身体不适或医疗问题，请及时咨询正规医疗机构专业医生。'),
+            });
             if (params && params.id) {
                 this.setData({ activity_id: params.id });
             }

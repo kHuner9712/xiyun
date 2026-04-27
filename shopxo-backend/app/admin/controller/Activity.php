@@ -5,6 +5,7 @@ use app\admin\controller\Base;
 use app\service\ApiService;
 use app\service\ActivityService;
 use app\service\MuyingPrivacyService;
+use app\service\MuyingContentComplianceService;
 use app\service\ResourcesService;
 use think\facade\Db;
 
@@ -87,6 +88,25 @@ class Activity extends Base
     {
         $params = $this->data_request;
         $params['admin'] = $this->admin;
+
+        // [MUYING-二开] 内容分类校验
+        if (!empty($params['category'])) {
+            $cat_check = MuyingContentComplianceService::ValidateCategory($params['category']);
+            if (isset($cat_check['code']) && $cat_check['code'] != 0) {
+                return ApiService::ApiDataReturn($cat_check);
+            }
+        }
+
+        // [MUYING-二开] 内容合规扫描
+        $content_check = MuyingContentComplianceService::ValidateBeforeSave(
+            MuyingContentComplianceService::CONTENT_TYPE_ACTIVITY,
+            $params,
+            $this->admin
+        );
+        if (isset($content_check['code']) && $content_check['code'] != 0 && $content_check['code'] != -2) {
+            return ApiService::ApiDataReturn($content_check);
+        }
+
         return ApiService::ApiDataReturn(ActivityService::ActivitySave($params));
     }
 

@@ -266,6 +266,10 @@ class SystemBaseService
         ];
         $config = array_merge($config, $qualifications);
 
+        // [MUYING-二开] 输出免责声明和禁止分类
+        $config['muying_disclaimer'] = MuyingContentComplianceService::GetDisclaimerText();
+        $config['muying_blocked_categories'] = MuyingContentComplianceService::GetBlockedCategories();
+
         // 首页数据模式、存在diy则等于3
         $diy_id = DiyService::AppClientHomeDiyId();
         if(!empty($diy_id))
