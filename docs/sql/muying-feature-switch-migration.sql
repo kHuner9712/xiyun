@@ -56,7 +56,9 @@ INSERT INTO `sxo_config` (`value`, `name`, `describe`, `error_tips`, `type`, `on
 ('0', '优惠券二期开关', '控制优惠券高级功能是否开放（二期扩展）', '请选择是否开启', 'admin', 'feature_coupon_v2_enabled', UNIX_TIMESTAMP()),
 ('0', '积分体系二期开关', '控制积分兑换/积分商城功能是否开放（二期扩展）', '请选择是否开启', 'admin', 'feature_points_v2_enabled', UNIX_TIMESTAMP()),
 ('0', '会员等级二期开关', '控制会员等级/付费VIP功能是否开放（二期扩展）', '请选择是否开启', 'admin', 'feature_membership_v2_enabled', UNIX_TIMESTAMP()),
-('0', '钱包余额二期开关', '控制钱包/余额/充值/提现功能是否开放（二期扩展）', '请选择是否开启', 'admin', 'feature_wallet_v2_enabled', UNIX_TIMESTAMP())
+('0', '钱包余额二期开关', '控制钱包/余额/充值/提现功能是否开放（二期扩展）', '请选择是否开启', 'admin', 'feature_wallet_v2_enabled', UNIX_TIMESTAMP()),
+('0', '支付功能开关', '控制在线支付/收银台功能是否开放（需支付牌照或微信支付商户号）', '请选择是否开启', 'admin', 'feature_payment_enabled', UNIX_TIMESTAMP()),
+('0', '动态页面开关', '控制DIY装修/设计/表单输入页面直达功能是否开放（一期默认关闭，首页DIY组件不受影响）', '请选择是否开启', 'admin', 'feature_dynamic_page_enabled', UNIX_TIMESTAMP())
 ON DUPLICATE KEY UPDATE `name`=VALUES(`name`), `describe`=VALUES(`describe`), `upd_time`=UNIX_TIMESTAMP();
 
 -- ============================================================

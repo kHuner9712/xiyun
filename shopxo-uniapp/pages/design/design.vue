@@ -28,6 +28,7 @@
 </template>
 <script>
     const app = getApp();
+    import { is_feature_enabled, FeatureFlagKey } from '@/common/js/config/compliance-scope.js';
     import componentCommon from '@/components/common/common';
     import componentLayout from "@/pages/design/components/layout/layout";
     import componentSearch from "@/components/search/search";
@@ -58,6 +59,12 @@
         },
 
         onLoad(params) {
+            // [MUYING-二开] 一期提审：设计页面不可直达，重定向到错误页
+            if (!is_feature_enabled(FeatureFlagKey.DYNAMIC_PAGE)) {
+                uni.redirectTo({ url: '/pages/error/error?msg=该页面暂未开放' });
+                return;
+            }
+
             // 调用公共事件方法
             app.globalData.page_event_onload_handle(params);
 

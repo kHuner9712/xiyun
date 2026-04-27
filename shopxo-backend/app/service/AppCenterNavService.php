@@ -257,6 +257,9 @@ class AppCenterNavService
             'data'          => &$data,
         ]);
 
+        // [MUYING-二开] 应用合规过滤
+        $data = MuyingComplianceService::FilterNavigationItems($data);
+
         return $data;
     }
 }

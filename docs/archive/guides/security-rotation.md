@@ -7,17 +7,17 @@
 | 配置项 | 原值 | 风险等级 |
 |--------|------|----------|
 | 微信OAuth appsecret | 已从代码和git历史中清除 | P0-必须轮换 |
-| 微信 appid (App支付/分享/OAuth) | `wx3bac19ff90c0a976` | P1-建议轮换 |
-| QQ appid | `102076195` | P1-建议轮换 |
-| Google OAuth clientid | `510187709509-fq3t5grcfh81t4ub491tiadrtfjbaes1...` | P2-低风险 |
-| 高德地图 appkey_ios | `f55e9099897821681f5c74051e4527bd` | P1-建议轮换 |
-| 高德地图 appkey_android | `ebe9f1d84f8ceb8b3c4ba6ead2bfa78b` | P1-建议轮换 |
-| 腾讯地图 key | `56SBZ-PCC3G-US2QM-IXYFE-4DE5H-GRBDK` | P1-建议轮换 |
-| 微信小程序 appid | `wxda7779770f53e901` | P1-建议轮换 |
-| 支付宝 appid | `2021001173639600` | P2-低风险 |
-| 头条 appid | `ttfb628ddf6458b04f` | P2-低风险 |
-| QQ小程序 appid | `1110736292` | P2-低风险 |
-| 快手 appid | `ks669910446353970565` | P2-低风险 |
+| 微信 appid (App支付/分享/OAuth) | `REDACTED_WX_APPID` | P1-建议轮换 |
+| QQ appid | `REDACTED_QQ_APPID` | P1-建议轮换 |
+| Google OAuth clientid | `REDACTED_GOOGLE_CLIENTID` | P2-低风险 |
+| 高德地图 appkey_ios | `REDACTED_AMAP_IOS_KEY` | P1-建议轮换 |
+| 高德地图 appkey_android | `REDACTED_AMAP_ANDROID_KEY` | P1-建议轮换 |
+| 腾讯地图 key | `REDACTED_QQMAP_KEY` | P1-建议轮换 |
+| 微信小程序 appid | `REDACTED_WX_MINI_APPID` | P1-建议轮换 |
+| 支付宝 appid | `REDACTED_ALIPAY_APPID` | P2-低风险 |
+| 头条 appid | `REDACTED_TOUTIAO_APPID` | P2-低风险 |
+| QQ小程序 appid | `REDACTED_QQ_MINI_APPID` | P2-低风险 |
+| 快手 appid | `REDACTED_KUAISHOU_APPID` | P2-低风险 |
 
 ## 必须立即轮换的密钥
 

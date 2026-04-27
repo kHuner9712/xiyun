@@ -252,6 +252,9 @@ class QuickNavService
                 'data'          => &$data,
             ]);
 
+            // [MUYING-二开] 应用合规过滤
+            $data = MuyingComplianceService::FilterNavigationItems($data);
+
             // 没数据则赋空数组值
             if(empty($data))
             {

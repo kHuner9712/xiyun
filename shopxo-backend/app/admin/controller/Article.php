@@ -13,6 +13,7 @@ namespace app\admin\controller;
 use app\admin\controller\Base;
 use app\service\ApiService;
 use app\service\ArticleService;
+use app\service\MuyingContentComplianceService;
 use app\service\ArticleCategoryService;
 use app\service\ResourcesService;
 
@@ -106,6 +107,25 @@ class Article extends Base
 	{
         $params = $this->data_request;
         $params['admin'] = $this->admin;
+
+        // [MUYING-二开] 内容分类校验
+        if (!empty($params['article_category_id'])) {
+            $cat_check = MuyingContentComplianceService::ValidateCategory($params['article_category_id']);
+            if (isset($cat_check['code']) && $cat_check['code'] != 0) {
+                return ApiService::ApiDataReturn($cat_check);
+            }
+        }
+
+        // [MUYING-二开] 内容合规扫描
+        $content_check = MuyingContentComplianceService::ValidateBeforeSave(
+            MuyingContentComplianceService::CONTENT_TYPE_ARTICLE,
+            $params,
+            $this->admin
+        );
+        if (isset($content_check['code']) && $content_check['code'] != 0 && $content_check['code'] != -2) {
+            return ApiService::ApiDataReturn($content_check);
+        }
+
         return ApiService::ApiDataReturn(ArticleService::ArticleSave($params));
 	}
 

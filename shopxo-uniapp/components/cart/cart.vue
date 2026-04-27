@@ -313,7 +313,8 @@
         </component-popup>
 
         <!-- 互联网医院问诊下单弹窗 -->
-        <component-popup :propShow="plugins_hospital_prescription_status" propPosition="bottom" @onclose="hospital_prescription_close_event">
+        <!-- [MUYING-二开] 增加 HOSPITAL feature flag 门控 -->
+        <component-popup v-if="is_feature_enabled(FeatureFlagKey.HOSPITAL)" :propShow="plugins_hospital_prescription_status" propPosition="bottom" @onclose="hospital_prescription_close_event">
             <view class="padding-horizontal-main padding-top-main bg-white">
                 <view class="oh tc">
                     <text class="text-size">{{ (plugins_hospital_prescription_data || null) != null ? (plugins_hospital_prescription_data.title || '') : '' }}</text>
@@ -612,13 +613,16 @@
                                 plugins_intellectstools_data: data.plugins_intellectstools_data || null,
                             });
 
-                            // 门店数据初始化
-                            var realstore = data.plugins_realstore_data || null;
+                            // [MUYING-二开] 门店数据初始化增加 feature flag 门控
+                            var realstore = null;
+                            if(is_feature_enabled(FeatureFlagKey.REALSTORE)) {
+                                realstore = data.plugins_realstore_data || null;
+                            }
                             this.setData({
                                 plugins_realstore_data: realstore,
                             });
                             // 门店为空、还没有初始门店信息，初始门店信息不在当前列表中则 赋值门店初始信息和门店购物车初始化
-                            if(app.globalData.data.is_cart_header_close_realstore != 1) {
+                            if(is_feature_enabled(FeatureFlagKey.REALSTORE) && app.globalData.data.is_cart_header_close_realstore != 1) {
                                 if(
                                     realstore == null ||
                                     this.plugins_realstore_info == null ||
@@ -1101,9 +1105,10 @@
                     return false;
                 }
 
+                // [MUYING-二开] 增加 HOSPITAL feature flag 门控
                 // 是否开启了互联网医院处方问诊
                 var is_goods_is_prescription = parseInt(app.globalData.get_config('plugins_base.hospital.data.is_goods_is_prescription', 0));
-                if(is_goods_is_prescription == 1) {
+                if(is_goods_is_prescription == 1 && is_feature_enabled(FeatureFlagKey.HOSPITAL)) {
                     this.plugins_hospital_prescription_handle(buy_data);
                     return false;
                 }

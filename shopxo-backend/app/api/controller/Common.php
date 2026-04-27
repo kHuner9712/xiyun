@@ -30,12 +30,39 @@ class Common extends BaseController
     // [MUYING-二开] 集中式控制器→功能开关映射安全网
     // 任何新增的受控控制器必须在此注册，确保即使子类忘记调用 CheckFeatureEnabled 也不会绕过合规
     private static $CONTROLLER_FEATURE_MAP = [
-        'activity'     => 'feature_activity_enabled',
-        'article'      => 'feature_content_enabled',
-        'feedback'     => 'feature_feedback_enabled',
-        'invite'       => 'feature_invite_enabled',
-        'muyinguser'   => 'feature_membership_enabled',
-        'userintegral' => 'feature_points_enabled',
+        'activity'          => 'feature_activity_enabled',
+        'article'           => 'feature_content_enabled',
+        'feedback'          => 'feature_feedback_enabled',
+        'invite'            => 'feature_invite_enabled',
+        'muyinguser'        => 'feature_membership_enabled',
+        'userintegral'      => 'feature_points_enabled',
+        'coupon'            => 'feature_coupon_enabled',
+        'signin'            => 'feature_signin_enabled',
+        'points'            => 'feature_points_enabled',
+        'seckill'           => 'feature_seckill_enabled',
+        'shop'              => 'feature_shop_enabled',
+        'realstore'         => 'feature_realstore_enabled',
+        'distribution'      => 'feature_distribution_enabled',
+        'wallet'            => 'feature_wallet_enabled',
+        'coin'              => 'feature_coin_enabled',
+        'video'             => 'feature_video_enabled',
+        'hospital'          => 'feature_hospital_enabled',
+        'membershiplevelvip'=> 'feature_membership_enabled',
+        'giftcard'          => 'feature_giftcard_enabled',
+        'givegift'          => 'feature_givegift_enabled',
+        'certificate'       => 'feature_certificate_enabled',
+        'scanpay'           => 'feature_scanpay_enabled',
+        'weixinliveplayer'  => 'feature_live_enabled',
+        'intellectstools'   => 'feature_intellectstools_enabled',
+        'complaint'         => 'feature_complaint_enabled',
+        'invoice'           => 'feature_invoice_enabled',
+        'ask'               => 'feature_ugc_enabled',
+        'blog'              => 'feature_ugc_enabled',
+        'cashier'           => 'feature_payment_enabled',
+        'paylog'            => 'feature_payment_enabled',
+        'forminput'         => 'feature_dynamic_page_enabled',
+        'diy'               => 'feature_dynamic_page_enabled',
+        'design'            => 'feature_dynamic_page_enabled',
     ];
 
 	// 用户信息
@@ -302,6 +329,13 @@ class Common extends BaseController
         $ctrl = strtolower($this->controller_name);
         if (isset(self::$CONTROLLER_FEATURE_MAP[$ctrl])) {
             $this->CheckFeatureEnabled(self::$CONTROLLER_FEATURE_MAP[$ctrl]);
+        }
+
+        // [MUYING-二开] 集中式 action-level 支付门控
+        $act = strtolower($this->action_name);
+        $payment_check = MuyingComplianceService::AssertPaymentEnabledForAction($ctrl, $act);
+        if ($payment_check !== true) {
+            exit(json_encode($payment_check));
         }
 	}
 

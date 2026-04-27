@@ -152,7 +152,7 @@
                     </view>
 
                     <!-- 积分 -->
-                    <view v-if="(plugins_points_data || null) != null && ((plugins_points_data.discount_price || 0) > 0 || (plugins_points_data.is_support_goods_exchange || 0) == 1)" class="plugins-points-buy-container padding-main border-radius-main bg-white spacing-mb">
+                    <view v-if="is_feature_enabled(FeatureFlagKey.POINTS) && (plugins_points_data || null) != null && ((plugins_points_data.discount_price || 0) > 0 || (plugins_points_data.is_support_goods_exchange || 0) == 1)" class="plugins-points-buy-container padding-main border-radius-main bg-white spacing-mb">
                         <block v-if="(plugins_points_data.discount_price || 0) > 0">
                             <view class="select oh">
                                 <block v-if="plugins_points_data.discount_type == 1">
@@ -214,7 +214,8 @@
                     </view>
                     <!-- 支付未配置提示 -->
                     <view v-if="total_price > 0 && common_order_is_booking != 1 && payment_list.length == 0" class="border-radius-main bg-white oh padding-main spacing-mb tc">
-                        <view class="cr-grey text-size-sm padding-vertical-main">当前为体验版，支付功能暂未开通。可生成待支付订单，待支付开通后完成支付。</view>
+                        <view v-if="!is_feature_enabled(FeatureFlagKey.PAYMENT)" class="cr-grey text-size-sm padding-vertical-main">线上支付暂未开放，请联系客服购买。可生成待支付订单，待支付开通后完成支付。</view>
+                        <view v-else class="cr-grey text-size-sm padding-vertical-main">当前为体验版，支付功能暂未开通。可生成待支付订单，待支付开通后完成支付。</view>
                     </view>
 
                     <!-- 底部说明 - 智能工具箱插件 -->
@@ -290,6 +291,8 @@
 <script>
     const app = getApp();
     import base64 from '@/common/js/lib/base64.js';
+    import { is_feature_enabled } from '@/common/js/config/phase-one-scope.js';
+    import { FeatureFlagKey } from '@/common/js/config/muying-constants.js';
     import componentCommon from '@/components/common/common';
     import componentPopup from '@/components/popup/popup';
     import componentNoData from '@/components/no-data/no-data';
@@ -636,11 +639,13 @@
                                     buy_datetime_info: datetime,
                                     buy_extraction_contact_info: extraction_contact,
                                     plugins_coupon_data: data.plugins_coupon_data || null,
-                                    plugins_points_data: data.plugins_points_data || null,
-                                    plugins_realstore_data: data.plugins_realstore_data || null,
+                                    plugins_points_data: is_feature_enabled(FeatureFlagKey.POINTS) ? (data.plugins_points_data || null) : null,
+                                    // [MUYING-二开] realstore 数据增加 feature flag 门控
+                                    plugins_realstore_data: is_feature_enabled(FeatureFlagKey.REALSTORE) ? (data.plugins_realstore_data || null) : null,
                                     plugins_intellectstools_data: data.plugins_intellectstools_data || null,
-                                    plugins_coin_data: plugins_coin_data,
-                                    plugins_coin_is_valid:  plugins_coin_data != null && (plugins_coin_data.accounts_list || null) != null &&  plugins_coin_data.accounts_list.length > 0,
+                                    // [MUYING-二开] 虚拟币数据增加 feature flag 门控
+                                    plugins_coin_data: is_feature_enabled(FeatureFlagKey.COIN) ? (data.plugins_coin_data || null) : null,
+                                    plugins_coin_is_valid: is_feature_enabled(FeatureFlagKey.COIN) && plugins_coin_data != null && (plugins_coin_data.accounts_list || null) != null && plugins_coin_data.accounts_list.length > 0,
                                 });
 
                                 // 非门店模式则赋值指定的类型模式
@@ -751,13 +756,19 @@
                 }
 
                 // 积分
-                data['is_points'] = this.plugins_points_status === true ? 1 : 0;
-                if (data['is_points'] == 1) {
-                    data['actual_use_integral'] = this.actual_use_integral;
+                if (is_feature_enabled(FeatureFlagKey.POINTS)) {
+                    data['is_points'] = this.plugins_points_status === true ? 1 : 0;
+                    if (data['is_points'] == 1) {
+                        data['actual_use_integral'] = this.actual_use_integral;
+                    }
+                } else {
+                    data['is_points'] = 0;
                 }
 
                 // 虚拟币
-                data['plugins_coin_payment_id'] = this.plugins_coin_payment_id;
+                if (is_feature_enabled(FeatureFlagKey.COIN)) {
+                    data['plugins_coin_payment_id'] = this.plugins_coin_payment_id;
+                }
 
                 return data;
             },
@@ -821,6 +832,12 @@
 
             // 提交订单
             buy_submit_event(e) {
+                // [MUYING-二开] 支付门禁：金额>0且支付未启用时，提示并阻止提交
+                if (this.total_price > 0 && !is_feature_enabled(FeatureFlagKey.PAYMENT)) {
+                    app.globalData.showToast('线上支付暂未开放，请联系客服购买');
+                    return;
+                }
+
                 // 表单数据
                 var data = this.params;
                 data['address_id'] = this.address_id;

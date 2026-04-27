@@ -28,6 +28,8 @@ export var FeatureFlagKey = {
     POINTS_V2: 'feature_points_v2_enabled',
     MEMBERSHIP_V2: 'feature_membership_v2_enabled',
     WALLET_V2: 'feature_wallet_v2_enabled',
+    PAYMENT: 'feature_payment_enabled',
+    DYNAMIC_PAGE: 'feature_dynamic_page_enabled',
 };
 
 export var QualificationKey = {
@@ -87,6 +89,9 @@ export var TipMessage = {
     SIGNUP_FAIL: '报名失败，请重试',
     FEATURE_DISABLED: '该功能暂未开放',
     QUALIFICATION_BLOCKED: '当前资质暂不支持该功能',
+    MEDICAL_BLOCKED: '医疗问诊功能暂未开放',
+    PAYMENT_DISABLED: '线上支付暂未开放',
+    DISCLAIMER_DEFAULT: '平台内容仅用于一般孕育知识科普和活动信息参考，不构成医疗诊断、治疗或用药建议。如有身体不适或医疗问题，请及时咨询正规医疗机构专业医生。',
     FORM_NICKNAME_REQUIRED: '请输入昵称',
     FORM_DUE_DATE_REQUIRED: '孕期请选择预产期',
     FORM_BABY_BIRTHDAY_REQUIRED: '产后请选择宝宝生日',

@@ -275,7 +275,6 @@ class DiyApiService
                             ['name'=>'商品收藏', 'page'=>'/pages/user-favor/user-favor'],
                             ['name'=>'商品评论', 'page'=>'/pages/user-goods-comments/user-goods-comments'],
                             ['name'=>'我的地址', 'page'=>'/pages/user-address/user-address'],
-                            ['name'=>'我的积分', 'page'=>'/pages/user-integral/user-integral'],
                             ['name'=>'我的消息', 'page'=>'/pages/message/message'],
                             ['name'=>'我的足迹', 'page'=>'/pages/user-goods-browse/user-goods-browse'],
                             ['name'=>'设置中心', 'page'=>'/pages/setup/setup'],
@@ -626,7 +625,6 @@ class DiyApiService
                         ['name'=>'商品收藏', 'field'=>'goods_favor_count', 'type'=>'text'],
                         ['name'=>'我的足迹', 'field'=>'goods_browse_count', 'type'=>'text'],
                         ['name'=>'未读消息', 'field'=>'message_unread_count', 'type'=>'text'],
-                        ['name'=>'我的积分', 'field'=>'integral_number', 'type'=>'text'],
                     ],
                 ],
                 [

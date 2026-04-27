@@ -29,8 +29,6 @@ var PHASE_ONE_ALLOWED_ROUTES = [
     '/pages/goods-search-start/goods-search-start',
     '/pages/goods-comment/goods-comment',
     '/pages/buy/buy',
-    '/pages/cashier/cashier',
-    '/pages/paytips/paytips',
     '/pages/cart-page/cart-page',
     '/pages/user-order/user-order',
     '/pages/user-order-detail/user-order-detail',
@@ -54,9 +52,6 @@ var PHASE_ONE_ALLOWED_ROUTES = [
     '/pages/error/error',
     '/pages/article-category/article-category',
     '/pages/article-detail/article-detail',
-    '/pages/customview/customview',
-    '/pages/design/design',
-    '/pages/diy/diy',
     '/pages/activity-detail/activity-detail',
     '/pages/activity-signup/activity-signup',
     '/pages/my-activity/my-activity',
@@ -187,6 +182,9 @@ function get_block_reason(plugin_name) {
     if (PERMANENTLY_BLOCKED_PLUGINS.indexOf(name) !== -1) {
         return '该功能暂未开放';
     }
+    if (name === 'hospital') {
+        return '医疗问诊功能暂未开放';
+    }
     if (PHASE_ONE_BLOCKED_PLUGINS.indexOf(name) !== -1) {
         if (!is_feature_enabled_for_plugin(name)) {
             return '该功能暂未开放';
@@ -210,9 +208,32 @@ function normalize_page_path(url) {
     return value;
 }
 
+var _PAYMENT_ROUTES = [
+    '/pages/cashier/cashier',
+    '/pages/paytips/paytips',
+    '/pages/paylog-list/paylog-list',
+    '/pages/paylog-detail/paylog-detail',
+];
+
+var _DYNAMIC_PAGE_ROUTES = [
+    '/pages/form-input/form-input',
+    '/pages/diy/diy',
+    '/pages/design/design',
+];
+
 function is_route_allowed(url) {
     var path = normalize_page_path(url);
     if (path === '') return false;
+    for (var i = 0; i < _PAYMENT_ROUTES.length; i++) {
+        if (path === _PAYMENT_ROUTES[i]) {
+            return is_feature_enabled('feature_payment_enabled');
+        }
+    }
+    for (var i = 0; i < _DYNAMIC_PAGE_ROUTES.length; i++) {
+        if (path === _DYNAMIC_PAGE_ROUTES[i]) {
+            return is_feature_enabled('feature_dynamic_page_enabled');
+        }
+    }
     for (var i = 0; i < PHASE_ONE_ALLOWED_ROUTES.length; i++) {
         var allowed = PHASE_ONE_ALLOWED_ROUTES[i];
         if (allowed.charAt(allowed.length - 1) === '/') {
@@ -238,6 +259,11 @@ function is_route_blocked(url) {
 function get_blocked_route_reason(url) {
     if (is_route_allowed(url)) return '';
     var path = normalize_page_path(url);
+    for (var i = 0; i < _PAYMENT_ROUTES.length; i++) {
+        if (path === _PAYMENT_ROUTES[i]) {
+            return '线上支付暂未开放';
+        }
+    }
     if (path.indexOf('/pages/plugins/') === 0) {
         var parts = path.split('/');
         if (parts.length >= 4) {

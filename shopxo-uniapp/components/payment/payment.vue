@@ -78,6 +78,8 @@
     const app = getApp();
     import base64 from '@/common/js/lib/base64.js';
     import componentPopup from '@/components/popup/popup';
+    import { is_feature_enabled } from '@/common/js/config/phase-one-scope.js';
+    import { FeatureFlagKey } from '@/common/js/config/muying-constants.js';
     export default {
         name: 'pay',
         data() {
@@ -261,7 +263,8 @@
         },
         computed: {
             payment_list_filtered() {
-                return (this.payment_list || []).filter(item => item.payment !== 'WalletPay');
+                var blocked = ['WalletPay', 'ChargePayment', 'CoinPay', 'UniPayment', 'GiftCardPay', 'ScanPay'];
+                return (this.payment_list || []).filter(item => blocked.indexOf(item.payment) === -1);
             }
         },
         methods: {
@@ -305,6 +308,12 @@
 
             // 支付方法
             pay_handle(order_id, payment_id = 0, payment_list = []) {
+                // [MUYING-二开] 支付门禁
+                if (!is_feature_enabled(FeatureFlagKey.PAYMENT)) {
+                    app.globalData.showToast('线上支付暂未开放');
+                    return;
+                }
+
                 // 没有指定支付方式则使用属性传过来的值
                 if((payment_list || null) != null && payment_list.length > 0) {
                     this.setData({
@@ -318,8 +327,9 @@
                     // 循环匹配支付方式
                     this.payment_list.forEach((item) => {
                         if (item.id == payment_id) {
-                            if (item.payment == 'WalletPay') {
-                                app.globalData.showToast('钱包支付暂未开放');
+                            var blocked_payments = ['WalletPay', 'ChargePayment', 'CoinPay', 'UniPayment', 'GiftCardPay', 'ScanPay'];
+                            if (blocked_payments.indexOf(item.payment) !== -1) {
+                                app.globalData.showToast('该支付方式暂未开放');
                                 return;
                             } else {
                                 this.pay_handle_event(order_id, payment_id);
@@ -443,9 +453,9 @@
                                                 },
                                             });
                                             break;
-                                        // 钱包支付
+                                        // [MUYING-二开] 钱包支付已屏蔽，case 2 增加拦截
                                         case 2:
-                                            this.order_item_pay_success_handle(data, order_id);
+                                            app.globalData.showToast('钱包支付暂未开放');
                                             break;
                                         // 默认
                                         default:

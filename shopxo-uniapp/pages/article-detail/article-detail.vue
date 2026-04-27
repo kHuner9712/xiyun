@@ -18,6 +18,13 @@
                 <mp-html :content="data.content" />
             </view>
 
+            <!-- 免责声明 -->
+            <view class="padding-horizontal-main spacing-mb">
+                <view class="border-radius-main bg-grey-f5 padding-main">
+                    <text class="cr-grey-9 text-size-xs" style="line-height: 1.6;">{{ disclaimer_text }}</text>
+                </view>
+            </view>
+
             <!-- 上一篇、下一篇 -->
             <view v-if="(last_next || null) != null" class="last-next-data spacing-mb">
                 <view v-if="(last_next.last || null) != null">
@@ -57,6 +64,7 @@
                 last_next: null,
                 // 自定义分享信息
                 share_info: {},
+                disclaimer_text: '',
             };
         },
 
@@ -73,6 +81,7 @@
             // 设置参数
             this.setData({
                 params: app.globalData.launch_params_handle(params),
+                disclaimer_text: app.globalData.get_config('muying_disclaimer', '平台内容仅用于一般孕育知识科普和活动信息参考，不构成医疗诊断、治疗或用药建议。如有身体不适或医疗问题，请及时咨询正规医疗机构专业医生。'),
             });
 
             // 数据加载

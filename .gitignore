@@ -59,6 +59,11 @@ shopxo-backend/config/domain.php
 shopxo-backend/config/*.local.php
 shopxo-backend/app/install/config/database.php
 
+# [MUYING-二开] 生产安全：install.php 和安装相关文件不得进入 Web root
+shopxo-backend/public/install.php
+shopxo-backend/public/static/install/
+install.lock
+
 # Docker local data
 mysql-data/
 redis-data/
@@ -74,3 +79,6 @@ docker-data/
 *.pem
 *.key
 *.cert
+*.crt
+*.p12
+*.jks

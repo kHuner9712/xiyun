@@ -65,10 +65,38 @@ var build_runtime_config = function(opts) {
         );
     }
 
-    if (env === ENV_PRODUCTION && !appid) {
-        console.warn(
-            '[CONFIG][PROD] UNI_APP_WX_APPID 未配置，正式发布前必须设置正式 AppID'
-        );
+    // [MUYING-二开] 生产环境强制门禁
+    var TEST_APPIDS = ['wxda7779770f53e901'];
+    var is_localhost_or_ip = function(url) {
+        if (!url) return false;
+        return /(?:localhost|127\.0\.0\.1|0\.0\.0\.0|10\.\d+\.\d+\.\d+|172\.(?:1[6-9]|2\d|3[01])\.\d+\.\d+|192\.168\.\d+\.\d+)/.test(url);
+    };
+
+    if (env === ENV_PRODUCTION) {
+        if (!request_url) {
+            throw new Error(
+                '[CONFIG][PROD] UNI_APP_REQUEST_URL 未配置，生产构建终止。\n' +
+                '配置方式：\n' +
+                '1) HBuilderX 发行对话框 → 环境变量：UNI_APP_REQUEST_URL=https://api.example.com/\n' +
+                '2) CLI 构建 → 设置 .env.production 或 export 环境变量\n' +
+                '3) 确保该域名已加入微信小程序 request 合法域名'
+            );
+        }
+        if (request_url.indexOf('https://') !== 0) {
+            throw new Error('[CONFIG][PROD] 生产环境 request_url 必须以 https:// 开头，当前值: ' + request_url);
+        }
+        if (is_localhost_or_ip(request_url)) {
+            throw new Error('[CONFIG][PROD] 生产环境 request_url 不能使用 localhost/127.0.0.1/内网IP，当前值: ' + request_url);
+        }
+        if (static_url && static_url.indexOf('https://') !== 0) {
+            throw new Error('[CONFIG][PROD] 生产环境 static_url 必须以 https:// 开头，当前值: ' + static_url);
+        }
+        if (!appid) {
+            throw new Error('[CONFIG][PROD] UNI_APP_WX_APPID 未配置，生产构建终止。必须在 .env.production 中设置正式 AppID');
+        }
+        if (TEST_APPIDS.indexOf(appid) !== -1) {
+            throw new Error('[CONFIG][PROD] UNI_APP_WX_APPID 为测试号 (' + appid + ')，生产环境必须使用正式 AppID');
+        }
     }
 
     return {

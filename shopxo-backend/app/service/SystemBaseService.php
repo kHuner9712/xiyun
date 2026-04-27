@@ -256,6 +256,20 @@ class SystemBaseService
         ];
         $config = array_merge($config, $feature_flags);
 
+        // [MUYING-二开] 输出资质状态，前端需要用于合规判断
+        $qualifications = [
+            'qualification_icp_commercial' => (int) MyC('qualification_icp_commercial', 0),
+            'qualification_edi'            => (int) MyC('qualification_edi', 0),
+            'qualification_medical'        => (int) MyC('qualification_medical', 0),
+            'qualification_live'           => (int) MyC('qualification_live', 0),
+            'qualification_payment'        => (int) MyC('qualification_payment', 0),
+        ];
+        $config = array_merge($config, $qualifications);
+
+        // [MUYING-二开] 输出免责声明和禁止分类
+        $config['muying_disclaimer'] = MuyingContentComplianceService::GetDisclaimerText();
+        $config['muying_blocked_categories'] = MuyingContentComplianceService::GetBlockedCategories();
+
         // 首页数据模式、存在diy则等于3
         $diy_id = DiyService::AppClientHomeDiyId();
         if(!empty($diy_id))

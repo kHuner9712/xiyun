@@ -334,11 +334,6 @@
                         url: 'user-favor',
                         count: old_nav.length > 0 ? old_nav[1].count : 0,
                     },
-                    {
-                        name: this.$t('user.user.k78280'),
-                        url: 'user-integral',
-                        count: old_nav.length > 0 ? old_nav[2].count : 0,
-                    },
                 ];
                 var nav_logout_data =
                     user == null
@@ -434,7 +429,6 @@
                             var temp_head_nav_list = this.head_nav_list;
                             temp_head_nav_list[0]['count'] = (data.user_order_count || 0) == 0 ? 0 : data.user_order_count;
                             temp_head_nav_list[1]['count'] = (data.user_goods_favor_count || 0) == 0 ? 0 : data.user_goods_favor_count;
-                            temp_head_nav_list[2]['count'] = (data.integral || 0) == 0 ? 0 : data.integral;
 
                             // 订单状态总数
                             var user_order_status_list = [

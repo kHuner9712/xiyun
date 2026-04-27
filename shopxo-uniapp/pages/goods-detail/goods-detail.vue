@@ -73,13 +73,14 @@
             </view>
 
             <!-- 价格信息 -->
-            <view class="goods-base-price bg-white oh spacing-mb" :class="plugins_seckill_is_valid ? 'goods-base-price-countdown' : ''">
+            <!-- [MUYING-二开] 秒杀样式增加 SECKILL feature flag 门控 -->
+            <view class="goods-base-price bg-white oh spacing-mb" :class="(plugins_seckill_is_valid && is_feature_enabled(FeatureFlagKey.SECKILL)) ? 'goods-base-price-countdown' : ''">
                 <!-- 批发规则、未隐藏商品售价的时候独立行展示 -->
                 <block v-if="(plugins_wholesale_data || null) != null && (plugins_wholesale_data.is_hide_goods_price || 0) != 1">
                     <component-wholesale-rules :propIsPopup="true" :propCurrencySymbol="currency_symbol" :propData="plugins_wholesale_data" :propIsAlone="true"></component-wholesale-rules>
                 </block>
                 <!-- 价格 -->
-                <view class="price-content padding-vertical-main padding-left-main bs-bb fl" :style="plugins_seckill_is_valid ? 'background-image: url(' + plugins_seckill_data.goods_detail_header + ')' : ''">
+                <view class="price-content padding-vertical-main padding-left-main bs-bb fl" :style="(plugins_seckill_is_valid && is_feature_enabled(FeatureFlagKey.SECKILL)) ? 'background-image: url(' + plugins_seckill_data.goods_detail_header + ')' : ''">
                     <!-- 批发插件是否开启隐藏价格信息 -->
                     <block v-if="(plugins_wholesale_data || null) == null || (plugins_wholesale_data.is_hide_goods_price || 0) != 1">
                         <!-- 售价 -->
@@ -92,8 +93,8 @@
                         </view>
                         <!-- 原价 -->
                         <view v-if="(goods.show_field_original_price_status || 0) == 1 && (goods_spec_base_original_price || null) != null && goods_spec_base_original_price != 0" class="item original-price single-text">{{ goods.show_original_price_symbol }}{{ goods_spec_base_original_price }}{{ goods_show_original_price_unit }}</view>
-                        <!-- 积分兑换 -->
-                        <view v-if="(goods.plugins_points_data || null) != null && (goods.plugins_points_data.is_goods_detail_show || 0) == 1" class="item">
+                        <!-- [MUYING-二开] 积分兑换增加 POINTS feature flag 门控 -->
+                        <view v-if="is_feature_enabled(FeatureFlagKey.POINTS) && (goods.plugins_points_data || null) != null && (goods.plugins_points_data.is_goods_detail_show || 0) == 1" class="item">
                             <text class="points-price-value text-size-lg cr-base va-m">{{ goods.plugins_points_data.points_value }}</text>
                             <text class="points-price-unit text-size-xs cr-grey va-m margin-left-xs">{{goods.plugins_points_data.points_unit}}</text>
                         </view>
@@ -103,7 +104,7 @@
                         <component-wholesale-rules :propIsPopup="true" :propCurrencySymbol="currency_symbol" :propData="plugins_wholesale_data"></component-wholesale-rules>
                     </block>
                 </view>
-                <block v-if="plugins_seckill_is_valid">
+                <block v-if="plugins_seckill_is_valid && is_feature_enabled(FeatureFlagKey.SECKILL)">
                     <view class="countdown-content padding-top-lg padding-bottom-lg padding-left-xs padding-right-xs fr tc">
                         <view class="time-title cr-white single-text">{{ plugins_seckill_data.goods_detail_title || $t('goods-detail.goods-detail.775ppk') }}</view>
                         <component-countdown
@@ -312,8 +313,8 @@
                     <iconfont name="icon-arrow-right" color="#999" propClass="va-m"></iconfont>
                 </view>
 
-                <!-- 组合搭配 -->
-                <block v-if="plugins_binding_data != null">
+                <!-- [MUYING-二开] 组合搭配增加 binding 插件门控（永久屏蔽插件） -->
+                <block v-if="is_plugin_allowed('binding') && plugins_binding_data != null">
                     <view class="muying-binding-container muying-card spacing-mb">
                         <view class="muying-binding-header flex-row align-c">
                             <text class="muying-binding-title">推荐搭配</text>
@@ -323,8 +324,8 @@
                     </view>
                 </block>
 
-                <!-- 门店 -->
-                <view v-if="plugins_realstore_data != null && ((plugins_realstore_data.data || null) != null) && plugins_realstore_data.data.length > 0" class="plugins-realstore-container">
+                <!-- [MUYING-二开] 门店增加 REALSTORE feature flag 门控 -->
+                <view v-if="is_feature_enabled(FeatureFlagKey.REALSTORE) && plugins_realstore_data != null && ((plugins_realstore_data.data || null) != null) && plugins_realstore_data.data.length > 0" class="plugins-realstore-container">
                     <view class="spacing-nav-title flex-row align-c jc-sb text-size-xs">
                         <text class="text-wrapper title-left-border single-text flex-1 flex-width padding-right-main">{{$t('goods-detail.goods-detail.317jp2')}}</text>
                         <text :data-value="'/pages/plugins/realstore/search/search?goods_id='+goods.id" @tap="url_event" class="arrow-right padding-right cr-grey cp">{{$t('common.more')}}</text>
@@ -332,8 +333,8 @@
                     <component-realstore-list :propData="{...{data: plugins_realstore_data.data}, ...{random: random_value}}" :propRealstoreDetailQuery="'&source_goods_id='+goods.id" :propIsFavor="false"></component-realstore-list>
                 </view>
 
-                <!-- 多商户 -->
-                <block v-if="plugins_shop_data != null">
+                <!-- [MUYING-二开] 多商户增加 SHOP feature flag 门控 -->
+                <block v-if="is_feature_enabled(FeatureFlagKey.SHOP) && plugins_shop_data != null">
                     <component-shop-list :propData="{...{data: [plugins_shop_data]}, ...{random: random_value}}"></component-shop-list>
                 </block>
 
@@ -358,8 +359,8 @@
                         </view>
                     </view>
                 </view>
-                <!-- 问答 -->
-                <view v-if="(plugins_ask_data || null) !== null && (plugins_ask_data.is_ask_add || 0) == 1" class="goods-comment spacing-mb">
+                <!-- [MUYING-二开] 问答增加 UGC feature flag 门控 -->
+                <view v-if="is_feature_enabled(FeatureFlagKey.UGC) && (plugins_ask_data || null) !== null && (plugins_ask_data.is_ask_add || 0) == 1" class="goods-comment spacing-mb">
                     <view class="spacing-nav-title flex-row align-c jc-sb text-size-xs">
                         <view class="title-left">
                             <text class="text-wrapper title-left-border">{{$t('goods-detail.goods-detail.k5u755')}}</text>
@@ -574,7 +575,8 @@
                             <iconfont name="icon-close-line" size="28rpx" color="#999"></iconfont>
                         </view>
                     </view>
-                    <view class="plugins-coupon-container padding-bottom-main">
+                    <!-- [MUYING-二开] 优惠券增加 COUPON feature flag 门控 -->
+                    <view v-if="is_feature_enabled(FeatureFlagKey.COUPON)" class="plugins-coupon-container padding-bottom-main">
                         <block v-if="(plugins_coupon_data || null) != null && plugins_coupon_data.data.length > 0">
                             <block v-for="(item, index) in plugins_coupon_data.data" :key="index">
                                 <component-coupon-card :propData="item" :propStatusType="item.status_type" :propStatusOperableName="item.status_operable_name" :propIndex="index" propIsProgress @call-back="coupon_receive_back_event"></component-coupon-card>
@@ -700,6 +702,9 @@
     import componentGoodsCompare from '@/pages/goods-detail/components/common/goods-compare/goods-compare';
     import componentFormInputBase from '@/pages/form-input/components/form-input/form-input-base';
     import { MuyingStage } from '@/common/js/config/muying-enum';
+    import { is_feature_enabled } from '@/common/js/config/phase-one-scope.js';
+    import { is_plugin_allowed } from '@/common/js/config/compliance-scope.js';
+    import { FeatureFlagKey } from '@/common/js/config/muying-constants.js';
 
     var common_static_url = app.globalData.get_static_url('common');
     var system_info = app.globalData.get_system_info() || {};

@@ -20,6 +20,7 @@
 </template>
 <script>
     const app = getApp();
+    import { is_feature_enabled, FeatureFlagKey } from '@/common/js/config/compliance-scope.js';
     import base64 from '@/common/js/lib/base64.js';
     import componentCommon from '@/components/common/common';
     export default {
@@ -40,6 +41,12 @@
          * 页面加载初始化
          */
         onLoad(params) {
+            // [MUYING-二开] 一期提审：支付结果页受支付功能开关控制
+            if (!is_feature_enabled(FeatureFlagKey.PAYMENT)) {
+                uni.redirectTo({ url: '/pages/error/error?msg=支付功能暂未开放' });
+                return;
+            }
+
             // 参数处理
             if((params || null) != null) {
                 params = JSON.parse(base64.decode(decodeURIComponent(params.params)));

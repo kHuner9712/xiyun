@@ -60,9 +60,8 @@
                     { id: 'order_count', name: '订单总数', value: '100', url: 'user-order' },
                     { id: 'goods_favor_count', name: '商品收藏', value: '10', url: 'user-favor' },
                     { id: 'goods_browse_count', name: '我的足迹', value: '1000', url: 'user-goods-browse' },
-                    { id: 'integral_number', name: '我的积分', value: '10000', url: 'user-integral' },
                 ],
-                config: ['order_count', 'goods_favor_count', 'goods_browse_count', 'integral_number'],
+                config: ['order_count', 'goods_favor_count', 'goods_browse_count'],
                 icon_setting: [
                     { id: '1', img: [], icon: '', link: {} },
                     { id: '2', img: [], icon: '', link: {} },

@@ -222,11 +222,15 @@ class MuyingComplianceService
     {
         $result = [];
         $all_keys = array_keys(self::$FEATURE_FLAG_PLUGIN_MAP);
+        // [MUYING-二开] 统一 phase_one_keys 定义，与 IsPhaseOneFeatureKey 保持一致
         $phase_one_keys = [
             'feature_activity_enabled',
             'feature_invite_enabled',
             'feature_content_enabled',
             'feature_feedback_enabled',
+        ];
+        // 一期受控功能（默认关闭，后台可按需开启，需资质+约束）
+        $phase_one_controlled_keys = [
             'feature_coupon_enabled',
             'feature_signin_enabled',
             'feature_points_enabled',
@@ -237,7 +241,13 @@ class MuyingComplianceService
             'feature_membership_v2_enabled',
             'feature_wallet_v2_enabled',
         ];
-        $all_keys = array_merge($all_keys, $phase_one_keys, $v2_keys);
+        $payment_keys = [
+            'feature_payment_enabled',
+        ];
+        $dynamic_page_keys = [
+            'feature_dynamic_page_enabled',
+        ];
+        $all_keys = array_merge($all_keys, $phase_one_keys, $phase_one_controlled_keys, $v2_keys, $payment_keys, $dynamic_page_keys);
         foreach ($all_keys as $key) {
             $result[$key] = intval(MyC($key, 0));
         }
@@ -509,6 +519,106 @@ class MuyingComplianceService
         } catch (\Exception $e) {
             return 0;
         }
+    }
+
+    public static function FilterNavigationItems($items)
+    {
+        if (empty($items) || !is_array($items)) {
+            return [];
+        }
+        $blocked_plugins = self::GetEffectiveBlockedPlugins();
+        if (empty($blocked_plugins)) {
+            return $items;
+        }
+        $filtered = [];
+        foreach ($items as $item) {
+            if (self::IsNavigationItemBlocked($item, $blocked_plugins)) {
+                continue;
+            }
+            if (!empty($item['extension_data']) && is_array($item['extension_data'])) {
+                $item['extension_data'] = self::FilterNavigationItems($item['extension_data']);
+            }
+            $filtered[] = $item;
+        }
+        return $filtered;
+    }
+
+    public static function IsNavigationItemBlocked($item, $blocked_plugins)
+    {
+        $event_value = isset($item['event_value']) ? $item['event_value'] : '';
+        if (empty($event_value)) {
+            return false;
+        }
+        foreach ($blocked_plugins as $plugin) {
+            if (strpos($event_value, "/pages/plugins/{$plugin}/") !== false) {
+                return true;
+            }
+        }
+        $blocked_system_routes = [
+            '/pages/user-integral/user-integral',
+        ];
+        foreach ($blocked_system_routes as $route) {
+            if (strpos($event_value, $route) !== false) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static function FilterPluginSortList($list)
+    {
+        if (empty($list) || !is_array($list)) {
+            return [];
+        }
+        $filtered = [];
+        foreach ($list as $item) {
+            $plugins_name = isset($item['plugins']) ? strtolower(trim($item['plugins'])) : '';
+            if (empty($plugins_name) || self::IsPluginBlocked($plugins_name)) {
+                continue;
+            }
+            $filtered[] = $item;
+        }
+        return $filtered;
+    }
+
+    public static function IsPaymentEnabled()
+    {
+        return intval(MyC('feature_payment_enabled', 0)) === 1;
+    }
+
+    public static function CheckPaymentEnabled($return_error = true)
+    {
+        if (!self::IsPaymentEnabled()) {
+            if ($return_error) {
+                return DataReturn('线上支付暂未开放', -403);
+            }
+            return false;
+        }
+        return true;
+    }
+
+    private static $PAYMENT_REQUIRED_ACTIONS = [
+        'order'     => ['pay', 'paycheck'],
+        'cashier'   => ['paydata'],
+        'paylog'    => ['index', 'detail'],
+    ];
+
+    public static function IsActionPaymentRequired($controller, $action)
+    {
+        $ctrl = strtolower($controller);
+        $act = strtolower($action);
+        if (isset(self::$PAYMENT_REQUIRED_ACTIONS[$ctrl])) {
+            return in_array($act, self::$PAYMENT_REQUIRED_ACTIONS[$ctrl]);
+        }
+        return false;
+    }
+
+    public static function AssertPaymentEnabledForAction($controller, $action)
+    {
+        if (self::IsActionPaymentRequired($controller, $action)) {
+            return self::CheckPaymentEnabled(true);
+        }
+        return true;
     }
 
     public static function GetDashboardSummary()

@@ -678,7 +678,6 @@ class LayoutModule
             'user_goods_favor_list'                     => '/pages/user-favor/user-favor',
             'user_address_list'                         => '/pages/user-address/user-address',
             'user_goods_browse_list'                    => '/pages/user-goods-browse/user-goods-browse',
-            'user_integral_list'                        => '/pages/user-integral/user-integral',
             'user_message_list'                         => '/pages/message/message',
         ];
 

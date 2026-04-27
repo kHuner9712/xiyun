@@ -1089,3 +1089,367 @@
 
 - **commit**: `a3fc533`
 - **message**: `chore(uat): add baota runtime checks and experience build test report`
+
+## 2026-04-26 — 第二六轮前端合规门控缺口修复与敏感信息清理
+
+### 整改目标
+
+修复审查发现的前端合规门控缺口、后端定义不一致、文档敏感信息泄露等问题。
+
+### 核心变更
+
+1. security-rotation.md 10 个真实 API 密钥替换为 REDACTED_*
+2. cart.vue HOSPITAL 门控 + REALSTORE 数据门控
+3. goods-detail.vue SECKILL/POINTS/BINDING/REALSTORE/SHOP 门控
+4. buy.vue REALSTORE 数据门控
+5. user-orderaftersale-detail.vue SHOP 数据门控
+6. payment.vue case 2 钱包支付拦截
+7. 后端 IsPhaseOneFeatureKey 统一
+8. 文档内网 IP 替换为占位符
+9. .gitignore 补充证书文件规则
+
+### 修改文件清单
+
+| 文件 | 修改内容 |
+|------|----------|
+| shopxo-uniapp/components/cart/cart.vue | HOSPITAL 门控 + REALSTORE 数据门控 |
+| shopxo-uniapp/pages/goods-detail/goods-detail.vue | SECKILL/POINTS/BINDING/REALSTORE/SHOP 门控 |
+| shopxo-uniapp/pages/buy/buy.vue | REALSTORE 数据门控 |
+| shopxo-uniapp/pages/user-orderaftersale-detail/user-orderaftersale-detail.vue | SHOP 数据门控 |
+| shopxo-uniapp/components/payment/payment.vue | case 2 钱包支付拦截 |
+| shopxo-backend/app/service/MuyingComplianceService.php | IsPhaseOneFeatureKey 统一 |
+| docs/archive/guides/security-rotation.md | API 密钥脱敏 |
+| docs/archive/ 5个文件 | 内网 IP 替换 |
+| .gitignore | 证书文件规则 |
+
+### 遗留风险
+
+| # | 风险 | 严重性 | 说明 |
+| --- | ---- | ------ | ---- |
+| 1 | git 历史中仍有真实密钥 | 高 | 需 git filter-repo 清理并轮换密钥 |
+| 2 | pages.json 仍注册 coupon/signin/points 页面 | 中 | 增加包体积 |
+| 3 | 缺少全局导航拦截器 | 中 | uni.navigateTo 未做全局拦截 |
+
+### Commit 信息
+
+| commit | message |
+|--------|---------|
+| c07cb57 | fix(security): redact API keys from docs and add cert patterns to gitignore |
+| 5bec740 | fix(compliance): add feature flag gates for hospital and realstore in cart |
+| 2d41ccf | fix(compliance): add feature flag gates for blocked plugins in goods-detail |
+| d39256d | fix(compliance): add realstore feature flag gate in buy page |
+| b47c9b4 | fix(compliance): gate shop dispute in aftersale detail and block wallet payment case |
+| e7fd889 | fix(compliance): unify IsPhaseOneFeatureKey definition with GetAllFeatureFlags |
+| 626688b | fix(security): replace internal IP addresses with placeholders in docs |
+
+## 2026-04-26 — 第二七轮统一合规配置链路修复
+
+### 整改目标
+
+建立"孕禧一期可上线范围"的统一合规配置，确保前端页面、接口请求、后端接口、后台配置使用同一套 feature flag / qualification gate 逻辑。
+
+### 审查结果
+
+| 比对项 | 结果 |
+|--------|------|
+| PHASE_ONE_BLOCKED_PLUGINS 前后端 | 完全一致（22项） |
+| PERMANENTLY_BLOCKED_PLUGINS 前后端 | 完全一致（10项） |
+| FEATURE_FLAG_PLUGIN_MAP 前后端 | 完全一致（21项） |
+| QUALIFICATION_REQUIRED_MAP 前后端 | 完全一致（19项） |
+| Feature Flags 输出 vs 前端期望 | 完全一致（29项） |
+| Qualification Keys 输出 vs 前端期望 | 完全一致（5项） |
+| CONTROLLER_FEATURE_MAP vs 前端 ACTION_MAP | 1处差异（userintegral） |
+
+### 发现的缺口与修复
+
+| # | 缺口 | 严重性 | 修复 |
+|---|------|--------|------|
+| 1 | 后端 SystemBaseService 未输出 qualifications | P0 | 补齐 5 个 qualification key 输出 |
+| 2 | 后端 CONTROLLER_FEATURE_MAP 仅 6 个控制器 | P0 | 扩展至 28 个控制器覆盖所有高风险功能 |
+| 3 | 前端 http.js -403 响应未自动 toast | P1 | 增加 auto-show toast 逻辑 |
+| 4 | 前端 http.js 拦截请求时未自动 toast | P1 | 增加 auto-show toast 逻辑 |
+| 5 | 前端 http.js 缺少 userintegral 映射 | P2 | 补齐 userintegral → POINTS 映射 |
+
+### 修改文件清单
+
+| 文件 | 修改内容 |
+|------|----------|
+| shopxo-backend/app/service/SystemBaseService.php | 补齐 5 个 qualification key 输出 |
+| shopxo-backend/app/api/controller/Common.php | CONTROLLER_FEATURE_MAP 从 6 扩展至 28 |
+| shopxo-uniapp/common/js/http.js | -403 自动 toast + userintegral 映射 |
+
+### 合规链路验证
+
+| 链路环节 | 状态 | 说明 |
+|----------|------|------|
+| 后端初始化配置返回 feature flags | ✅ | SystemBaseService::Common() 输出 29 个 flag |
+| 后端初始化配置返回 qualifications | ✅ | SystemBaseService::Common() 输出 5 个资质 |
+| 前端启动时调用 init_feature_flags | ✅ | App.vue init_config_result_handle |
+| 前端 http.js 拦截关闭的 controller 请求 | ✅ | FEATURE_FLAG_ACTION_MAP 覆盖 28 个控制器 |
+| 前端 http.js 拦截关闭的 plugins 请求 | ✅ | is_plugin_allowed 检查 |
+| 前端路由拦截禁用页面 | ✅ | uni.addInterceptor 拦截 navigateTo/redirectTo/reLaunch |
+| 后端 CommonInit 自动检查 CONTROLLER_FEATURE_MAP | ✅ | 28 个控制器全覆盖 |
+| 后端返回 -403 时前端自动 toast | ✅ | http.js 统一处理 |
+| 前端拦截请求时自动 toast | ✅ | http.js 统一处理 |
+
+### Commit 信息
+
+| commit | message |
+|--------|---------|
+| dcc73e3 | feat(compliance): add qualifications to config output and expand controller feature map |
+| 09dda85 | fix(compliance): auto-show toast on -403 and frontend feature block |
+
+## 2026-04-26 — 第二八轮 pages.json 提审瘦身
+
+### 整改目标
+
+对 shopxo-uniapp/pages.json 做一期提审瘦身，避免微信小程序包里暴露高风险功能页面。
+
+### 从 pages.json 移除的页面（9个 subPackage）
+
+| 页面路径 | 原因 |
+|----------|------|
+| pages/form-input-data/form-input-data | form 插件数据页，一期不需要 |
+| pages/form-input-data-detail/form-input-data-detail | form 插件数据详情 |
+| pages/user-integral/user-integral | 积分页面，一期禁用 |
+| pages/paylog-list/paylog-list | 支付记录，一期禁用 |
+| pages/paylog-detail/paylog-detail | 支付记录详情 |
+| pages/web-view/web-view | 非必要 web-view |
+| pages/plugins/coupon (3个子页面) | 优惠券，一期禁用 |
+| pages/plugins/signin (2个子页面) | 签到，一期禁用 |
+| pages/plugins/points (1个子页面) | 积分，一期禁用 |
+
+### pages.json 组件引用清理
+
+| 页面 | 移除的组件引用 | 原因 |
+|------|---------------|------|
+| user-order-detail | component-hospital-order-detail | hospital 在 BLOCKED_PLUGINS 中 |
+| goods-detail | component-goods-compare | goodscompare 在 PERMANENTLY_BLOCKED 中 |
+
+### 前端导航门控修复
+
+| 文件 | 修复内容 |
+|------|----------|
+| App.vue | 清理 pages_always 白名单中的高风险页面 |
+| App.vue | open_web_view 改为 agreement 页面或 toast 提示 |
+| activity-signup.vue | web-view 改为 agreement 页面 |
+| goods-detail.vue | 优惠券区域增加 COUPON 门控 |
+| goods-detail.vue | 问答区域增加 UGC 门控 |
+| user-order-detail.vue | realstore 按钮增加 REALSTORE 门控 |
+| user-order-detail.vue | ordergoodsform/orderresources/orderfeed 按钮增加门控 |
+| user-order-detail.vue | intellectstools 按钮增加 INTELLECTSTOOLS 门控 |
+| user-order-detail.vue | hospital 组件增加 HOSPITAL 门控 |
+
+### 后台菜单数据过滤现状
+
+后端不对导航菜单数据进行一期合规过滤，完全依赖前端 filter_phase_one_navigation / filter_phase_one_plugin_sort_list 过滤。后端负责 API 层 -403 拦截。这个设计是合理的。
+
+### Commit 信息
+
+| commit | message |
+|--------|---------|
+| 663cdb4 | feat(compliance): slim down pages.json for phase-one review and gate high-risk navigation |
+
+## 2026-04-26 — 第二九轮活动报名隐私授权拆分
+
+### 整改目标
+
+将活动报名的"隐私同意"和"画像同步同意"拆分为两个独立勾选项，降低敏感个人信息风险。
+
+### 核心变更
+
+1. 前端报名页增加两个独立勾选：
+   - 必选：我已阅读并同意《隐私政策》，并同意提交本次活动报名所需信息
+   - 可选：我同意将孕育阶段、预产期/宝宝生日等信息同步到个人资料，用于推荐更适合的活动和内容
+
+2. 后端 ActivitySignup 增加 profile_sync_agreed 参数校验
+
+3. 画像同步逻辑改为仅在 profile_sync_agreed = 1 时执行
+
+4. 画像一致性修复：
+   - pregnancy：写 current_stage = pregnancy，写 due_date，清空 baby_birthday
+   - postpartum：写 current_stage = postpartum，写 baby_birthday，清空 due_date
+   - trying 或其他：写 current_stage，清空 due_date 和 baby_birthday
+
+5. 报名记录增加 profile_sync_agreed 和 profile_sync_agreed_time 字段
+
+### 修改文件清单
+
+| 文件 | 修改内容 |
+|------|----------|
+| shopxo-uniapp/pages/activity-signup/activity-signup.vue | 双勾选 UI + profile_sync_agreed 参数 |
+| shopxo-backend/app/service/ActivityService.php | 参数校验 + 画像同步条件 + 一致性修复 |
+| docs/sql/muying-activity-signup-privacy-split-migration.sql | 数据库迁移脚本 |
+
+### 自测场景
+
+| 场景 | 预期结果 |
+|------|----------|
+| 不勾选隐私协议提交 | 提示"请阅读并同意隐私告知"，不提交 |
+| 只勾选隐私协议，不勾选同步画像 | 报名成功，用户画像不更新 |
+| 勾选隐私协议 + 同步画像 | 报名成功，用户画像按阶段一致更新 |
+| 手机号重复报名 | 仍被拦截 |
+| 活动满员/候补 | 逻辑不被破坏 |
+
+### Commit 信息
+
+| commit | message |
+|--------|---------|
+| 7a2f860 | feat(privacy): split activity signup consent into privacy-agreed and profile-sync-agreed |
+
+## 2026-04-26 — 第三十轮生产环境构建配置强化
+
+### 整改目标
+
+完善生产环境构建配置，确保正式小程序上线时不会误用测试号、内网IP、HTTP、空AppID或本地开发配置。
+
+### 核心变更
+
+1. runtime-config.js 增加生产环境强制门禁（throw Error）：
+   - UNI_APP_REQUEST_URL 必须存在
+   - 必须以 https:// 开头
+   - 禁止 localhost/127.0.0.1/0.0.0.0/内网IP
+   - static_url 必须以 https:// 开头
+   - UNI_APP_WX_APPID 必须配置
+   - 禁止测试号 AppID wxda7779770f53e901
+
+2. .env.production.example 完善：
+   - UPLOAD_URL 从注释改为默认启用
+   - 增加 HTTPS 必须说明
+
+3. .env.example 增加生产环境配置说明：
+   - 正式提审必须 HTTPS + 正式 AppID
+   - 微信公众平台域名配置提醒
+   - 后端域名备案要求
+
+### 敏感信息扫描结果
+
+| 检查项 | 结果 |
+|--------|------|
+| .env 文件被 git 跟踪 | ✅ 无（只有 .example 文件被跟踪） |
+| manifest.json appid | ✅ 空字符串 |
+| project.config.json appid | ✅ 空字符串 |
+| AppSecret 硬编码 | ✅ 无 |
+| 真实域名泄露 | ✅ 无（只有上游 shopxo.vip 演示域名） |
+| 公网 IP 泄露 | ✅ 无 |
+
+### 生产门禁双重校验
+
+| 校验层 | 文件 | 方式 |
+|--------|------|------|
+| 第一层 | runtime-config.js | build_runtime_config() 内 throw Error |
+| 第二层 | prod.js | NODE_ENV=production 时 throw Error |
+
+### 自测场景
+
+| 场景 | 预期结果 |
+|------|----------|
+| development 构建 + 本地地址 | 正常 |
+| production 构建 + 缺失 AppID | throw Error 构建失败 |
+| production 构建 + HTTP 地址 | throw Error 构建失败 |
+| production 构建 + 内网 IP | throw Error 构建失败 |
+| production 构建 + 测试号 AppID | throw Error 构建失败 |
+
+### Commit 信息
+
+| commit | message |
+|--------|---------|
+| 229a46a | feat(config): harden production build gates in runtime-config and update env templates |
+
+## 2026-04-26 — 第三一轮生产部署安全配置与文档
+
+### 整改目标
+
+补齐生产部署安全配置和文档，避免部署后暴露敏感目录、安装入口、数据库、phpMyAdmin 等风险。
+
+### 核心变更
+
+1. 新增 docs/deployment-bt-production.md 宝塔生产部署指南，包含：
+   - 宝塔网站运行目录设为 /public
+   - PHP 8.1 / MySQL 5.7 版本要求
+   - APP_DEBUG = false
+   - 数据库独立用户（非 root）
+   - MySQL 3306 不开放公网
+   - phpMyAdmin 限制 IP 白名单
+   - HTTPS 开启
+   - ThinkPHP 伪静态配置
+   - Nginx 安全规则（deny .env/runtime/vendor/app/config/sql/install.php）
+   - 后台入口改为随机路径 + IP 限制
+   - MUYING_PRIVACY_KEY 独立生成并离线保存
+   - 数据库/上传目录每日备份
+   - 安全检查清单（15项）
+
+2. 补充 deploy/nginx.production.example.conf 安全规则：
+   - deny runtime 目录
+   - deny vendor 目录
+   - deny app 目录
+   - deny config 目录
+   - deny *.sql 文件
+   - deny install.php
+
+3. .gitignore 确认已覆盖所有必要项
+
+### 修改文件清单
+
+| 文件 | 修改内容 |
+|------|----------|
+| docs/deployment-bt-production.md | 新增宝塔生产部署指南 |
+| deploy/nginx.production.example.conf | 补充 6 条 deny 规则 |
+
+### Commit 信息
+
+| commit | message |
+|--------|---------|
+| 0df8f17 | docs(deployment): add BT panel production guide and harden Nginx security rules |
+
+## 2026-04-27 — 第三二轮提审前二次加固
+
+### 整改目标
+
+在 review-remediation-phase1 分支上做提审前二次加固，修复合规门控缺口、增强支付拦截、完善路由守卫、确保 SQL 迁移幂等。
+
+### 核心变更
+
+1. **后端 Common.php 补充 cashier/paylog 映射** — CONTROLLER_FEATURE_MAP 从 27 扩展至 29，覆盖支付相关控制器安全网
+2. **前端 payment.vue 扩展支付方式过滤** — 从仅过滤 WalletPay 扩展为过滤全部 6 种不合规支付方式（WalletPay/ChargePayment/CoinPay/UniPayment/GiftCardPay/ScanPay）
+3. **前端 buy.vue 补充积分/虚拟币门控** — 积分抵扣 UI 和提交参数增加 feature_points_enabled 门控；虚拟币数据和提交参数增加 feature_coin_enabled 门控
+4. **前端 App.vue 路由拦截器补充 switchTab** — 从 3 种跳转方式扩展为 4 种（navigateTo/redirectTo/reLaunch/switchTab）
+5. **SQL 迁移脚本幂等修复** — muying-activity-signup-privacy-split-migration.sql 改为 information_schema 判断字段是否存在
+6. **检查脚本增强** — check-migration.js 识别 ON DUPLICATE KEY UPDATE 幂等保护
+
+### 修改文件清单
+
+| 文件 | 修改内容 |
+|------|----------|
+| shopxo-backend/app/api/controller/Common.php | CONTROLLER_FEATURE_MAP 增加 cashier/paylog |
+| shopxo-uniapp/components/payment/payment.vue | payment_list_filtered 扩展过滤 + pay_handle 扩展拦截 |
+| shopxo-uniapp/pages/buy/buy.vue | 积分/虚拟币 UI 和提交参数增加 feature flag 门控 |
+| shopxo-uniapp/App.vue | 路由拦截器增加 switchTab |
+| docs/sql/muying-activity-signup-privacy-split-migration.sql | 改为幂等版本 |
+| scripts/preflight/check-migration.js | 识别 ON DUPLICATE KEY UPDATE |
+
+### 自测结果
+
+| 验证项 | 结果 |
+|--------|------|
+| CONTROLLER_FEATURE_MAP 覆盖 29 个控制器 | ✅ |
+| payment.vue 过滤 6 种不合规支付方式 | ✅ |
+| buy.vue 积分/虚拟币受 feature flag 控制 | ✅ |
+| 路由拦截器覆盖 4 种跳转方式 | ✅ |
+| SQL 迁移检查 0 错误 2 警告 | ✅ |
+| 自检脚本 11 PASS / 3 WARN / 1 BLOCKER(install.php) | ✅ |
+| 无真实密钥/密码/IP 泄露到 git 跟踪文件 | ✅ |
+
+### 遗留风险
+
+| # | 风险 | 严重性 | 说明 |
+|---|------|--------|------|
+| 1 | install.php 仍存在于仓库 | BLOCKER(部署时) | ShopXO 原始文件，部署时由脚本删除 |
+| 2 | git 历史中仍有旧密钥 | 高 | 需 git filter-repo 清理并轮换密钥 |
+| 3 | 演示数据 SQL 非幂等 | 低 | 仅执行一次，重复执行会产生重复数据 |
+
+### Commit 信息
+
+| commit | message |
+|--------|---------|
+| 13bf70f | fix(review): harden compliance gates for RC submission readiness |
