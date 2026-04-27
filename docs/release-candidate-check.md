@@ -19,14 +19,17 @@
 
 | 项目 | 值 |
 |------|-----|
-| Ahead commits | **28** |
-| 变更文件数 | **63** |
-| 增加行数 | +2,469 |
+| Ahead commits | **33** |
+| 变更文件数 | **66** |
+| 增加行数 | +3,218 |
 | 删除行数 | -2,173 |
 
 ### Commit 列表
 
 ```
+527cf9c docs(submit): add WeChat mini-program submission human tasks checklist
+aed40a0 docs(uat): add server acceptance and functional test checklist
+df2fd97 docs(release): add release candidate check report for phase1 merge
 d65cd31 fix(payment): add centralized action-level payment gate
 1b247db feat(review): converge dynamic/payment pages for RC submission
 08c9488 fix(release): remove install entry from production package
@@ -109,19 +112,31 @@ node scripts/check-phase1-release.js
 ## 4. PHP 语法检查结果
 
 > ⚠️ 当前环境未安装 PHP CLI，无法执行 `php -l`。
-> 以下为逐文件人工代码审查结果，检查项包括：花括号匹配、分号完整性、方法签名、return 语句、try/catch 闭合。
+> 以下使用 Node.js 脚本执行基础结构检查（花括号匹配、PHP 标签、class/function 结构），**不等同于 `php -l` 编译级检查**。
+> 部署前必须安装 PHP CLI 并执行 `php -l` 逐文件验证。
 
-| # | 文件 | 行数 | 人工审查结果 |
+| # | 文件 | 行数 | 结构检查结果 |
 |---|------|------|-------------|
-| 1 | app/service/MuyingComplianceService.php | 675 | ✅ 无语法问题 |
-| 2 | app/service/ActivityService.php | 1,673 | ✅ 无语法问题 |
-| 3 | app/api/controller/Common.php | 357 | ✅ 无语法问题 |
-| 4 | app/api/controller/Buy.php | 158 | ✅ 无语法问题 |
-| 5 | app/api/controller/Cashier.php | 45 | ✅ 无语法问题 |
-| 6 | app/api/controller/Order.php | 315 | ✅ 无语法问题 |
-| 7 | app/api/controller/Paylog.php | 80 | ✅ 无语法问题 |
+| 1 | app/admin/controller/Activity.php | 134 | ✅ PASS |
+| 2 | app/admin/controller/Article.php | 160 | ✅ PASS |
+| 3 | app/api/controller/Buy.php | 158 | ✅ PASS |
+| 4 | app/api/controller/Cashier.php | 45 | ✅ PASS |
+| 5 | app/api/controller/Common.php | 357 | ✅ PASS |
+| 6 | app/api/controller/Order.php | 315 | ✅ PASS |
+| 7 | app/api/controller/Paylog.php | 80 | ✅ PASS |
+| 8 | app/module/LayoutModule.php | 1,048 | ✅ PASS |
+| 9 | app/service/ActivityService.php | 1,674 | ✅ PASS |
+| 10 | app/service/AppCenterNavService.php | 266 | ✅ PASS |
+| 11 | app/service/AppHomeNavService.php | 268 | ✅ PASS |
+| 12 | app/service/DiyApiService.php | 1,197 | ✅ PASS |
+| 13 | app/service/MuyingComplianceService.php | 676 | ✅ PASS |
+| 14 | app/service/MuyingContentComplianceService.php | 391 | ✅ PASS |
+| 15 | app/service/PluginsService.php | 745 | ✅ PASS |
+| 16 | app/service/QuickNavService.php | 270 | ✅ PASS |
+| 17 | app/service/SystemBaseService.php | 654 | ✅ PASS |
+| 18 | public/install.php | — | SKIP（已从工作区删除） |
 
-**结论**：7 个 PHP 文件人工审查未发现语法错误。但 **必须在部署前使用 `php -l` 逐文件验证**，人工审查不能替代编译级检查。
+**结论**：17 个 PHP 文件基础结构检查全部 PASS，1 个已删除。但 **必须在部署前使用 `php -l` 逐文件验证**，Node.js 结构检查不能替代编译级检查。
 
 ---
 
@@ -132,7 +147,7 @@ node scripts/check-phase1-release.js
 | 项目类型 | uni-app (Vue 2 / webpack) |
 | 构建方式 | HBuilderX IDE |
 | HBuilderX CLI | ❌ 未安装 |
-| npm uni-app CLI | ❌ 未安装 |
+| npm uni-app CLI | ❌ 项目无 CLI 构建脚本（package.json 为插件描述，非构建配置） |
 | 构建结果 | **未执行** |
 
 **原因**：本项目为 HBuilderX 管理的 uni-app 项目，无 CLI 构建脚本。当前开发环境未安装 HBuilderX CLI，无法执行 `uni build -p mp-weixin`。
@@ -154,7 +169,7 @@ node scripts/check-phase1-release.js
 | # | 待办 | 优先级 | 说明 |
 |---|------|--------|------|
 | 1 | HBuilderX 构建 mp-weixin | **P0** | 合并前必须确认构建无报错 |
-| 2 | `php -l` 逐文件语法检查 | **P0** | 部署前必须用 PHP CLI 验证 7 个改动文件 |
+| 2 | `php -l` 逐文件语法检查 | **P0** | 部署前必须用 PHP CLI 验证 18 个改动文件（含 1 个已删除） |
 | 3 | 数据库迁移脚本执行 | **P1** | 需在生产环境执行 `muying-activity-signup-privacy-split-migration.sql`，注意表前缀替换 |
 | 4 | .env.production 配置 | **P1** | 确认生产环境 `feature_payment_enabled=0`、`feature_dynamic_page_enabled=0` 等一期关闭项 |
 | 5 | Nginx 配置部署 | **P1** | 参照 `deploy/nginx.production.example.conf` 更新生产 Nginx，deny /install.php |
@@ -172,3 +187,32 @@ node scripts/check-phase1-release.js
 | 是否可以自动 merge | ❌ 否 — 需人工确认上述待办项后手动合并 |
 
 **建议**：创建 PR `review-remediation-phase1 → main`，在 PR 描述中引用本文档，待人工完成 P0 待办后合并。
+
+---
+
+## 9. 敏感信息扫描结果
+
+> 扫描时间：2026-04-28
+> 扫描方式：git diff -S + grep 正则扫描
+
+| 类别 | 结果 |
+|------|------|
+| AppSecret / AppKey 硬编码 | ✅ 无泄露（仅 trae-remediation-log.md 检查记录中提及） |
+| 真实 AppID | ✅ 仅测试号 `wxda7779770f53e901`（用于 .env.example 和拦截逻辑），公开插件 ID `wx50b5593e81dd937a`/`wx2b03c6e691cd7370` |
+| 密码 / Token / Key | ✅ 无硬编码真实密钥 |
+| 服务器 IP | ✅ 仅 `127.0.0.1`/`0.0.0.0`/`192.168.1.100`（本地/示例），无真实服务器 IP |
+| 数据库密码 | ✅ `.env.example` 中为占位提示文本 |
+
+---
+
+## 10. 自检脚本真实执行记录
+
+> 执行时间：2026-04-28
+> 执行命令：`node scripts/check-phase1-release.js`
+> 执行环境：Node.js v20.18.0 / Windows
+
+```
+PASS: 19  WARN: 3  BLOCKER: 0  总计: 22
+```
+
+与文档第 3 节记录一致，无变化。
